@@ -5,6 +5,7 @@ import { minorToInput } from "@/core/lib/format";
 import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionary";
 import { saveProductAction } from "./actions";
+import { BarcodeField } from "./BarcodeField";
 
 /** ฟอร์มเดียวใช้ทั้งเพิ่มและแก้ไขสินค้า */
 export function ProductForm({
@@ -53,7 +54,7 @@ export function ProductForm({
           defaultValue={money(product?.costMinor)}
           placeholder="0"
         />
-        <Field label={t.inventory.barcode} name="barcode" defaultValue={product?.barcode ?? ""} maxLength={60} autoComplete="off" />
+        <BarcodeField label={t.inventory.barcode} defaultValue={product?.barcode ?? ""} scan={t.scan} />
         <Field label={t.inventory.sku} name="sku" defaultValue={product?.sku ?? ""} maxLength={60} autoComplete="off" />
         <Field
           label={t.inventory.category}

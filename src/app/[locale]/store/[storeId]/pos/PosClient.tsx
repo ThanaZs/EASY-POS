@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useRef, useState, useTransition } from "react";
-import { ArrowLeft, LoaderCircle, Minus, Plus, Printer, Search, ShoppingCart, Trash2, X } from "lucide-react";
+import { ArrowLeft, Camera, LoaderCircle, Minus, Plus, Printer, Search, ShoppingCart, Trash2, X } from "lucide-react";
 import { calcSaleTotals } from "@/core/domain/sale";
+import { CameraScanner } from "@/components/CameraScanner";
 import type { PaymentMethod } from "@/core/domain/types";
 import { fill, formatMoney, parseMoney } from "@/core/lib/format";
 import type { Locale } from "@/i18n/config";
@@ -37,7 +38,7 @@ type Props = {
   allowNegativeStock: boolean;
   receiptFooter: string;
   products: PosProduct[];
-  t: { pos: Dictionary["pos"]; store: { back: string } };
+  t: { pos: Dictionary["pos"]; store: { back: string }; scan: Dictionary["scan"] };
 };
 
 const METHODS: PaymentMethod[] = ["cash", "qr", "card", "transfer"];
@@ -59,6 +60,8 @@ export function PosClient(props: Props) {
   const [receipt, setReceipt] = useState<ReceiptData | null>(null);
   const [pending, startTransition] = useTransition();
   const searchRef = useRef<HTMLInputElement>(null);
+  const [scanOpen, setScanOpen] = useState(false);
+  const [scanStatus, setScanStatus] = useState<string | null>(null);
 
   const byId = useMemo(() => new Map(products.map((p) => [p.id, p])), [products]);
   const categories = useMemo(
@@ -124,6 +127,19 @@ export function PosClient(props: Props) {
     if (target) {
       add(target);
       setSearch("");
+    }
+  }
+
+  /** กล้องเจอบาร์โค้ด → เพิ่มลงตะกร้า (สแกนต่อได้เรื่อยๆ) */
+  function onCameraCode(code: string) {
+    const p = products.find((x) => x.barcode === code || x.sku === code);
+    if (p && remaining(p) > 0) {
+      add(p);
+      setScanStatus(fill(t.scan.added, { name: p.name }));
+    } else if (p) {
+      setScanStatus(`${p.name}: ${t.pos.outOfStock}`);
+    } else {
+      setScanStatus(fill(t.scan.notFound, { code }));
     }
   }
 
@@ -260,7 +276,8 @@ export function PosClient(props: Props) {
         </Link>
         <div className="grid gap-4 pb-24 lg:grid-cols-[1fr_380px] lg:pb-0">
           <section className="min-w-0 space-y-3">
-            <label className="relative block">
+            <div className="flex gap-2">
+            <label className="relative block flex-1">
               <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted" />
               <input
                 ref={searchRef}
@@ -272,6 +289,18 @@ export function PosClient(props: Props) {
                 className="w-full rounded-xl border border-line bg-card py-2.5 pl-9 pr-3 outline-none focus:border-brand"
               />
             </label>
+              <button
+                onClick={() => {
+                  setScanStatus(null);
+                  setScanOpen(true);
+                }}
+                className="grid w-12 shrink-0 place-items-center rounded-xl bg-brand text-white"
+                aria-label={t.scan.button}
+                title={t.scan.button}
+              >
+                <Camera className="size-5" />
+              </button>
+            </div>
             {categories.length > 0 && (
               <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
                 {[null, ...categories].map((c) => (
@@ -341,6 +370,16 @@ export function PosClient(props: Props) {
         </button>
         {cartOpen && <div className="fixed inset-0 z-30 bg-card lg:hidden">{cartPanel}</div>}
       </div>
+
+      {scanOpen && (
+        <CameraScanner
+          continuous
+          onDetected={onCameraCode}
+          onClose={() => setScanOpen(false)}
+          labels={t.scan}
+          status={scanStatus ? `${scanStatus} · ${t.pos.cartShort} ${itemCount} · ${money(totals.totalMinor)}` : null}
+        />
+      )}
 
       {payOpen && (
         <div className="fixed inset-0 z-40 grid place-items-end bg-black/40 sm:place-items-center print:hidden" role="dialog" aria-modal>

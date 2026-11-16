@@ -243,5 +243,14 @@
     "storeCode": "Store code",
     "save": "Save",
     "saved": "Saved"
+  },
+  "scan": {
+    "title": "Scan barcode",
+    "close": "Close",
+    "hint": "Point the barcode inside the frame",
+    "noCamera": "Cannot open the camera — allow camera access in your browser settings (requires https)",
+    "button": "Scan with camera",
+    "added": "✓ Added {name}",
+    "notFound": "No product with barcode {code}"
   }
 }
