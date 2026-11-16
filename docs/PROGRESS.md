@@ -4,10 +4,29 @@
 > เครื่องใหม่ / Claude session ใหม่: อ่านไฟล์นี้ + ROADMAP.md ก่อนเริ่มงาน
 
 ## สถานะปัจจุบัน
-- Phase 2 + ยกเลิกบิล + ตั้งค่าร้าน + สแกนด้วยกล้อง เสร็จบน branch **`dev`** — ทดสอบ local แล้ว, **ยังไม่ deploy**
+- Phase 2 + ยกเลิกบิล + ตั้งค่าร้าน + สแกนด้วยกล้อง + OTP/ลืมรหัสผ่าน เสร็จบน branch **`dev`** — ทดสอบ local แล้ว, **ยังไม่ deploy**
 - DB บน Supabase migrate ถึง `0002` แล้ว (เพิ่มคอลัมน์อย่างเดียว เว็บจริงเวอร์ชันเก่ายังใช้ได้)
 - เว็บจริง https://easy-pos-beta.vercel.app ยังเป็น Phase 1 (deploy = merge `dev` → `main` เมื่อผู้ใช้สั่ง)
 - งานถัดไป: ดู ROADMAP (ยกเลิกบิล/คืนสินค้า, ตั้งค่าร้าน/VAT, สแกนด้วยกล้อง ...)
+
+---
+
+## 2026-11-16 — ยืนยันอีเมล OTP + ลืมรหัสผ่าน + Google (branch dev)
+**กติกาใหม่ (ผู้ใช้สั่ง):** ล็อกอิน/สมัครได้ 2 ทาง — ปุ่ม Google หรือ อีเมล **@gmail.com เท่านั้น** + รหัสผ่าน ที่ต้องยืนยัน OTP ทางอีเมล
+- Better Auth `emailOTP` plugin: OTP 6 หลัก, อายุ 10 นาที, ผิดได้ 5 ครั้ง, เก็บแบบ hash; `requireEmailVerification`
+- เช็ก @gmail ทั้งในฟอร์มและใน hook `/sign-up/email` (ยิง API ตรงก็ถูกปฏิเสธ `GMAIL_ONLY`)
+- ใส่รหัสผ่านผิด → ปุ่ม "ลืมรหัสผ่าน? ส่งรหัสไปที่อีเมล" → `/reset` ใส่ OTP + รหัสใหม่ (ออกจากระบบทุกเครื่อง)
+- บัญชีที่ยังไม่ยืนยัน (เช่นบัญชีที่สมัครก่อนหน้านี้) ล็อกอินด้วยรหัสถูก → ส่ง OTP แล้วไป `/verify`
+- อีเมลที่กำลังยืนยันเก็บใน cookie httpOnly `ep_auth_email` (ไม่ใส่ใน URL)
+- กันส่งรัว: ส่ง OTP ซ้ำได้หลัง 60 วินาที (เช็กจากตาราง verifications — ใช้ได้บน serverless) + rate limit ของ plugin
+- ส่งอีเมล: `src/server/mail.ts` (nodemailer 10.3.1 → Gmail SMTP + App Password), ชื่อผู้ส่ง "EASY-POS (no-reply)",
+  header `Auto-Submitted`; **dev ที่ไม่ได้ตั้ง SMTP จะพิมพ์อีเมล/OTP ลง console แทน**
+- ปุ่ม Google แสดงเมื่อมี `GOOGLE_CLIENT_ID/SECRET`; บัญชี Google อีเมลเดียวกันจะรวมกับบัญชีเดิม (accountLinking)
+- ตรวจแล้ว (local): API ปฏิเสธ hotmail ✅ → สมัคร gmail → /verify → OTP ผิดขึ้น error → OTP ถูกเข้า hub ✅ →
+  ออก → รหัสผิด → ปุ่มลืมรหัสผ่าน → OTP reset → กดส่งซ้ำติด cooldown ✅ → ตั้งรหัสใหม่ → ล็อกอินด้วยรหัสใหม่ ✅; build ✅
+
+**ต้องตั้งก่อน deploy:** `SMTP_USER`, `SMTP_PASS` (App Password) บน Vercel — ไม่งั้นสมัคร/ลืมรหัสผ่านบนเว็บจริงจะ error
+**ไม่บังคับ:** Google OAuth (`GOOGLE_CLIENT_ID/SECRET`, redirect `<APP_URL>/api/auth/callback/google`)
 
 ---
 

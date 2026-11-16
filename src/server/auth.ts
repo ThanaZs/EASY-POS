@@ -1,11 +1,17 @@
 import "server-only";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { APIError, createAuthMiddleware } from "better-auth/api";
 import { nextCookies } from "better-auth/next-js";
+import { emailOTP } from "better-auth/plugins/email-otp";
 import { getDb } from "@/adapters/db/postgres/client";
 import * as schema from "@/adapters/db/postgres/schema";
 import { defaultLocale, defaultTimeZone } from "@/i18n/config";
 import { appUrl, env, trustedOrigins } from "./env";
+import { sendOtpMail } from "./mail";
+
+/** สมัครด้วยอีเมล+รหัสผ่านได้เฉพาะ Gmail (Google ยืนยันตัวตนเจ้าของอีเมลแล้ว) */
+export const isGmail = (email: string) => /^[a-z0-9._%+-]+@(gmail|googlemail)\.com$/i.test(email.trim());
 
 // Better Auth — เก็บ user/session ใน Postgres ตัวเดียวกับข้อมูลร้าน
 // เปลี่ยนผู้ให้บริการ auth: แก้ไฟล์นี้ + src/server/session.ts เท่านั้น (หน้าเว็บเรียกผ่าน session.ts)
@@ -34,12 +40,41 @@ function createAuth() {
       // (ผลข้างเคียง: ออกจากระบบที่เครื่องอื่น/แก้โปรไฟล์ อาจช้าสุด 5 นาที — แก้โปรไฟล์จะ refresh ให้ใน saveAccountAction)
       cookieCache: { enabled: true, maxAge: 5 * 60 },
     },
-    account: { modelName: "accounts" },
     verification: { modelName: "verifications" },
     advanced: { database: { generateId: "uuid" } }, // ให้ Postgres สร้าง uuid เอง
-    emailAndPassword: { enabled: true, minPasswordLength: 8 },
+    emailAndPassword: {
+      enabled: true,
+      minPasswordLength: 8,
+      requireEmailVerification: true, // ต้องยืนยัน OTP ก่อนถึงจะล็อกอินได้
+      revokeSessionsOnPasswordReset: true, // ตั้งรหัสใหม่ → เครื่องอื่นหลุดหมด
+    },
+    emailVerification: { autoSignInAfterVerification: true },
     socialProviders: google,
-    plugins: [nextCookies()], // ให้ server action ตั้ง cookie session ได้
+    // ล็อกอิน Google ด้วยอีเมลเดียวกับบัญชีที่สมัครไว้ → รวมเป็นบัญชีเดียว (Google ยืนยันอีเมลแล้ว)
+    account: { modelName: "accounts", accountLinking: { enabled: true, trustedProviders: ["google"] } },
+    hooks: {
+      before: createAuthMiddleware(async (ctx) => {
+        if (ctx.path === "/sign-up/email" && !isGmail(String(ctx.body?.email ?? ""))) {
+          throw new APIError("BAD_REQUEST", { message: "Only @gmail.com addresses can sign up", code: "GMAIL_ONLY" });
+        }
+      }),
+    },
+    plugins: [
+      emailOTP({
+        otpLength: 6,
+        expiresIn: 10 * 60,
+        allowedAttempts: 5, // ใส่ผิดเกิน 5 ครั้ง → ต้องขอรหัสใหม่
+        storeOTP: "hashed",
+        sendVerificationOnSignUp: true,
+        overrideDefaultEmailVerification: true,
+        disableSignUp: true, // OTP ใช้สร้างบัญชีใหม่ไม่ได้ (สมัครผ่านฟอร์มที่เช็ก Gmail เท่านั้น)
+        rateLimit: { window: 60, max: 3 },
+        async sendVerificationOTP({ email, otp, type }) {
+          await sendOtpMail(email, otp, type);
+        },
+      }),
+      nextCookies(), // ให้ server action ตั้ง cookie session ได้ (ต้องอยู่ท้ายสุด)
+    ],
   });
 }
 

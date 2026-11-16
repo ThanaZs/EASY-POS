@@ -17,9 +17,28 @@
       "invalid": "Incorrect email or password",
       "exists": "An account with this email already exists",
       "weak": "Password must be at least 8 characters",
-      "failed": "Something went wrong. Please try again"
+      "failed": "Something went wrong. Please try again",
+      "gmailOnly": "Email sign-up is limited to @gmail.com addresses",
+      "otpInvalid": "Incorrect code",
+      "otpExpired": "The code has expired — tap Resend code",
+      "tooMany": "Too many wrong attempts — tap Resend code",
+      "cooldown": "A code was just sent. Wait 1 minute and try again",
+      "mailFailed": "Could not send the email. Please try again"
     },
-    "or": "or"
+    "or": "or",
+    "gmailHint": "@gmail.com addresses only — we will email you a verification code",
+    "forgotButton": "Forgot password? Email me a code",
+    "verifyTitle": "Verify your email",
+    "resetTitle": "Set a new password",
+    "otpSentTo": "We sent a 6-digit code to {email} (check inbox or spam)",
+    "otp": "6-digit code",
+    "verify": "Verify",
+    "resend": "Resend code",
+    "resent": "New code sent",
+    "newPassword": "New password (min 8 characters)",
+    "resetSubmit": "Set new password",
+    "resetDone": "Password updated — you can sign in now",
+    "useOtherEmail": "Use a different email"
   },
   "hub": {
     "title": "What would you like to do?",

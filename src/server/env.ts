@@ -10,6 +10,12 @@ const schema = z.object({
   AUTH_SECRET: z.string().optional(),
   GOOGLE_CLIENT_ID: z.string().optional(),
   GOOGLE_CLIENT_SECRET: z.string().optional(),
+  // อีเมล (OTP) — Gmail: SMTP_USER=อีเมล gmail, SMTP_PASS=App Password 16 ตัว
+  SMTP_HOST: z.string().default("smtp.gmail.com"),
+  SMTP_PORT: z.coerce.number().int().default(465),
+  SMTP_USER: z.string().optional(),
+  SMTP_PASS: z.string().optional(),
+  MAIL_FROM_NAME: z.string().default("EASY-POS (no-reply)"),
   APP_URL: z.string().optional(),
   // Vercel ใส่ให้อัตโนมัติ (ไม่มี https://)
   VERCEL_PROJECT_PRODUCTION_URL: z.string().optional(),
