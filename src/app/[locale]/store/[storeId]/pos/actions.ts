@@ -5,22 +5,9 @@ import type { CreateSaleResult, PaymentMethod, SaleLineInput } from "@/core/doma
 import { isLocale } from "@/i18n/config";
 import { getRepositories } from "@/server/container";
 import { requireStoreAccess } from "@/server/session";
+import type { ReceiptData } from "./Receipt";
 
 const METHODS: PaymentMethod[] = ["cash", "qr", "card", "transfer", "other"];
-
-export type ReceiptData = {
-  id: string;
-  receiptNo: string;
-  createdAt: string; // ISO
-  items: Array<{ name: string; qty: number; unitPriceMinor: number }>;
-  subtotalMinor: number;
-  discountMinor: number;
-  taxMinor: number;
-  totalMinor: number;
-  paidMinor: number;
-  changeMinor: number;
-  paymentMethod: PaymentMethod;
-};
 
 export type CheckoutResult =
   | { ok: true; receipt: ReceiptData }
@@ -56,6 +43,7 @@ export async function checkoutAction(input: {
       timeZone: store.timeZone,
       taxRateBp: store.taxRateBp,
       taxIncluded: store.taxIncluded,
+      allowNegativeStock: store.allowNegativeStock,
     });
     if (!res.ok) return res;
     const s = res.sale;

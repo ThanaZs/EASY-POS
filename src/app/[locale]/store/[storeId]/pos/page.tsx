@@ -32,6 +32,8 @@ export default async function PosPage({ params }: PageProps<"/[locale]/store/[st
       taxRateBp={store.taxRateBp}
       taxIncluded={store.taxIncluded}
       canDiscount={can(member, "pos.discount")}
+      allowNegativeStock={store.allowNegativeStock}
+      receiptFooter={store.receiptFooter}
       products={items}
       t={{ pos: t.pos, store: { back: t.store.back } }}
     />

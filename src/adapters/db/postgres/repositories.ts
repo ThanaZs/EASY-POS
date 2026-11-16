@@ -34,6 +34,8 @@ const toStore = (r: StoreRow): Store => ({
   taxRateBp: r.taxRateBp,
   taxIncluded: r.taxIncluded,
   lowStockThreshold: r.lowStockThreshold,
+  receiptFooter: r.receiptFooter,
+  allowNegativeStock: r.allowNegativeStock,
   createdAt: r.createdAt,
 });
 
@@ -154,6 +156,10 @@ function storeRepo(): StoreRepo {
       await db
         .delete(storeMembers)
         .where(and(eq(storeMembers.storeId, storeId), eq(storeMembers.userId, userId), ne(storeMembers.role, "owner")));
+    },
+    async updateSettings(storeId, patch) {
+      const [r] = await db.update(stores).set(patch).where(eq(stores.id, storeId)).returning();
+      return toStore(r);
     },
     createInvite(input) {
       return withUniqueCode(async (code) => {

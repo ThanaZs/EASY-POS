@@ -15,7 +15,9 @@ import type {
   Store,
   StoreInvite,
   StoreMember,
+  StoreSettings,
   User,
+  VoidSaleResult,
 } from "../domain/types";
 
 export interface UserRepo {
@@ -40,6 +42,7 @@ export interface StoreRepo {
     input: Pick<StoreInvite, "storeId" | "role" | "maxUses" | "expiresAt" | "createdBy">,
   ): Promise<StoreInvite>;
   listInvites(storeId: ID): Promise<StoreInvite[]>;
+  updateSettings(storeId: ID, patch: StoreSettings): Promise<Store>;
   /** ต้องทำใน transaction: ตรวจรหัสเชิญ (หมดอายุ/ใช้ครบ) + เพิ่มสมาชิก + นับการใช้ */
   redeemInvite(code: string, userId: ID): Promise<RedeemInviteResult>;
 }
@@ -95,9 +98,12 @@ export interface SaleRepo {
     timeZone: string;
     taxRateBp: number;
     taxIncluded: boolean;
+    allowNegativeStock: boolean;
   }): Promise<CreateSaleResult>;
   get(storeId: ID, id: ID): Promise<Sale | null>;
-  list(storeId: ID, q?: { limit?: number }): Promise<SaleHeader[]>;
+  list(storeId: ID, q?: { limit?: number; businessDate?: string }): Promise<SaleHeader[]>;
+  /** ต้องทำใน transaction: ล็อกบิล → status=voided → คืนสต็อกสินค้าที่นับสต็อก + movement "refund" */
+  void(storeId: ID, id: ID, actorId: ID, reason: string): Promise<VoidSaleResult>;
   dailyTotals(storeId: ID, from: string, to: string): Promise<DailySales[]>;
 }
 

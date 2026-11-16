@@ -41,6 +41,8 @@ const toSaleHeader = (r: SaleRow): SaleHeader => ({
   cashierId: r.cashierId,
   customerId: r.customerId,
   businessDate: r.businessDate,
+  voidedAt: r.voidedAt,
+  voidReason: r.voidReason,
   createdAt: r.createdAt,
 });
 
@@ -212,7 +214,7 @@ export function saleRepo(): SaleRepo {
         const items: SaleItem[] = [];
         for (const p of rows) {
           const qty = qtyById.get(p.id)!;
-          if (p.trackStock && p.stockQty < qty) {
+          if (p.trackStock && !input.allowNegativeStock && p.stockQty < qty) {
             return { ok: false, reason: "insufficient_stock", productName: p.name } as const;
           }
           items.push({
@@ -302,13 +304,64 @@ export function saleRepo(): SaleRepo {
       return sale;
     },
     async list(storeId, q = {}) {
+      const conds = [eq(sales.storeId, storeId)];
+      if (q.businessDate) conds.push(eq(sales.businessDate, q.businessDate));
       const rows = await db
         .select()
         .from(sales)
-        .where(eq(sales.storeId, storeId))
+        .where(and(...conds))
         .orderBy(desc(sales.createdAt))
         .limit(q.limit ?? 50);
       return rows.map(toSaleHeader);
+    },
+    void(storeId, id, actorId, reason) {
+      return db.transaction(async (tx) => {
+        const [s] = await tx
+          .select()
+          .from(sales)
+          .where(and(eq(sales.storeId, storeId), eq(sales.id, id)))
+          .for("update")
+          .limit(1);
+        if (!s) return { ok: false, reason: "not_found" } as const;
+        if (s.status !== "completed") return { ok: false, reason: "already_voided" } as const;
+        const now = new Date();
+        await tx
+          .update(sales)
+          .set({ status: "voided", voidedAt: now, voidedBy: actorId, voidReason: reason || null })
+          .where(eq(sales.id, id));
+
+        // คืนสต็อก (รวมจำนวนต่อสินค้า) เฉพาะสินค้าที่ยังมีอยู่และนับสต็อก
+        const items = await tx.select().from(saleItems).where(eq(saleItems.saleId, id));
+        const qtyById = new Map<string, number>();
+        for (const i of items) if (i.productId) qtyById.set(i.productId, (qtyById.get(i.productId) ?? 0) + i.qty);
+        if (qtyById.size === 0) return { ok: true } as const;
+        const prods = await tx
+          .select()
+          .from(products)
+          .where(and(eq(products.storeId, storeId), inArray(products.id, [...qtyById.keys()])))
+          .for("update");
+        for (const p of prods) {
+          if (!p.trackStock) continue;
+          const qty = qtyById.get(p.id)!;
+          await tx
+            .update(products)
+            .set({ stockQty: p.stockQty + qty, updatedAt: now })
+            .where(eq(products.id, p.id));
+          await tx.insert(stockMovements).values({
+            storeId,
+            productId: p.id,
+            productName: p.name,
+            type: "refund",
+            qty,
+            qtyBefore: p.stockQty,
+            qtyAfter: p.stockQty + qty,
+            note: s.receiptNo,
+            refSaleId: s.id,
+            actorId,
+          });
+        }
+        return { ok: true } as const;
+      });
     },
     async dailyTotals(storeId, from, to) {
       const rows = await db.execute<{ d: string; c: number; t: string; k: string }>(sql`

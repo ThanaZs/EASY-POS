@@ -63,20 +63,33 @@ export default async function OverviewPage({ params }: PageProps<"/[locale]/stor
 
       <div className="grid gap-4 lg:grid-cols-2">
         <section className="space-y-2">
-          <h2 className="font-semibold">{t.overview.recent}</h2>
+          <div className="flex items-baseline justify-between">
+            <h2 className="font-semibold">{t.overview.recent}</h2>
+            <Link href={`/${locale}/store/${storeId}/sales`} className="text-sm font-medium text-brand">
+              {t.sales.viewAll}
+            </Link>
+          </div>
           {recent.length === 0 ? (
             <p className="rounded-2xl border border-dashed border-line bg-card p-6 text-center text-muted">{t.overview.noSales}</p>
           ) : (
             <ul className="divide-y divide-line overflow-hidden rounded-2xl border border-line bg-card">
               {recent.map((s) => (
-                <li key={s.id} className="flex items-center justify-between gap-3 p-3">
-                  <div>
-                    <p className="font-mono text-sm">{s.receiptNo}</p>
-                    <p className="text-xs text-muted">
-                      {formatDateTime(s.createdAt, locale, store.timeZone)} · {t.pos.methods[s.paymentMethod]}
-                    </p>
-                  </div>
-                  <span className="font-semibold tabular-nums">{money(s.totalMinor)}</span>
+                <li key={s.id}>
+                  <Link
+                    href={`/${locale}/store/${storeId}/sales/${s.id}`}
+                    className={`flex items-center justify-between gap-3 p-3 hover:bg-surface ${s.status !== "completed" ? "opacity-50" : ""}`}
+                  >
+                    <div>
+                      <p className="font-mono text-sm">{s.receiptNo}</p>
+                      <p className="text-xs text-muted">
+                        {formatDateTime(s.createdAt, locale, store.timeZone)} · {t.pos.methods[s.paymentMethod]}
+                        {s.status !== "completed" ? ` · ${t.sales.voided}` : ""}
+                      </p>
+                    </div>
+                    <span className={`font-semibold tabular-nums ${s.status !== "completed" ? "line-through" : ""}`}>
+                      {money(s.totalMinor)}
+                    </span>
+                  </Link>
                 </li>
               ))}
             </ul>

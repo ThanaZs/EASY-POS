@@ -6,10 +6,11 @@ import { useMemo, useRef, useState, useTransition } from "react";
 import { ArrowLeft, LoaderCircle, Minus, Plus, Printer, Search, ShoppingCart, Trash2, X } from "lucide-react";
 import { calcSaleTotals } from "@/core/domain/sale";
 import type { PaymentMethod } from "@/core/domain/types";
-import { fill, formatDateTime, formatMoney, parseMoney } from "@/core/lib/format";
+import { fill, formatMoney, parseMoney } from "@/core/lib/format";
 import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionary";
-import { checkoutAction, type ReceiptData } from "./actions";
+import { checkoutAction } from "./actions";
+import { Receipt, type ReceiptData } from "./Receipt";
 
 export type PosProduct = {
   id: string;
@@ -33,6 +34,8 @@ type Props = {
   taxRateBp: number;
   taxIncluded: boolean;
   canDiscount: boolean;
+  allowNegativeStock: boolean;
+  receiptFooter: string;
   products: PosProduct[];
   t: { pos: Dictionary["pos"]; store: { back: string } };
 };
@@ -84,12 +87,13 @@ export function PosClient(props: Props) {
   const changeMinor = receivedMinor === null ? -1 : receivedMinor - totals.totalMinor;
   const canConfirm = lines.length > 0 && (method !== "cash" || receivedText === "" || changeMinor >= 0);
 
-  const remaining = (p: PosProduct) => (p.trackStock ? p.stockQty - (cart.get(p.id) ?? 0) : Infinity);
+  const limited = (p: PosProduct) => p.trackStock && !props.allowNegativeStock;
+  const remaining = (p: PosProduct) => (limited(p) ? p.stockQty - (cart.get(p.id) ?? 0) : Infinity);
 
   function setQty(id: string, qty: number) {
     const p = byId.get(id);
     if (!p) return;
-    const max = p.trackStock ? p.stockQty : Infinity;
+    const max = limited(p) ? p.stockQty : Infinity;
     setCart((prev) => {
       const next = new Map(prev);
       const q = Math.min(max, Math.max(0, qty));
@@ -103,7 +107,7 @@ export function PosClient(props: Props) {
   function add(p: PosProduct) {
     setCart((prev) => {
       const cur = prev.get(p.id) ?? 0;
-      if (p.trackStock && cur >= p.stockQty) return prev;
+      if (limited(p) && cur >= p.stockQty) return prev;
       return new Map(prev).set(p.id, cur + 1);
     });
     setError(null);
@@ -308,8 +312,8 @@ export function PosClient(props: Props) {
                       <span className="mt-2 flex items-end justify-between gap-1">
                         <span className="font-bold tabular-nums">{money(p.priceMinor)}</span>
                         {p.trackStock && (
-                          <span className={`text-xs tabular-nums ${left <= 0 ? "text-rose-600" : "text-muted"}`}>
-                            {left <= 0 ? t.pos.outOfStock : left}
+                          <span className={`text-xs tabular-nums ${p.stockQty - inCart <= 0 ? "text-rose-600" : "text-muted"}`}>
+                            {left <= 0 ? t.pos.outOfStock : p.stockQty - inCart}
                           </span>
                         )}
                       </span>
@@ -414,36 +418,16 @@ export function PosClient(props: Props) {
         <div className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-black/40 p-4 print:static print:block print:bg-transparent print:p-0">
           <div className="w-full max-w-xs rounded-2xl bg-white p-5 font-mono text-sm text-neutral-900 shadow-xl print:max-w-none print:rounded-none print:p-0 print:shadow-none">
             <p className="text-center text-xs font-sans font-semibold text-emerald-600 print:hidden">✓ {t.pos.success}</p>
-            <h2 className="mt-1 text-center text-base font-bold">{props.storeName}</h2>
-            <p className="text-center text-xs">
-              {t.pos.receiptNo} {receipt.receiptNo}
-              <br />
-              {formatDateTime(receipt.createdAt, locale, props.timeZone)}
-              <br />
-              {props.cashierName}
-            </p>
-            <hr className="my-2 border-dashed border-neutral-400" />
-            {receipt.items.map((i, idx) => (
-              <div key={idx}>
-                <p>{i.name}</p>
-                <p className="flex justify-between">
-                  <span>
-                    {i.qty} × {money(i.unitPriceMinor)}
-                  </span>
-                  <span>{money(i.qty * i.unitPriceMinor)}</span>
-                </p>
-              </div>
-            ))}
-            <hr className="my-2 border-dashed border-neutral-400" />
-            <Row label={t.pos.subtotal} value={money(receipt.subtotalMinor)} />
-            {receipt.discountMinor > 0 && <Row label={t.pos.discount} value={`-${money(receipt.discountMinor)}`} />}
-            {receipt.taxMinor > 0 && <Row label={t.pos.tax} value={money(receipt.taxMinor)} />}
-            <p className="flex justify-between text-base font-bold">
-              <span>{t.pos.total}</span>
-              <span>{money(receipt.totalMinor)}</span>
-            </p>
-            <Row label={t.pos.methods[receipt.paymentMethod]} value={money(receipt.paidMinor)} />
-            {receipt.changeMinor > 0 && <Row label={t.pos.change} value={money(receipt.changeMinor)} />}
+            <Receipt
+              r={receipt}
+              t={t.pos}
+              locale={locale}
+              currency={currency}
+              timeZone={props.timeZone}
+              storeName={props.storeName}
+              cashierName={props.cashierName}
+              footer={props.receiptFooter}
+            />
             <div className="mt-4 grid grid-cols-2 gap-2 font-sans print:hidden">
               <button
                 onClick={() => window.print()}

@@ -74,7 +74,8 @@
       "expiry": "Expiring soon",
       "expenses": "Expenses",
       "history": "Stock history",
-      "settings": "Store settings"
+      "settings": "Store settings",
+      "sales": "Bills"
     },
     "comingSoon": "In development — see docs/ROADMAP.md"
   },
@@ -208,5 +209,39 @@
     "lowStock": "Low stock",
     "none": "None",
     "noSales": "No sales yet"
+  },
+  "sales": {
+    "date": "Date",
+    "empty": "No bills on this day",
+    "voided": "Voided",
+    "void": "Void bill",
+    "voidReason": "Reason (optional)",
+    "voidConfirm": "Void this bill? Items go back into stock and the sale is removed from totals",
+    "voidDone": "Bill voided — stock restored",
+    "viewAll": "View all",
+    "total": "Day total",
+    "count": "{n} bills",
+    "notFound": "Bill not found",
+    "voidedAt": "Voided at"
+  },
+  "settings": {
+    "general": "Store details",
+    "storeName": "Store name",
+    "timezone": "Time zone (used for daily sales cut-off)",
+    "currency": "Currency",
+    "currencyFixed": "Currency cannot be changed after the store is created",
+    "tax": "Tax (VAT)",
+    "taxRate": "Tax rate (%)",
+    "taxIncluded": "Prices already include tax",
+    "taxHint": "Enter 0 if you are not VAT-registered",
+    "stock": "Stock",
+    "lowDefault": "Default low-stock alert (new products)",
+    "allowNegative": "Allow selling when stock is insufficient (negative stock)",
+    "receipt": "Receipt",
+    "footer": "Receipt footer",
+    "footerPlaceholder": "Thank you!",
+    "storeCode": "Store code",
+    "save": "Save",
+    "saved": "Saved"
   }
 }

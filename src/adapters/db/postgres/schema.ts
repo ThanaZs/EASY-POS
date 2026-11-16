@@ -79,6 +79,8 @@ export const stores = pgTable("stores", {
   taxRateBp: integer("tax_rate_bp").notNull().default(0), // 700 = 7%
   taxIncluded: boolean("tax_included").notNull().default(true),
   lowStockThreshold: integer("low_stock_threshold").notNull().default(5),
+  receiptFooter: text("receipt_footer").notNull().default(""),
+  allowNegativeStock: boolean("allow_negative_stock").notNull().default(false),
   createdAt: createdAt(),
 });
 
@@ -177,6 +179,9 @@ export const sales = pgTable(
     changeMinor: money("change_minor"),
     paymentMethod: text("payment_method", { enum: ["cash", "qr", "card", "transfer", "other"] }).notNull(),
     status: text("status", { enum: ["completed", "voided", "refunded"] }).notNull().default("completed"),
+    voidedAt: timestamp("voided_at", { withTimezone: true }),
+    voidedBy: uuid("voided_by").references(() => users.id, { onDelete: "set null" }),
+    voidReason: text("void_reason"),
     cashierId: uuid("cashier_id").references(() => users.id, { onDelete: "set null" }),
     customerId: uuid("customer_id").references(() => customers.id, { onDelete: "set null" }),
     businessDate: text("business_date").notNull(), // YYYY-MM-DD ตามทามโซนร้าน

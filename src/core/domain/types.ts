@@ -48,8 +48,15 @@ export interface Store {
   taxRateBp: number; // 700 = 7%
   taxIncluded: boolean; // ราคาสินค้ารวม VAT แล้ว
   lowStockThreshold: number;
+  receiptFooter: string; // ข้อความท้ายใบเสร็จ
+  allowNegativeStock: boolean; // ขายได้แม้สต็อกไม่พอ
   createdAt: Date;
 }
+
+export type StoreSettings = Pick<
+  Store,
+  "name" | "timeZone" | "taxRateBp" | "taxIncluded" | "lowStockThreshold" | "receiptFooter" | "allowNegativeStock"
+>;
 
 export interface StoreMember {
   id: ID;
@@ -140,6 +147,8 @@ export interface Sale {
   cashierId: ID | null;
   customerId: ID | null;
   businessDate: string; // YYYY-MM-DD ตามทามโซนร้าน
+  voidedAt: Date | null;
+  voidReason: string | null;
   createdAt: Date; // UTC
 }
 
@@ -155,3 +164,5 @@ export type CreateSaleResult =
       reason: "empty" | "product_not_found" | "insufficient_stock" | "insufficient_payment";
       productName?: string;
     };
+
+export type VoidSaleResult = { ok: true } | { ok: false; reason: "not_found" | "already_voided" };
