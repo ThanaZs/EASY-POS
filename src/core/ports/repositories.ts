@@ -3,10 +3,14 @@
 // เปลี่ยน DB = เขียน adapter ใหม่ใน src/adapters/** แล้วแก้ src/server/container.ts จุดเดียว
 
 import type {
+  CreateSaleResult,
   ID,
+  PaymentMethod,
   Product,
   RedeemInviteResult,
   Sale,
+  SaleHeader,
+  SaleLineInput,
   StockMovement,
   Store,
   StoreInvite,
@@ -40,25 +44,61 @@ export interface StoreRepo {
   redeemInvite(code: string, userId: ID): Promise<RedeemInviteResult>;
 }
 
+export type ProductInput = Pick<
+  Product,
+  "sku" | "barcode" | "name" | "category" | "unit" | "priceMinor" | "costMinor" | "lowStockThreshold" | "trackStock" | "expiresAt"
+>;
+
 export interface ProductRepo {
   list(storeId: ID, q?: { search?: string; category?: string; lowStockOnly?: boolean }): Promise<Product[]>;
-  findByBarcode(storeId: ID, barcode: string): Promise<Product | null>;
-  create(input: Omit<Product, "id" | "createdAt" | "updatedAt">): Promise<Product>;
-  update(storeId: ID, id: ID, patch: Partial<Product>): Promise<Product>;
-  delete(storeId: ID, id: ID): Promise<void>;
+  findById(storeId: ID, id: ID): Promise<Product | null>;
+  categories(storeId: ID): Promise<string[]>;
+  /** สร้างสินค้า + (ถ้า initialQty > 0) บันทึกรับเข้าครั้งแรก — ใน transaction */
+  create(storeId: ID, input: ProductInput, initialQty: number, actorId: ID): Promise<Product>;
+  update(storeId: ID, id: ID, patch: Partial<ProductInput>): Promise<Product | null>;
+  /** ลบแบบซ่อน (is_active=false) เพราะบิลเก่ายังอ้างถึง */
+  deactivate(storeId: ID, id: ID): Promise<void>;
 }
 
 export interface StockRepo {
-  /** ต้องทำใน transaction: บันทึก movement + อัปเดต stockQty พร้อมกัน */
-  move(input: Omit<StockMovement, "id" | "qtyBefore" | "qtyAfter" | "createdAt">): Promise<StockMovement>;
-  history(storeId: ID, q?: { productId?: ID; from?: Date; to?: Date }): Promise<StockMovement[]>;
+  /** ต้องทำใน transaction: ล็อกแถวสินค้า + อัปเดต stockQty + บันทึก movement; qty เป็น +/- */
+  move(input: {
+    storeId: ID;
+    productId: ID;
+    type: "in" | "out" | "adjust";
+    qty: number;
+    note: string;
+    actorId: ID;
+  }): Promise<StockMovement | null>;
+  history(storeId: ID, q?: { productId?: ID; limit?: number }): Promise<StockMovement[]>;
+}
+
+export interface DailySales {
+  businessDate: string;
+  count: number;
+  totalMinor: number;
+  costMinor: number;
 }
 
 export interface SaleRepo {
-  /** ต้องทำใน transaction: บันทึกบิล + ตัดสต็อกทุกรายการ */
-  create(input: Omit<Sale, "id" | "receiptNo" | "createdAt">): Promise<Sale>;
-  list(storeId: ID, q: { from: Date; to: Date }): Promise<Sale[]>;
-  void(storeId: ID, id: ID, actorId: ID): Promise<Sale>;
+  /**
+   * ต้องทำใน transaction: ล็อกสินค้า, ใช้ราคาจาก DB (ไม่เชื่อราคาจาก client), ตัดสต็อก,
+   * ออกเลขใบเสร็จต่อวันของร้าน, บันทึกบิล + รายการ + movement
+   */
+  create(input: {
+    storeId: ID;
+    lines: SaleLineInput[];
+    billDiscountMinor: number;
+    paymentMethod: PaymentMethod;
+    paidMinor: number | null; // null = จ่ายพอดี (QR/บัตร)
+    cashierId: ID;
+    timeZone: string;
+    taxRateBp: number;
+    taxIncluded: boolean;
+  }): Promise<CreateSaleResult>;
+  get(storeId: ID, id: ID): Promise<Sale | null>;
+  list(storeId: ID, q?: { limit?: number }): Promise<SaleHeader[]>;
+  dailyTotals(storeId: ID, from: string, to: string): Promise<DailySales[]>;
 }
 
 export interface Repositories {

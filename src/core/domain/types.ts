@@ -45,6 +45,9 @@ export interface Store {
   currency: string; // ISO 4217 เช่น THB
   timeZone: string; // ทามโซนของร้าน ใช้ตัดรอบยอดขายรายวัน
   locale: string;
+  taxRateBp: number; // 700 = 7%
+  taxIncluded: boolean; // ราคาสินค้ารวม VAT แล้ว
+  lowStockThreshold: number;
   createdAt: Date;
 }
 
@@ -98,7 +101,8 @@ export type StockMovementType = "in" | "out" | "sale" | "refund" | "adjust";
 export interface StockMovement {
   id: ID;
   storeId: ID;
-  productId: ID;
+  productId: ID | null; // null = สินค้าถูกลบไปแล้ว
+  productName: string; // snapshot
   type: StockMovementType;
   qty: number; // + หรือ -
   qtyBefore: number;
@@ -112,10 +116,11 @@ export interface StockMovement {
 export type PaymentMethod = "cash" | "qr" | "card" | "transfer" | "other";
 
 export interface SaleItem {
-  productId: ID;
+  productId: ID | null;
   name: string; // snapshot ชื่อ ณ เวลาขาย
   qty: number;
   unitPriceMinor: number;
+  costMinor: number; // ต้นทุนต่อหน่วย ณ เวลาขาย (ใช้คิดกำไร)
   discountMinor: number;
 }
 
@@ -134,5 +139,19 @@ export interface Sale {
   status: "completed" | "voided" | "refunded";
   cashierId: ID | null;
   customerId: ID | null;
+  businessDate: string; // YYYY-MM-DD ตามทามโซนร้าน
   createdAt: Date; // UTC
 }
+
+/** บิลแบบไม่มีรายการสินค้า (ใช้ในหน้ารายการ) */
+export type SaleHeader = Omit<Sale, "items">;
+
+export type SaleLineInput = { productId: ID; qty: number };
+
+export type CreateSaleResult =
+  | { ok: true; sale: Sale }
+  | {
+      ok: false;
+      reason: "empty" | "product_not_found" | "insufficient_stock" | "insufficient_payment";
+      productName?: string;
+    };

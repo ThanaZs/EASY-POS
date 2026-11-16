@@ -4,8 +4,28 @@
 > เครื่องใหม่ / Claude session ใหม่: อ่านไฟล์นี้ + ROADMAP.md ก่อนเริ่มงาน
 
 ## สถานะปัจจุบัน
-- Phase 1 เสร็จ — ใช้งานจริงที่ **https://easy-pos-beta.vercel.app** (Vercel + Supabase Tokyo)
-- งานถัดไป: Phase 2 (คลังสินค้า + POS)
+- Phase 2 (คลังสินค้า + POS + ภาพรวม) เสร็จบน branch **`dev`** — ทดสอบ local แล้ว, **ยังไม่ deploy**
+- เว็บจริง https://easy-pos-beta.vercel.app ยังเป็น Phase 1 (deploy = merge `dev` → `main` เมื่อผู้ใช้สั่ง)
+- งานถัดไป: ดู ROADMAP (ยกเลิกบิล/คืนสินค้า, ตั้งค่าร้าน/VAT, สแกนด้วยกล้อง ...)
+
+---
+
+## 2026-11-16 — Phase 2: คลังสินค้า + ระบบขาย + ภาพรวม (branch dev)
+**ทำอะไรไปบ้าง**
+- Repos ใหม่ `src/adapters/db/postgres/inventory.ts`: products, stock (move ใน transaction + FOR UPDATE), sales
+  - `sales.create`: advisory lock ต่อร้าน → ล็อกสินค้า → ใช้ราคา/ต้นทุนจาก DB → เช็กสต็อก → เลขใบเสร็จ `YYMMDD-0001` ต่อวัน (ทามโซนร้าน) → ตัดสต็อก + movement
+  - `dailyTotals`: ยอด/จำนวนบิล/ต้นทุนรายวันตาม business_date
+- หน้า: คลังสินค้า (ค้นหา/หมวด/ใกล้หมด, เพิ่ม/แก้/ลบแบบซ่อน), รับเข้า/เบิกออก/ปรับยอด, ประวัติสต็อก,
+  ระบบขาย (`pos/PosClient.tsx`: สแกนบาร์โค้ด+Enter, หมวด, ตะกร้า, ส่วนลดตามสิทธิ์, เงินสด/QR/บัตร/โอน, เงินทอน, ใบเสร็จพิมพ์ได้),
+  ภาพรวม (วันนี้/กำไรขั้นต้น/เดือนนี้/กราฟ 7 วัน/บิลล่าสุด/ใกล้หมด)
+- `src/server/form.ts` ตัวช่วยอ่าน FormData; `core/lib/format.ts` เพิ่ม parseMoney, minorToInput, fill, todayIn, addDays
+- ตรวจแล้ว (local + Supabase): เพิ่มสินค้า (สต็อกเริ่มต้น 5) → รับเข้า +10 → POS สแกน 3 ครั้ง → เงินสด 100 ทอน 62.50 →
+  สต็อกเหลือ 12 → ภาพรวมยอด 37.50 กำไร 13.50 ✅; มุมมองมือถือ ✅; lint/build ✅ แล้วลบข้อมูลทดสอบ
+
+**ข้อสังเกต**
+- บั๊กที่แก้แล้ว: สแกนรัวๆ อ่าน state เก่า → อ่านค่าจาก input ตรงๆ + `setCart` แบบ functional
+- ขายเกินสต็อกไม่ได้ (สินค้าที่นับสต็อก) — ถ้าต้องการขายติดลบได้ ต้องเพิ่มตัวเลือกในตั้งค่าร้าน
+- Supabase Nano เคย statement timeout ชั่วคราว 1 ครั้งตอนทดสอบ — ถ้าเจอบ่อยให้ดู Supabase > Observability
 
 ---
 

@@ -5,15 +5,8 @@ import { inviteState } from "@/core/domain/invite";
 import { normalizeCode, randomCode } from "@/core/lib/code";
 import type { Repositories, StoreRepo, UserRepo } from "@/core/ports/repositories";
 import { getDb } from "./client";
+import { productRepo, saleRepo, stockRepo } from "./inventory";
 import { storeInvites, storeMembers, stores, users } from "./schema";
-
-// TODO(phase 2): products / stock / sales
-const notYet = (name: string) =>
-  new Proxy({}, {
-    get: (_t, method) => () => {
-      throw new Error(`${name}.${String(method)} not implemented yet (see docs/ROADMAP.md)`);
-    },
-  });
 
 // ===== แปลงแถว DB → domain =====
 type UserRow = typeof users.$inferSelect;
@@ -38,6 +31,9 @@ const toStore = (r: StoreRow): Store => ({
   currency: r.currency,
   timeZone: r.timeZone,
   locale: r.locale,
+  taxRateBp: r.taxRateBp,
+  taxIncluded: r.taxIncluded,
+  lowStockThreshold: r.lowStockThreshold,
   createdAt: r.createdAt,
 });
 
@@ -203,8 +199,8 @@ export function createPostgresRepositories(): Repositories {
   return {
     users: userRepo(),
     stores: storeRepo(),
-    products: notYet("products") as Repositories["products"],
-    stock: notYet("stock") as Repositories["stock"],
-    sales: notYet("sales") as Repositories["sales"],
+    products: productRepo(),
+    stock: stockRepo(),
+    sales: saleRepo(),
   };
 }
