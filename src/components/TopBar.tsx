@@ -1,8 +1,11 @@
 import Link from "next/link";
 import type { Locale } from "@/i18n/config";
+import { getDictionary } from "@/i18n/dictionary";
+import { getTheme } from "@/server/theme";
 import { LanguageSwitcher } from "./LanguageSwitcher";
+import { ThemeToggle } from "./ThemeToggle";
 
-export function TopBar({
+export async function TopBar({
   locale,
   title,
   href,
@@ -13,6 +16,7 @@ export function TopBar({
   href?: string;
   userName?: string;
 }) {
+  const [theme, t] = await Promise.all([getTheme(), getDictionary(locale)]);
   return (
     <header className="sticky top-0 z-10 border-b border-line bg-card/90 backdrop-blur print:hidden">
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
@@ -22,6 +26,7 @@ export function TopBar({
         </Link>
         <div className="flex min-w-0 items-center gap-3">
           {userName && <span className="hidden max-w-40 truncate text-sm text-muted sm:block">{userName}</span>}
+          <ThemeToggle initial={theme} labels={t.theme} />
           <LanguageSwitcher current={locale} />
         </div>
       </div>

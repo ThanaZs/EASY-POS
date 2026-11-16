@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { notFound } from "next/navigation";
 import { isLocale, locales } from "@/i18n/config";
+import { getTheme } from "@/server/theme";
 import "../globals.css";
 
 export const metadata: Metadata = {
@@ -8,11 +9,10 @@ export const metadata: Metadata = {
   description: "Point of sale web app",
 };
 
-export const viewport: Viewport = {
-  width: "device-width",
-  initialScale: 1,
-  themeColor: "#0f766e",
-};
+export async function generateViewport(): Promise<Viewport> {
+  const theme = await getTheme();
+  return { width: "device-width", initialScale: 1, themeColor: theme === "dark" ? "#0f1115" : "#ea580c" };
+}
 
 export function generateStaticParams() {
   return locales.map((locale) => ({ locale }));
@@ -21,8 +21,9 @@ export function generateStaticParams() {
 export default async function LocaleLayout({ children, params }: LayoutProps<"/[locale]">) {
   const { locale } = await params;
   if (!isLocale(locale)) notFound();
+  const theme = await getTheme();
   return (
-    <html lang={locale} className="h-full antialiased">
+    <html lang={locale} data-theme={theme} className="h-full antialiased">
       <body className="min-h-full bg-surface text-ink">{children}</body>
     </html>
   );

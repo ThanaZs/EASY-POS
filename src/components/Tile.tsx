@@ -24,7 +24,7 @@ function TileBody({ label, Icon, color, badge }: TileProps) {
       >
         <Icon className="size-7 sm:size-8" strokeWidth={1.8} />
       </span>
-      <span className="text-sm font-medium transition-colors group-hover:text-brand sm:text-base">{label}</span>
+      <span className="text-sm font-medium transition-colors group-hover:text-brand-ink sm:text-base">{label}</span>
     </>
   );
 }

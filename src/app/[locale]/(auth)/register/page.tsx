@@ -49,7 +49,7 @@ export default async function RegisterPage({ params, searchParams }: PageProps<"
       </form>
       <p className="mt-4 text-center text-sm text-muted">
         {t.auth.haveAccount}{" "}
-        <Link href={`/${locale}/login`} className="font-semibold text-brand">
+        <Link href={`/${locale}/login`} className="font-semibold text-brand-ink">
           {t.auth.login}
         </Link>
       </p>

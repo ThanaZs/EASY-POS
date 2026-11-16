@@ -249,7 +249,7 @@ export function PosClient(props: Props) {
         {props.taxRateBp > 0 && <Row label={`${t.pos.tax} ${props.taxRateBp / 100}%`} value={money(totals.taxMinor)} />}
         <div className="flex items-baseline justify-between pt-1">
           <span className="font-semibold">{t.pos.total}</span>
-          <span className="text-2xl font-bold tabular-nums text-brand">{money(totals.totalMinor)}</span>
+          <span className="text-2xl font-bold tabular-nums text-brand-ink">{money(totals.totalMinor)}</span>
         </div>
         <button
           disabled={lines.length === 0}
@@ -389,7 +389,7 @@ export function PosClient(props: Props) {
           <div className="w-full max-w-md space-y-4 rounded-t-2xl bg-card p-5 shadow-xl sm:rounded-2xl">
             <div className="flex items-baseline justify-between">
               <h2 className="text-lg font-semibold">{t.pos.pay}</h2>
-              <span className="text-2xl font-bold tabular-nums text-brand">{money(totals.totalMinor)}</span>
+              <span className="text-2xl font-bold tabular-nums text-brand-ink">{money(totals.totalMinor)}</span>
             </div>
             <div className="grid grid-cols-2 gap-2">
               {METHODS.map((m) => (
@@ -397,7 +397,7 @@ export function PosClient(props: Props) {
                   key={m}
                   onClick={() => setMethod(m)}
                   className={`rounded-xl border px-3 py-2.5 text-sm font-medium ${
-                    method === m ? "border-brand bg-brand-soft text-brand" : "border-line"
+                    method === m ? "border-brand bg-brand-soft text-brand-ink" : "border-line"
                   }`}
                 >
                   {t.pos.methods[m]}

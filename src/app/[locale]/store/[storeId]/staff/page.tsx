@@ -43,7 +43,7 @@ export default async function StaffPage({ params }: PageProps<"/[locale]/store/[
                     <p className="truncate font-medium">{u.displayName}</p>
                     <p className="truncate text-sm text-muted">{u.email}</p>
                   </div>
-                  <span className="rounded-full bg-brand-soft px-2 py-0.5 text-xs font-semibold text-brand">
+                  <span className="rounded-full bg-brand-soft px-2 py-0.5 text-xs font-semibold text-brand-ink">
                     {t.roles[member.role]}
                   </span>
                   {removable && (

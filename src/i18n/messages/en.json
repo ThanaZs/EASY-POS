@@ -271,5 +271,9 @@
     "button": "Scan with camera",
     "added": "✓ Added {name}",
     "notFound": "No product with barcode {code}"
+  },
+  "theme": {
+    "light": "Switch to light mode",
+    "dark": "Switch to dark mode"
   }
 }

@@ -9,7 +9,7 @@ export function StockBadge({ p, t }: { p: Product; t: Dictionary }) {
       ? "bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300"
       : p.stockQty <= p.lowStockThreshold
         ? "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300"
-        : "bg-brand-soft text-brand";
+        : "bg-brand-soft text-brand-ink";
   return (
     <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold tabular-nums ${tone}`}>
       {p.stockQty} {p.unit}

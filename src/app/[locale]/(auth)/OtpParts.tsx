@@ -58,7 +58,7 @@ export function OtpFooter({ locale, purpose, t }: { locale: Locale; purpose: "ve
       <form action={resendOtpAction}>
         <input type="hidden" name="locale" value={locale} />
         <input type="hidden" name="purpose" value={purpose} />
-        <button type="submit" className="font-semibold text-brand">
+        <button type="submit" className="font-semibold text-brand-ink">
           {t.resend}
         </button>
       </form>

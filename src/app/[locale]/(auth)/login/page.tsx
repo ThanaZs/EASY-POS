@@ -34,7 +34,7 @@ export default async function LoginPage({ params, searchParams }: PageProps<"/[l
           <input type="hidden" name="email" value={lastEmail} />
           <button
             type="submit"
-            className="w-full rounded-xl border border-brand px-4 py-2.5 font-medium text-brand hover:bg-brand-soft"
+            className="w-full rounded-xl border border-brand px-4 py-2.5 font-medium text-brand-ink hover:bg-brand-soft"
           >
             {t.auth.forgotButton}
           </button>
@@ -42,7 +42,7 @@ export default async function LoginPage({ params, searchParams }: PageProps<"/[l
       )}
       <div className="mt-4 flex justify-between text-sm">
         <span className="text-muted">{t.auth.noAccount}</span>
-        <Link href={`/${locale}/register`} className="font-semibold text-brand">
+        <Link href={`/${locale}/register`} className="font-semibold text-brand-ink">
           {t.auth.register}
         </Link>
       </div>

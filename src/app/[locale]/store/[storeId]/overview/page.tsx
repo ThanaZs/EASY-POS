@@ -65,7 +65,7 @@ export default async function OverviewPage({ params }: PageProps<"/[locale]/stor
         <section className="space-y-2">
           <div className="flex items-baseline justify-between">
             <h2 className="font-semibold">{t.overview.recent}</h2>
-            <Link href={`/${locale}/store/${storeId}/sales`} className="text-sm font-medium text-brand">
+            <Link href={`/${locale}/store/${storeId}/sales`} className="text-sm font-medium text-brand-ink">
               {t.sales.viewAll}
             </Link>
           </div>

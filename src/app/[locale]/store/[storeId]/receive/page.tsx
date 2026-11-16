@@ -47,7 +47,7 @@ export default async function ReceivePage({ params, searchParams }: PageProps<"/
               {modes.map((m) => (
                 <label
                   key={m.value}
-                  className="flex cursor-pointer items-center gap-2 rounded-xl border border-line px-3 py-2 text-sm has-checked:border-brand has-checked:bg-brand-soft has-checked:text-brand"
+                  className="flex cursor-pointer items-center gap-2 rounded-xl border border-line px-3 py-2 text-sm has-checked:border-brand has-checked:bg-brand-soft has-checked:text-brand-ink"
                 >
                   <input type="radio" name="mode" value={m.value} defaultChecked={m.value === lastMode} className="sr-only" />
                   {m.label}
