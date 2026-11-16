@@ -12,6 +12,10 @@ export function getDb() {
   globalForDb.pg ??= postgres(env.DATABASE_URL, {
     prepare: false,
     max: env.DATABASE_POOL_MAX,
+    // serverless + pooler: ปิด connection ที่ว่างก่อนฝั่ง pooler/เครือข่ายตัดทิ้งเงียบๆ (ไม่งั้น query แรกหลังว่างนานอาจค้าง/error)
+    idle_timeout: 20,
+    max_lifetime: 60 * 10,
+    connect_timeout: 10,
     // DEBUG_SQL=1 ใน .env.local → พิมพ์ทุก query ลง console (ไว้นับ/หาจุดช้า)
     debug: process.env.DEBUG_SQL === "1" ? (_c, q) => console.info(`[sql] ${q.replace(/\s+/g, " ").slice(0, 140)}`) : undefined,
   });

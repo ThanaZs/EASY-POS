@@ -15,6 +15,17 @@
 
 ---
 
+## 2026-11-16 — เว็บขึ้น "This page couldn't load" เป็นระยะ (branch dev)
+- ตรวจเว็บจริง: `/api/health?db=1` 25/25 ครั้งปกติ ไม่มีช้า → ไม่ได้ล่มตลอด เป็นครั้งคราว
+- สาเหตุที่น่าจะเป็น: **version skew** — วันนี้ deploy หลายรอบ ขณะผู้ใช้เปิดแท็บค้าง; แท็บเก่าเรียก JS/Server Action ของเวอร์ชันที่ไม่มีแล้ว
+  - แก้: `next.config.ts` → `deploymentId` = `VERCEL_DEPLOYMENT_ID` → แท็บเก่าจะ reload เต็มหน้าเองเมื่อ deploy ใหม่
+- กัน connection ค้าง: postgres-js `idle_timeout: 20`, `max_lifetime: 600`, `connect_timeout: 10`
+- `src/app/[locale]/error.tsx` + `global-error.tsx` + `components/ErrorScreen.tsx`: หน้า error ไทย/อังกฤษ ปุ่มลองใหม่/โหลดใหม่,
+  แสดงรหัสอ้างอิง (digest) ไว้หาใน Vercel Logs, เจอ ChunkLoadError/Server Action ไม่ตรง → reload อัตโนมัติ 1 ครั้ง
+- ถ้ายังเกิดหลัง deploy นี้: ดู Vercel → Project → Logs (กรอง Error) เทียบรหัสอ้างอิงบนหน้าจอ
+
+---
+
 ## 2026-11-16 — บันทึกสินค้าหมุนนาน: วิเคราะห์ + ลด query (branch dev)
 - วัดเว็บจริง: หน้าไม่แตะ DB ~0.23s, request ที่แตะ DB ~0.38s (อุ่น) / ~0.76s (instance ใหม่ + ต่อ DB ใหม่) → ช้าหลักๆ ตอน "เย็น"
 - บั๊ก: `requireStoreAccess` ถูก cache แยกตาม argument permission → layout กับ page query ร้าน+สมาชิกซ้ำ 2 รอบ
