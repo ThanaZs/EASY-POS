@@ -4,8 +4,17 @@
 > เครื่องใหม่ / Claude session ใหม่: อ่านไฟล์นี้ + ROADMAP.md ก่อนเริ่มงาน
 
 ## สถานะปัจจุบัน
-- Phase 1 เกือบเสร็จ — ต่อ Supabase แล้ว ล็อกอิน/สมัคร/สร้างร้าน/เข้าร่วมร้าน/บัญชี ใช้งานจริง
-- งานถัดไป: Deploy Vercel → Phase 2 (คลังสินค้า + POS)
+- Phase 1 เสร็จ — ใช้งานจริงที่ **https://easy-pos-beta.vercel.app** (Vercel + Supabase Tokyo)
+- งานถัดไป: Phase 2 (คลังสินค้า + POS)
+
+---
+
+## 2026-11-16 — Deploy Vercel
+- Vercel project `easy-pos` → https://easy-pos-beta.vercel.app (push `main` = deploy อัตโนมัติ)
+- Env บน Vercel: `DATABASE_URL` (pooler), `DATABASE_POOL_MAX=2`, `DB_DRIVER`, `AUTH_PROVIDER`, `AUTH_SECRET` (คนละค่ากับในเครื่อง)
+- ไม่ต้องตั้ง `APP_URL` บน Vercel — `src/server/env.ts` ใช้ `VERCEL_PROJECT_PRODUCTION_URL` + `VERCEL_URL` (preview) เป็น trustedOrigins
+  - ถ้าผูกโดเมนของตัวเอง: ตั้ง `APP_URL=https://โดเมน`
+- ตรวจแล้ว: `/api/health` 200, `/th/login` 200, `/th/hub` (ไม่ล็อกอิน) → 307 ไป login (อ่าน session จาก Supabase ได้)
 
 ---
 
