@@ -7,7 +7,7 @@ import { emailOTP } from "better-auth/plugins/email-otp";
 import { getDb } from "@/adapters/db/postgres/client";
 import * as schema from "@/adapters/db/postgres/schema";
 import { defaultLocale, defaultTimeZone } from "@/i18n/config";
-import { appUrl, env, trustedOrigins } from "./env";
+import { appUrl, buildId, env, trustedOrigins } from "./env";
 import { sendOtpMail } from "./mail";
 
 /** สมัครด้วยอีเมล+รหัสผ่านได้เฉพาะ Gmail (Google ยืนยันตัวตนเจ้าของอีเมลแล้ว) */
@@ -36,12 +36,18 @@ function createAuth() {
     },
     session: {
       modelName: "sessions",
+      expiresIn: 10 * 24 * 60 * 60, // ล็อกอินอยู่ได้ 10 วัน แล้วต้องล็อกอินใหม่
+      disableSessionRefresh: true, // นับ 10 วันจากตอนล็อกอิน (ใช้งานอยู่ก็ไม่ต่ออายุให้)
       // เก็บ session ใน cookie ที่เซ็นแล้ว 5 นาที → ไม่ต้อง query DB ทุกหน้า
       // (ผลข้างเคียง: ออกจากระบบที่เครื่องอื่น/แก้โปรไฟล์ อาจช้าสุด 5 นาที — แก้โปรไฟล์จะ refresh ให้ใน saveAccountAction)
       cookieCache: { enabled: true, maxAge: 5 * 60 },
     },
     verification: { modelName: "verifications" },
-    advanced: { database: { generateId: "uuid" } }, // ให้ Postgres สร้าง uuid เอง
+    advanced: {
+      database: { generateId: "uuid" }, // ให้ Postgres สร้าง uuid เอง
+      // ชื่อ cookie ผูกกับเวอร์ชันที่ deploy → deploy ใหม่ = cookie เดิมใช้ไม่ได้ = ทุกคนต้องล็อกอินใหม่ (ได้เวอร์ชันล่าสุดเสมอ)
+      cookiePrefix: `ep-${buildId.replace(/[^a-zA-Z0-9]/g, "").slice(-10)}`,
+    },
     emailAndPassword: {
       enabled: true,
       minPasswordLength: 8,

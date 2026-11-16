@@ -20,6 +20,8 @@ const schema = z.object({
   // Vercel ใส่ให้อัตโนมัติ (ไม่มี https://)
   VERCEL_PROJECT_PRODUCTION_URL: z.string().optional(),
   VERCEL_URL: z.string().optional(),
+  VERCEL_DEPLOYMENT_ID: z.string().optional(),
+  VERCEL_GIT_COMMIT_SHA: z.string().optional(),
 });
 
 export const env = schema.parse(process.env);
@@ -31,3 +33,7 @@ export const appUrl = env.APP_URL || https(env.VERCEL_PROJECT_PRODUCTION_URL) ||
 
 /** origin ที่อนุญาตให้ส่งฟอร์ม/ล็อกอิน (รวม URL preview ของ Vercel แต่ละ deploy) */
 export const trustedOrigins = [appUrl, https(env.VERCEL_URL)].filter((u): u is string => Boolean(u));
+
+
+/** รหัสเวอร์ชันที่ deploy อยู่ (เปลี่ยนทุกครั้งที่ deploy) — dev = "dev" */
+export const buildId = env.VERCEL_DEPLOYMENT_ID || env.VERCEL_GIT_COMMIT_SHA || "dev";

@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { notFound } from "next/navigation";
 import { isLocale, locales } from "@/i18n/config";
+import { IdleRefresh } from "@/components/IdleRefresh";
 import { getTheme } from "@/server/theme";
 import "../globals.css";
 
@@ -24,7 +25,10 @@ export default async function LocaleLayout({ children, params }: LayoutProps<"/[
   const theme = await getTheme();
   return (
     <html lang={locale} data-theme={theme} className="h-full antialiased">
-      <body className="min-h-full bg-surface text-ink">{children}</body>
+      <body className="min-h-full bg-surface text-ink">
+        <IdleRefresh />
+        {children}
+      </body>
     </html>
   );
 }
