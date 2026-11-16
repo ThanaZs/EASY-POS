@@ -4,7 +4,8 @@
 > เครื่องใหม่ / Claude session ใหม่: อ่านไฟล์นี้ + ROADMAP.md ก่อนเริ่มงาน
 
 ## สถานะปัจจุบัน
-- **Deploy ล่าสุด (2026-11-16, d846d85)** — เพิ่ม: deploymentId (กัน version skew), หน้า error, session 60 วันแบบต่ออายุ +
+- **Deploy ล่าสุด (2026-11-16, c0771a1)** — เพิ่มแก้ตัวจับการสแกน + เชื่อมเครื่องสแกนผ่าน Bluetooth
+- Deploy ก่อนหน้า (d846d85) — เพิ่ม: deploymentId (กัน version skew), หน้า error, session 60 วันแบบต่ออายุ +
   ล็อกอินใหม่ทุก deploy, รีเฟรชเมื่อไม่ใช้ 30 นาที, เชื่อมเครื่องพิมพ์สลิป/เครื่องสแกน, สแกนได้ทุกภาษาคีย์บอร์ด
   - ตรวจเว็บจริง: health db/login/wasm 200, hub 307, หน้าเว็บมี `data-dpl-id` ✅
 - Deploy ก่อนหน้า — https://easy-pos-beta.vercel.app = Phase 1 + Phase 2 + ยกเลิกบิล + ตั้งค่าร้าน + สแกนกล้อง +
