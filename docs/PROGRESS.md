@@ -25,8 +25,13 @@
 - ตรวจแล้ว (local): API ปฏิเสธ hotmail ✅ → สมัคร gmail → /verify → OTP ผิดขึ้น error → OTP ถูกเข้า hub ✅ →
   ออก → รหัสผิด → ปุ่มลืมรหัสผ่าน → OTP reset → กดส่งซ้ำติด cooldown ✅ → ตั้งรหัสใหม่ → ล็อกอินด้วยรหัสใหม่ ✅; build ✅
 
-**ต้องตั้งก่อน deploy:** `SMTP_USER`, `SMTP_PASS` (App Password) บน Vercel — ไม่งั้นสมัคร/ลืมรหัสผ่านบนเว็บจริงจะ error
-**ไม่บังคับ:** Google OAuth (`GOOGLE_CLIENT_ID/SECRET`, redirect `<APP_URL>/api/auth/callback/google`)
+- ทดสอบส่งอีเมลจริงผ่าน Gmail SMTP แล้ว — ผู้ใช้ได้รับ OTP และตั้งรหัสใหม่สำเร็จ ✅
+- Google OAuth: Google Cloud project `EASY-POS`, client แบบ Web, redirect URI ทั้ง localhost และ easy-pos-beta.vercel.app
+  - ยังอยู่โหมด **Testing** (ใช้ปุ่ม Google ได้เฉพาะ test users ที่เพิ่มในหน้า Audience, สูงสุด 100)
+  - จะ publish ได้ต้องมีหน้า Privacy Policy + หน้าแรก ใน Branding (ยังไม่ได้ทำ)
+  - ตรวจแล้ว: ปุ่มขึ้น, กดแล้วไป accounts.google.com ด้วย redirect_uri ถูกต้อง ✅ (ยังไม่ได้ล็อกอินจนจบ — ผู้ใช้ลองเอง)
+
+**ต้องตั้งบน Vercel ก่อน deploy:** `SMTP_USER`, `SMTP_PASS`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`
 
 ---
 
