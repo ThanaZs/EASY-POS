@@ -22,6 +22,7 @@ export default async function LoginPage({ params, searchParams }: PageProps<"/[l
       <form action={loginAction} className="space-y-4">
         <input type="hidden" name="locale" value={locale} />
         {sp.reset === "1" && <Alert kind="success">{t.auth.resetDone}</Alert>}
+        {sp.deleted === "1" && <Alert kind="success">{t.account.deleted}</Alert>}
         {error && <Alert>{error}</Alert>}
         <Field label={t.auth.email} name="email" type="email" autoComplete="email" defaultValue={lastEmail} required />
         <Field label={t.auth.password} name="password" type="password" autoComplete="current-password" required />

@@ -6,7 +6,7 @@ import { normalizeCode, randomCode } from "@/core/lib/code";
 import type { Repositories, StoreRepo, UserRepo } from "@/core/ports/repositories";
 import { getDb } from "./client";
 import { productRepo, saleRepo, stockRepo } from "./inventory";
-import { storeInvites, storeMembers, stores, users } from "./schema";
+import { accounts, storeInvites, storeMembers, stores, users } from "./schema";
 
 // ===== แปลงแถว DB → domain =====
 type UserRow = typeof users.$inferSelect;
@@ -99,8 +99,20 @@ function userRepo(): UserRepo {
         .returning();
       return toUser(r);
     },
-    async delete(id) {
-      await db.delete(users).where(eq(users.id, id));
+    async hasPassword(id) {
+      const rows = await db
+        .select({ id: accounts.id })
+        .from(accounts)
+        .where(and(eq(accounts.userId, id), eq(accounts.providerId, "credential")))
+        .limit(1);
+      return rows.length > 0;
+    },
+    async deleteAccount(id) {
+      await db.transaction(async (tx) => {
+        await tx.delete(stores).where(eq(stores.ownerId, id)); // cascade: สินค้า, บิล, สต็อก, สมาชิก, รหัสเชิญ
+        await tx.update(storeInvites).set({ createdBy: null }).where(eq(storeInvites.createdBy, id));
+        await tx.delete(users).where(eq(users.id, id)); // cascade: sessions, accounts, store_members
+      });
     },
   };
 }

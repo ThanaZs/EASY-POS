@@ -72,7 +72,31 @@
     "save": "Save",
     "saved": "Saved",
     "displayName": "Display name",
-    "deleteSoon": "Account deletion will be available in a later version"
+    "passwordTitle": "Password",
+    "currentPassword": "Current password",
+    "newPassword": "New password (min 8 characters)",
+    "changePassword": "Change password",
+    "passwordChanged": "Password changed — other devices were signed out",
+    "forgotCurrent": "Forgot password? Email me a code",
+    "noPassword": "This account signs in with Google — set a password to also sign in with email",
+    "setPassword": "Set a password with an email code",
+    "pwErrors": {
+      "wrongPassword": "Current password is incorrect",
+      "weak": "New password must be at least 8 characters",
+      "same": "New password must be different from the current one",
+      "failed": "Could not change password. Please try again"
+    },
+    "deleteTitle": "Delete account permanently?",
+    "deleteWarn": "This cannot be undone. The following will be permanently deleted:",
+    "deleteAccountData": "Your account, sign-ins on all devices, and memberships in other people's stores",
+    "deleteStores": "Stores you own, with all products, bills and history (staff will lose access):",
+    "deleteNoStores": "You don't own any stores",
+    "deleteTypePrompt": "Type {word} to confirm",
+    "deleteWord": "DELETE",
+    "deleteConfirm": "Delete account permanently",
+    "cancel": "Cancel",
+    "deleteMismatch": "Confirmation text does not match",
+    "deleted": "Your account has been deleted"
   },
   "stores": {
     "empty": "No stores yet",

@@ -24,7 +24,13 @@ export interface UserRepo {
   findById(id: ID): Promise<User | null>;
   findByEmail(email: string): Promise<User | null>;
   updateProfile(id: ID, patch: Partial<Pick<User, "displayName" | "locale" | "timeZone">>): Promise<User>;
-  delete(id: ID): Promise<void>;
+  /** มีรหัสผ่านไหม (สมัครด้วย Google อย่างเดียว = ไม่มี) */
+  hasPassword(id: ID): Promise<boolean>;
+  /**
+   * ลบบัญชีถาวร — ใน transaction: ลบร้านที่เป็นเจ้าของ (พร้อมข้อมูลทั้งหมดของร้าน),
+   * ล้างการอ้างอิงในร้านอื่น, แล้วลบผู้ใช้ (session/บัญชี login/การเป็นสมาชิก ลบตาม)
+   */
+  deleteAccount(id: ID): Promise<void>;
 }
 
 export type MemberWithUser = { member: StoreMember; user: Pick<User, "id" | "email" | "displayName"> };
