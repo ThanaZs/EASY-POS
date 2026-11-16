@@ -331,6 +331,12 @@
     "scannerLast": "Last scan",
     "scanNotFound": "No product with barcode {code}",
     "scanFilled": "✓ Barcode {code} filled in",
-    "scanSelected": "✓ Selected {name}"
+    "scanSelected": "✓ Selected {name}",
+    "scannerConnectBt": "Connect via Bluetooth",
+    "scannerBtHint": "A window will open to pick your scanner — turn on the scanner and Bluetooth first",
+    "scannerHidHint": "This scanner works as a keyboard (HID) and can't be connected from the web — pair it in the device's Bluetooth settings, then scan once",
+    "scannerBtFailed": "Connection failed — turn the scanner off and on, then try again",
+    "scannerOr": "Or, if your scanner works as a keyboard (USB / paired in Bluetooth settings):",
+    "scannerVia": "via"
   }
 }
