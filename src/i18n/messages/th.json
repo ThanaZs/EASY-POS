@@ -1,0 +1,55 @@
+{
+  "app": { "name": "EASY-POS", "tagline": "ระบบขายหน้าร้าน ใช้ง่าย ทุกอุปกรณ์" },
+  "auth": {
+    "login": "เข้าสู่ระบบ",
+    "register": "สมัครสมาชิก",
+    "email": "อีเมล",
+    "password": "รหัสผ่าน",
+    "displayName": "ชื่อที่แสดง",
+    "google": "ดำเนินการต่อด้วย Google",
+    "noAccount": "ยังไม่มีบัญชี?",
+    "haveAccount": "มีบัญชีอยู่แล้ว?",
+    "forgot": "ลืมรหัสผ่าน?"
+  },
+  "hub": {
+    "title": "เลือกสิ่งที่ต้องการทำ",
+    "createStore": "สร้างบัญชีร้านค้า",
+    "myStores": "ร้านค้าของฉัน",
+    "joinStore": "เข้าร่วมร้านค้า",
+    "account": "จัดการบัญชี",
+    "logout": "ออกจากระบบ"
+  },
+  "createStore": {
+    "storeName": "ชื่อร้าน",
+    "currency": "สกุลเงิน",
+    "timezone": "ทามโซน",
+    "submit": "สร้างร้านค้า"
+  },
+  "join": { "code": "รหัสเชิญ / รหัสร้าน", "submit": "เข้าร่วม" },
+  "account": {
+    "language": "ภาษา",
+    "timezone": "ทามโซน",
+    "deleteAccount": "ลบบัญชี",
+    "save": "บันทึก"
+  },
+  "stores": { "empty": "ยังไม่มีร้านค้า", "role": "บทบาท" },
+  "store": {
+    "back": "กลับหน้าหลัก",
+    "modules": {
+      "pos": "ระบบขาย",
+      "inventory": "คลังสินค้า",
+      "overview": "ภาพรวม",
+      "receive": "รับเข้าสินค้า",
+      "reports": "รายงาน",
+      "members": "สมาชิก / ลูกค้า",
+      "staff": "พนักงาน",
+      "labels": "ทำป้ายราคา",
+      "expiry": "สินค้าใกล้หมดอายุ",
+      "expenses": "บันทึกค่าใช้จ่าย",
+      "history": "ประวัติสต็อก",
+      "settings": "ตั้งค่าร้าน"
+    },
+    "comingSoon": "กำลังพัฒนา — ดู docs/ROADMAP.md"
+  },
+  "common": { "language": "ภาษา", "comingSoon": "เร็วๆ นี้" }
+}

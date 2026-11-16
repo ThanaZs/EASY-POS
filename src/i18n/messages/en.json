@@ -1,0 +1,55 @@
+{
+  "app": { "name": "EASY-POS", "tagline": "Simple point of sale on any device" },
+  "auth": {
+    "login": "Sign in",
+    "register": "Create account",
+    "email": "Email",
+    "password": "Password",
+    "displayName": "Display name",
+    "google": "Continue with Google",
+    "noAccount": "No account yet?",
+    "haveAccount": "Already have an account?",
+    "forgot": "Forgot password?"
+  },
+  "hub": {
+    "title": "What would you like to do?",
+    "createStore": "Create a store",
+    "myStores": "My stores",
+    "joinStore": "Join a store",
+    "account": "Manage account",
+    "logout": "Sign out"
+  },
+  "createStore": {
+    "storeName": "Store name",
+    "currency": "Currency",
+    "timezone": "Time zone",
+    "submit": "Create store"
+  },
+  "join": { "code": "Invite / store code", "submit": "Join" },
+  "account": {
+    "language": "Language",
+    "timezone": "Time zone",
+    "deleteAccount": "Delete account",
+    "save": "Save"
+  },
+  "stores": { "empty": "No stores yet", "role": "Role" },
+  "store": {
+    "back": "Back to home",
+    "modules": {
+      "pos": "Point of sale",
+      "inventory": "Inventory",
+      "overview": "Overview",
+      "receive": "Receive stock",
+      "reports": "Reports",
+      "members": "Customers",
+      "staff": "Staff",
+      "labels": "Price labels",
+      "expiry": "Expiring soon",
+      "expenses": "Expenses",
+      "history": "Stock history",
+      "settings": "Store settings"
+    },
+    "comingSoon": "In development — see docs/ROADMAP.md"
+  },
+  "common": { "language": "Language", "comingSoon": "Coming soon" }
+}

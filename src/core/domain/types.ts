@@ -1,0 +1,122 @@
+// ===== Core domain =====
+// ห้าม import Next.js / DB / framework ใดๆ ในโฟลเดอร์ core
+// เพื่อให้ย้าย backend ไปที่ไหนก็ได้ (Next API, Hono, Express, Cloudflare Workers ...)
+
+export type ID = string; // UUID — ไม่ใช้ auto-increment เพื่อรองรับหลาย DB/การ sync offline
+
+/** เงินเก็บเป็นหน่วยย่อยที่สุด (สตางค์/เซนต์) เป็นจำนวนเต็ม — ห้ามใช้ float */
+export type Money = { amountMinor: number; currency: string };
+
+export type Role = "owner" | "manager" | "cashier" | "staff";
+
+export const PERMISSIONS = [
+  "pos.sell",
+  "pos.refund",
+  "pos.discount",
+  "products.view",
+  "products.create",
+  "products.edit",
+  "products.delete",
+  "stock.receive",
+  "stock.issue",
+  "stock.history",
+  "reports.view",
+  "expenses.manage",
+  "customers.manage",
+  "staff.manage",
+  "store.settings",
+] as const;
+export type Permission = (typeof PERMISSIONS)[number];
+
+export interface User {
+  id: ID;
+  email: string;
+  displayName: string;
+  locale: string; // "th" | "en" | ...
+  timeZone: string; // IANA เช่น "Asia/Bangkok"
+  createdAt: Date;
+}
+
+export interface Store {
+  id: ID;
+  name: string;
+  code: string; // รหัสร้านสำหรับเข้าร่วม
+  ownerId: ID;
+  currency: string; // ISO 4217 เช่น THB
+  timeZone: string; // ทามโซนของร้าน ใช้ตัดรอบยอดขายรายวัน
+  locale: string;
+  createdAt: Date;
+}
+
+export interface StoreMember {
+  id: ID;
+  storeId: ID;
+  userId: ID;
+  role: Role;
+  permissions: Partial<Record<Permission, boolean>>; // override ค่าเริ่มต้นของ role
+  status: "active" | "suspended";
+  joinedAt: Date;
+}
+
+export interface Product {
+  id: ID;
+  storeId: ID;
+  sku: string | null;
+  barcode: string | null;
+  name: string;
+  category: string | null;
+  unit: string; // ชิ้น, กล่อง, kg ...
+  priceMinor: number;
+  costMinor: number;
+  stockQty: number; // จำนวนคงเหลือ (denormalized จาก stock_movements)
+  lowStockThreshold: number;
+  trackStock: boolean;
+  expiresAt: Date | null;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export type StockMovementType = "in" | "out" | "sale" | "refund" | "adjust";
+
+export interface StockMovement {
+  id: ID;
+  storeId: ID;
+  productId: ID;
+  type: StockMovementType;
+  qty: number; // + หรือ -
+  qtyBefore: number;
+  qtyAfter: number;
+  note: string;
+  refSaleId: ID | null;
+  actorId: ID | null;
+  createdAt: Date;
+}
+
+export type PaymentMethod = "cash" | "qr" | "card" | "transfer" | "other";
+
+export interface SaleItem {
+  productId: ID;
+  name: string; // snapshot ชื่อ ณ เวลาขาย
+  qty: number;
+  unitPriceMinor: number;
+  discountMinor: number;
+}
+
+export interface Sale {
+  id: ID;
+  storeId: ID;
+  receiptNo: string;
+  items: SaleItem[];
+  subtotalMinor: number;
+  discountMinor: number;
+  taxMinor: number;
+  totalMinor: number;
+  paidMinor: number;
+  changeMinor: number;
+  paymentMethod: PaymentMethod;
+  status: "completed" | "voided" | "refunded";
+  cashierId: ID | null;
+  customerId: ID | null;
+  createdAt: Date; // UTC
+}
