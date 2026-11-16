@@ -4,7 +4,10 @@
 > เครื่องใหม่ / Claude session ใหม่: อ่านไฟล์นี้ + ROADMAP.md ก่อนเริ่มงาน
 
 ## สถานะปัจจุบัน
-- **Deploy แล้ว (2026-11-16)** — https://easy-pos-beta.vercel.app = Phase 1 + Phase 2 + ยกเลิกบิล + ตั้งค่าร้าน + สแกนกล้อง +
+- **Deploy ล่าสุด (2026-11-16, d846d85)** — เพิ่ม: deploymentId (กัน version skew), หน้า error, session 60 วันแบบต่ออายุ +
+  ล็อกอินใหม่ทุก deploy, รีเฟรชเมื่อไม่ใช้ 30 นาที, เชื่อมเครื่องพิมพ์สลิป/เครื่องสแกน, สแกนได้ทุกภาษาคีย์บอร์ด
+  - ตรวจเว็บจริง: health db/login/wasm 200, hub 307, หน้าเว็บมี `data-dpl-id` ✅
+- Deploy ก่อนหน้า — https://easy-pos-beta.vercel.app = Phase 1 + Phase 2 + ยกเลิกบิล + ตั้งค่าร้าน + สแกนกล้อง +
   OTP/ลืมรหัสผ่าน/Google + ธีมขาว-ส้ม/มืด + เปลี่ยนรหัส/ลบบัญชี
 - `main` = `dev` ณ ตอน deploy; ทำงานต่อบน `dev` แล้ว merge เข้า `main` เมื่อผู้ใช้สั่ง deploy
 - DB บน Supabase migrate ถึง `0002`; env บน Vercel ครบ (DATABASE_URL, DATABASE_POOL_MAX, DB_DRIVER, AUTH_PROVIDER, AUTH_SECRET,
