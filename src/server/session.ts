@@ -32,14 +32,20 @@ export async function requireUser(locale: string): Promise<SessionUser> {
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-/** ใช้ในทุกหน้าใต้ /store/[storeId] — ต้องเป็นสมาชิกที่ active และ (ถ้าระบุ) มีสิทธิ์ */
-export const requireStoreAccess = cache(async (locale: string, storeId: string, permission?: Permission) => {
+/** โหลดร้าน + สมาชิก ครั้งเดียวต่อ request (layout, page, action ใช้ผลเดียวกัน) */
+const loadStoreAccess = cache(async (locale: string, storeId: string) => {
   const user = await requireUser(locale);
   if (!UUID.test(storeId)) notFound();
   const repos = await getRepositories();
   const [store, member] = await Promise.all([repos.stores.findById(storeId), repos.stores.getMember(storeId, user.id)]);
   if (!store) notFound();
   if (!member || member.status !== "active") redirect(`/${locale}/hub/stores`);
-  if (permission && !can(member, permission)) redirect(`/${locale}/store/${storeId}`);
   return { user, store, member };
 });
+
+/** ใช้ในทุกหน้าใต้ /store/[storeId] — ต้องเป็นสมาชิกที่ active และ (ถ้าระบุ) มีสิทธิ์ */
+export async function requireStoreAccess(locale: string, storeId: string, permission?: Permission) {
+  const access = await loadStoreAccess(locale, storeId);
+  if (permission && !can(access.member, permission)) redirect(`/${locale}/store/${storeId}`);
+  return access;
+}

@@ -15,6 +15,16 @@
 
 ---
 
+## 2026-11-16 — บันทึกสินค้าหมุนนาน: วิเคราะห์ + ลด query (branch dev)
+- วัดเว็บจริง: หน้าไม่แตะ DB ~0.23s, request ที่แตะ DB ~0.38s (อุ่น) / ~0.76s (instance ใหม่ + ต่อ DB ใหม่) → ช้าหลักๆ ตอน "เย็น"
+- บั๊ก: `requireStoreAccess` ถูก cache แยกตาม argument permission → layout กับ page query ร้าน+สมาชิกซ้ำ 2 รอบ
+  แก้: แยก `loadStoreAccess(locale, storeId)` ที่ cache ต่อ request แล้วเช็กสิทธิ์ข้างนอก → หน้าคลังสินค้า 6 → 4 query
+- `/api/health?db=1` ping DB คืน `dbMs` — ใช้วัดความเร็ว และให้ตัว ping ภายนอก (เช่น cron-job.org ทุก 5 นาที) กันเครื่องเย็น/กัน Supabase pause
+- `DEBUG_SQL=1` ใน .env.local → พิมพ์ทุก query ลง console (ใช้หาจุดช้า)
+- วัดจากเครื่องนี้ (บ้าน → Tokyo): query ละ ~100ms, ต่อใหม่ ~600ms — dev local จึงช้ากว่าเว็บจริงมาก
+
+---
+
 ## 2026-11-16 — เปลี่ยนรหัสผ่าน + ลบบัญชี (branch dev)
 - หน้าจัดการบัญชี: ส่วน **รหัสผ่าน** — รหัสปัจจุบัน + รหัสใหม่ (`auth.api.changePassword`, อุปกรณ์อื่นหลุด เครื่องนี้อยู่ต่อ)
   - ปุ่ม "ลืมรหัสผ่าน? ส่ง OTP ไปที่อีเมล" → ใช้ `forgotPasswordAction` เดิม → `/reset`
