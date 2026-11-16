@@ -22,6 +22,8 @@
 - `/api/health?db=1` ping DB คืน `dbMs` — ใช้วัดความเร็ว และให้ตัว ping ภายนอก (เช่น cron-job.org ทุก 5 นาที) กันเครื่องเย็น/กัน Supabase pause
 - `DEBUG_SQL=1` ใน .env.local → พิมพ์ทุก query ลง console (ใช้หาจุดช้า)
 - วัดจากเครื่องนี้ (บ้าน → Tokyo): query ละ ~100ms, ต่อใหม่ ~600ms — dev local จึงช้ากว่าเว็บจริงมาก
+- **Deploy แล้ว** — เว็บจริง `/api/health?db=1`: dbMs 5–6ms (อุ่น), 49ms (ต่อใหม่) → DB ไม่ใช่คอขวด
+- แนะนำผู้ใช้ตั้ง cron-job.org ping `https://easy-pos-beta.vercel.app/api/health?db=1` ทุก 5 นาที (ยังไม่ได้ตั้ง)
 
 ---
 
