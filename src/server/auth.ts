@@ -5,7 +5,7 @@ import { nextCookies } from "better-auth/next-js";
 import { getDb } from "@/adapters/db/postgres/client";
 import * as schema from "@/adapters/db/postgres/schema";
 import { defaultLocale, defaultTimeZone } from "@/i18n/config";
-import { env } from "./env";
+import { appUrl, env, trustedOrigins } from "./env";
 
 // Better Auth — เก็บ user/session ใน Postgres ตัวเดียวกับข้อมูลร้าน
 // เปลี่ยนผู้ให้บริการ auth: แก้ไฟล์นี้ + src/server/session.ts เท่านั้น (หน้าเว็บเรียกผ่าน session.ts)
@@ -16,7 +16,8 @@ function createAuth() {
       : undefined;
 
   return betterAuth({
-    baseURL: env.APP_URL,
+    baseURL: appUrl,
+    trustedOrigins,
     secret: env.AUTH_SECRET,
     database: drizzleAdapter(getDb(), { provider: "pg", schema }),
     user: {

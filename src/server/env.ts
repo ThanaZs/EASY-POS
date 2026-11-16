@@ -10,7 +10,18 @@ const schema = z.object({
   AUTH_SECRET: z.string().optional(),
   GOOGLE_CLIENT_ID: z.string().optional(),
   GOOGLE_CLIENT_SECRET: z.string().optional(),
-  APP_URL: z.string().default("http://localhost:3000"),
+  APP_URL: z.string().optional(),
+  // Vercel ใส่ให้อัตโนมัติ (ไม่มี https://)
+  VERCEL_PROJECT_PRODUCTION_URL: z.string().optional(),
+  VERCEL_URL: z.string().optional(),
 });
 
 export const env = schema.parse(process.env);
+
+const https = (host?: string) => (host ? `https://${host}` : undefined);
+
+/** URL หลักของแอป: APP_URL > โดเมน production ของ Vercel > localhost */
+export const appUrl = env.APP_URL || https(env.VERCEL_PROJECT_PRODUCTION_URL) || "http://localhost:3000";
+
+/** origin ที่อนุญาตให้ส่งฟอร์ม/ล็อกอิน (รวม URL preview ของ Vercel แต่ละ deploy) */
+export const trustedOrigins = [appUrl, https(env.VERCEL_URL)].filter((u): u is string => Boolean(u));
