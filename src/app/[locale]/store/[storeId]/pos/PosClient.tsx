@@ -328,12 +328,15 @@ export function PosClient(props: Props) {
                       key={p.id}
                       onClick={() => add(p)}
                       disabled={left <= 0}
-                      className={`relative flex min-h-24 flex-col justify-between rounded-xl border bg-card p-3 text-left shadow-sm transition active:scale-[0.98] disabled:opacity-40 ${
-                        inCart ? "border-brand ring-2 ring-brand-soft" : "border-line hover:border-brand"
+                      className={`relative flex min-h-24 flex-col justify-between rounded-xl border bg-card p-3 text-left shadow-sm pressable disabled:opacity-40 ${
+                        inCart ? "border-brand ring-2 ring-brand-soft" : "border-line"
                       }`}
                     >
                       {inCart > 0 && (
-                        <span className="absolute right-2 top-2 grid size-6 place-items-center rounded-full bg-brand text-xs font-bold text-white">
+                        <span
+                          key={inCart}
+                          className="animate-pop absolute right-2 top-2 grid size-6 place-items-center rounded-full bg-brand text-xs font-bold text-white"
+                        >
                           {inCart}
                         </span>
                       )}

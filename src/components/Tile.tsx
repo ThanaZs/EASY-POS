@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
 
 const tileClass =
-  "group relative flex w-full flex-col items-center gap-3 rounded-2xl border border-line bg-card p-4 text-center shadow-sm transition hover:-translate-y-0.5 hover:shadow-md sm:p-5";
+  "group relative flex w-full flex-col items-center gap-3 rounded-2xl border border-line bg-card p-4 text-center shadow-sm pressable sm:p-5";
 
 type TileProps = {
   label: string;
@@ -19,10 +19,12 @@ function TileBody({ label, Icon, color, badge }: TileProps) {
           {badge}
         </span>
       )}
-      <span className={`grid size-14 place-items-center rounded-2xl text-white sm:size-16 ${color}`}>
+      <span
+        className={`grid size-14 place-items-center rounded-2xl text-white shadow-sm transition-[scale,rotate] duration-200 group-hover:scale-110 group-hover:-rotate-3 group-active:scale-95 sm:size-16 ${color}`}
+      >
         <Icon className="size-7 sm:size-8" strokeWidth={1.8} />
       </span>
-      <span className="text-sm font-medium sm:text-base">{label}</span>
+      <span className="text-sm font-medium transition-colors group-hover:text-brand sm:text-base">{label}</span>
     </>
   );
 }

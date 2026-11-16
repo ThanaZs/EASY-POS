@@ -77,7 +77,7 @@ export default async function OverviewPage({ params }: PageProps<"/[locale]/stor
                 <li key={s.id}>
                   <Link
                     href={`/${locale}/store/${storeId}/sales/${s.id}`}
-                    className={`flex items-center justify-between gap-3 p-3 hover:bg-surface ${s.status !== "completed" ? "opacity-50" : ""}`}
+                    className={`flex items-center justify-between gap-3 p-3 row-hover ${s.status !== "completed" ? "opacity-50" : ""}`}
                   >
                     <div>
                       <p className="font-mono text-sm">{s.receiptNo}</p>
@@ -103,7 +103,7 @@ export default async function OverviewPage({ params }: PageProps<"/[locale]/stor
             <ul className="divide-y divide-line overflow-hidden rounded-2xl border border-line bg-card">
               {low.slice(0, 20).map((p) => (
                 <li key={p.id}>
-                  <Link href={`/${locale}/store/${storeId}/inventory/${p.id}`} className="flex justify-between gap-3 p-3 hover:bg-surface">
+                  <Link href={`/${locale}/store/${storeId}/inventory/${p.id}`} className="flex justify-between gap-3 p-3 row-hover">
                     <span className="truncate">{p.name}</span>
                     <span className={`font-semibold tabular-nums ${p.stockQty <= 0 ? "text-rose-600" : "text-amber-600"}`}>
                       {p.stockQty} {p.unit}

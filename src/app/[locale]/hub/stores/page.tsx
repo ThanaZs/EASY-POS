@@ -20,7 +20,7 @@ export default async function MyStoresPage({ params }: PageProps<"/[locale]/hub/
             <li key={store.id}>
               <Link
                 href={`/${locale}/store/${store.id}`}
-                className="flex items-center gap-4 rounded-2xl border border-line bg-card p-4 shadow-sm hover:shadow-md"
+                className="flex items-center gap-4 rounded-2xl border border-line bg-card p-4 shadow-sm pressable"
               >
                 <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-teal-600 text-white">
                   <Store />

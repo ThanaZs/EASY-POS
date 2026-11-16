@@ -90,7 +90,7 @@ export default async function InventoryPage({ params, searchParams }: PageProps<
             return (
               <li key={p.id}>
                 {canEdit ? (
-                  <Link href={`${base}/${p.id}`} className="flex items-center gap-3 p-3 hover:bg-surface">
+                  <Link href={`${base}/${p.id}`} className="flex items-center gap-3 p-3 row-hover">
                     {body}
                   </Link>
                 ) : (

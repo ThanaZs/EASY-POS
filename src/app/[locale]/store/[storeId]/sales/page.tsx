@@ -42,7 +42,7 @@ export default async function SalesPage({ params, searchParams }: PageProps<"/[l
             <li key={b.id}>
               <Link
                 href={`/${locale}/store/${storeId}/sales/${b.id}`}
-                className={`flex items-center gap-3 p-3 hover:bg-surface ${b.status !== "completed" ? "opacity-60" : ""}`}
+                className={`flex items-center gap-3 p-3 row-hover ${b.status !== "completed" ? "opacity-60" : ""}`}
               >
                 <div className="min-w-0 flex-1">
                   <p className="font-mono text-sm">
