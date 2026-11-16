@@ -1,5 +1,8 @@
 {
-  "app": { "name": "EASY-POS", "tagline": "Simple point of sale on any device" },
+  "app": {
+    "name": "EASY-POS",
+    "tagline": "Simple point of sale on any device"
+  },
   "auth": {
     "login": "Sign in",
     "register": "Create account",
@@ -9,7 +12,14 @@
     "google": "Continue with Google",
     "noAccount": "No account yet?",
     "haveAccount": "Already have an account?",
-    "forgot": "Forgot password?"
+    "forgot": "Forgot password?",
+    "errors": {
+      "invalid": "Incorrect email or password",
+      "exists": "An account with this email already exists",
+      "weak": "Password must be at least 8 characters",
+      "failed": "Something went wrong. Please try again"
+    },
+    "or": "or"
   },
   "hub": {
     "title": "What would you like to do?",
@@ -25,14 +35,31 @@
     "timezone": "Time zone",
     "submit": "Create store"
   },
-  "join": { "code": "Invite / store code", "submit": "Join" },
+  "join": {
+    "code": "Invite code",
+    "submit": "Join",
+    "hint": "Ask the store owner or manager for an invite code (Staff menu)",
+    "errors": {
+      "not_found": "Invite code not found",
+      "expired": "This invite code has expired",
+      "used_up": "This invite code has been fully used",
+      "already_member": "You are already a member of this store"
+    }
+  },
   "account": {
     "language": "Language",
     "timezone": "Time zone",
     "deleteAccount": "Delete account",
-    "save": "Save"
+    "save": "Save",
+    "saved": "Saved",
+    "displayName": "Display name",
+    "deleteSoon": "Account deletion will be available in a later version"
   },
-  "stores": { "empty": "No stores yet", "role": "Role" },
+  "stores": {
+    "empty": "No stores yet",
+    "role": "Role",
+    "code": "Store code"
+  },
   "store": {
     "back": "Back to home",
     "modules": {
@@ -51,5 +78,28 @@
     },
     "comingSoon": "In development — see docs/ROADMAP.md"
   },
-  "common": { "language": "Language", "comingSoon": "Coming soon" }
+  "common": {
+    "language": "Language",
+    "comingSoon": "Coming soon"
+  },
+  "roles": {
+    "owner": "Owner",
+    "manager": "Manager",
+    "cashier": "Cashier",
+    "staff": "Staff"
+  },
+  "staff": {
+    "members": "Store members",
+    "invites": "Invite codes",
+    "createInvite": "Create invite code",
+    "role": "Role",
+    "maxUses": "Max uses",
+    "expiresInDays": "Expires in (days)",
+    "never": "Never expires",
+    "used": "Used",
+    "expires": "Expires",
+    "noInvites": "No invite codes yet",
+    "remove": "Remove",
+    "inviteHint": "Send this code to your staff, then they open Join a store"
+  }
 }

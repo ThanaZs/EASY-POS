@@ -1,8 +1,13 @@
 import "server-only";
-import type { Repositories } from "@/core/ports/repositories";
+import { and, asc, desc, eq, ne, sql } from "drizzle-orm";
+import type { Store, StoreInvite, StoreMember, User } from "@/core/domain/types";
+import { inviteState } from "@/core/domain/invite";
+import { normalizeCode, randomCode } from "@/core/lib/code";
+import type { Repositories, StoreRepo, UserRepo } from "@/core/ports/repositories";
+import { getDb } from "./client";
+import { storeInvites, storeMembers, stores, users } from "./schema";
 
-// TODO(phase 1): implement ทีละ repo ด้วย getDb() + schema.ts
-// ดู docs/ROADMAP.md หัวข้อ Phase 1
+// TODO(phase 2): products / stock / sales
 const notYet = (name: string) =>
   new Proxy({}, {
     get: (_t, method) => () => {
@@ -10,10 +15,194 @@ const notYet = (name: string) =>
     },
   });
 
+// ===== แปลงแถว DB → domain =====
+type UserRow = typeof users.$inferSelect;
+type StoreRow = typeof stores.$inferSelect;
+type MemberRow = typeof storeMembers.$inferSelect;
+type InviteRow = typeof storeInvites.$inferSelect;
+
+const toUser = (r: UserRow): User => ({
+  id: r.id,
+  email: r.email,
+  displayName: r.displayName,
+  locale: r.locale,
+  timeZone: r.timeZone,
+  createdAt: r.createdAt,
+});
+
+const toStore = (r: StoreRow): Store => ({
+  id: r.id,
+  name: r.name,
+  code: r.code,
+  ownerId: r.ownerId,
+  currency: r.currency,
+  timeZone: r.timeZone,
+  locale: r.locale,
+  createdAt: r.createdAt,
+});
+
+const toMember = (r: MemberRow): StoreMember => ({
+  id: r.id,
+  storeId: r.storeId,
+  userId: r.userId,
+  role: r.role,
+  permissions: (r.permissions ?? {}) as StoreMember["permissions"],
+  status: r.status,
+  joinedAt: r.joinedAt,
+});
+
+const toInvite = (r: InviteRow): StoreInvite => ({
+  id: r.id,
+  storeId: r.storeId,
+  code: r.code,
+  role: r.role,
+  maxUses: r.maxUses,
+  usedCount: r.usedCount,
+  expiresAt: r.expiresAt,
+  createdBy: r.createdBy,
+  createdAt: r.createdAt,
+});
+
+/** unique violation ของ Postgres */
+function isUniqueViolation(e: unknown): boolean {
+  if (typeof e !== "object" || e === null) return false;
+  const err = e as { code?: string; cause?: unknown };
+  return err.code === "23505" || isUniqueViolation(err.cause);
+}
+
+/** ลองใหม่เมื่อรหัสสุ่มชนกัน (โอกาสน้อยมาก) */
+async function withUniqueCode<T>(fn: (code: string) => Promise<T>, length = 6): Promise<T> {
+  for (let i = 0; i < 5; i++) {
+    try {
+      return await fn(randomCode(length));
+    } catch (e) {
+      if (!isUniqueViolation(e)) throw e;
+    }
+  }
+  throw new Error("Could not generate a unique code");
+}
+
+function userRepo(): UserRepo {
+  const db = getDb();
+  return {
+    async findById(id) {
+      const [r] = await db.select().from(users).where(eq(users.id, id)).limit(1);
+      return r ? toUser(r) : null;
+    },
+    async findByEmail(email) {
+      const [r] = await db.select().from(users).where(eq(users.email, email.toLowerCase())).limit(1);
+      return r ? toUser(r) : null;
+    },
+    async updateProfile(id, patch) {
+      const [r] = await db
+        .update(users)
+        .set({ ...patch, updatedAt: new Date() })
+        .where(eq(users.id, id))
+        .returning();
+      return toUser(r);
+    },
+    async delete(id) {
+      await db.delete(users).where(eq(users.id, id));
+    },
+  };
+}
+
+function storeRepo(): StoreRepo {
+  const db = getDb();
+  return {
+    createWithOwner(input) {
+      return withUniqueCode((code) =>
+        db.transaction(async (tx) => {
+          const [store] = await tx.insert(stores).values({ ...input, code }).returning();
+          await tx.insert(storeMembers).values({ storeId: store.id, userId: input.ownerId, role: "owner" });
+          return toStore(store);
+        }),
+      );
+    },
+    async findById(id) {
+      const [r] = await db.select().from(stores).where(eq(stores.id, id)).limit(1);
+      return r ? toStore(r) : null;
+    },
+    async findByCode(code) {
+      const [r] = await db.select().from(stores).where(eq(stores.code, normalizeCode(code))).limit(1);
+      return r ? toStore(r) : null;
+    },
+    async listForUser(userId) {
+      const rows = await db
+        .select({ store: stores, member: storeMembers })
+        .from(storeMembers)
+        .innerJoin(stores, eq(stores.id, storeMembers.storeId))
+        .where(eq(storeMembers.userId, userId))
+        .orderBy(asc(stores.name));
+      return rows.map((r) => ({ store: toStore(r.store), member: toMember(r.member) }));
+    },
+    async getMember(storeId, userId) {
+      const [r] = await db
+        .select()
+        .from(storeMembers)
+        .where(and(eq(storeMembers.storeId, storeId), eq(storeMembers.userId, userId)))
+        .limit(1);
+      return r ? toMember(r) : null;
+    },
+    async listMembers(storeId) {
+      const rows = await db
+        .select({ member: storeMembers, user: { id: users.id, email: users.email, displayName: users.displayName } })
+        .from(storeMembers)
+        .innerJoin(users, eq(users.id, storeMembers.userId))
+        .where(eq(storeMembers.storeId, storeId))
+        .orderBy(asc(storeMembers.joinedAt));
+      return rows.map((r) => ({ member: toMember(r.member), user: r.user }));
+    },
+    async removeMember(storeId, userId) {
+      // ลบเจ้าของร้านไม่ได้
+      await db
+        .delete(storeMembers)
+        .where(and(eq(storeMembers.storeId, storeId), eq(storeMembers.userId, userId), ne(storeMembers.role, "owner")));
+    },
+    createInvite(input) {
+      return withUniqueCode(async (code) => {
+        const [r] = await db.insert(storeInvites).values({ ...input, code }).returning();
+        return toInvite(r);
+      }, 8);
+    },
+    async listInvites(storeId) {
+      const rows = await db
+        .select()
+        .from(storeInvites)
+        .where(eq(storeInvites.storeId, storeId))
+        .orderBy(desc(storeInvites.createdAt));
+      return rows.map(toInvite);
+    },
+    async redeemInvite(rawCode, userId) {
+      const code = normalizeCode(rawCode);
+      return db.transaction(async (tx) => {
+        // FOR UPDATE: กันสองคนใช้รหัสสุดท้ายพร้อมกัน
+        const [inv] = await tx.select().from(storeInvites).where(eq(storeInvites.code, code)).for("update").limit(1);
+        if (!inv) return { ok: false, reason: "not_found" } as const;
+        const state = inviteState(inv);
+        if (state !== "active") return { ok: false, reason: state } as const;
+
+        const inserted = await tx
+          .insert(storeMembers)
+          .values({ storeId: inv.storeId, userId, role: inv.role, permissions: inv.permissions })
+          .onConflictDoNothing()
+          .returning({ id: storeMembers.id });
+        if (inserted.length === 0) return { ok: false, reason: "already_member" } as const;
+
+        await tx
+          .update(storeInvites)
+          .set({ usedCount: sql`${storeInvites.usedCount} + 1` })
+          .where(eq(storeInvites.id, inv.id));
+        return { ok: true, storeId: inv.storeId } as const;
+      });
+    },
+  };
+}
+
 export function createPostgresRepositories(): Repositories {
   return {
-    users: notYet("users") as Repositories["users"],
-    stores: notYet("stores") as Repositories["stores"],
+    users: userRepo(),
+    stores: storeRepo(),
     products: notYet("products") as Repositories["products"],
     stock: notYet("stock") as Repositories["stock"],
     sales: notYet("sales") as Repositories["sales"],

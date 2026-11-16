@@ -2,7 +2,17 @@
 // business logic คุยกับ interface เหล่านี้เท่านั้น
 // เปลี่ยน DB = เขียน adapter ใหม่ใน src/adapters/** แล้วแก้ src/server/container.ts จุดเดียว
 
-import type { ID, Product, Sale, StockMovement, Store, StoreMember, User } from "../domain/types";
+import type {
+  ID,
+  Product,
+  RedeemInviteResult,
+  Sale,
+  StockMovement,
+  Store,
+  StoreInvite,
+  StoreMember,
+  User,
+} from "../domain/types";
 
 export interface UserRepo {
   findById(id: ID): Promise<User | null>;
@@ -11,14 +21,23 @@ export interface UserRepo {
   delete(id: ID): Promise<void>;
 }
 
+export type MemberWithUser = { member: StoreMember; user: Pick<User, "id" | "email" | "displayName"> };
+
 export interface StoreRepo {
-  create(input: Omit<Store, "id" | "code" | "createdAt">): Promise<Store>;
+  /** ต้องทำใน transaction: สร้างร้าน + เพิ่มเจ้าของเป็นสมาชิก role=owner */
+  createWithOwner(input: Pick<Store, "name" | "currency" | "timeZone" | "locale" | "ownerId">): Promise<Store>;
   findById(id: ID): Promise<Store | null>;
   findByCode(code: string): Promise<Store | null>;
   listForUser(userId: ID): Promise<Array<{ store: Store; member: StoreMember }>>;
   getMember(storeId: ID, userId: ID): Promise<StoreMember | null>;
-  addMember(input: Omit<StoreMember, "id" | "joinedAt">): Promise<StoreMember>;
+  listMembers(storeId: ID): Promise<MemberWithUser[]>;
   removeMember(storeId: ID, userId: ID): Promise<void>;
+  createInvite(
+    input: Pick<StoreInvite, "storeId" | "role" | "maxUses" | "expiresAt" | "createdBy">,
+  ): Promise<StoreInvite>;
+  listInvites(storeId: ID): Promise<StoreInvite[]>;
+  /** ต้องทำใน transaction: ตรวจรหัสเชิญ (หมดอายุ/ใช้ครบ) + เพิ่มสมาชิก + นับการใช้ */
+  redeemInvite(code: string, userId: ID): Promise<RedeemInviteResult>;
 }
 
 export interface ProductRepo {

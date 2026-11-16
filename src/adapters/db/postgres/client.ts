@@ -9,6 +9,6 @@ const globalForDb = globalThis as unknown as { pg?: ReturnType<typeof postgres> 
 
 export function getDb() {
   if (!env.DATABASE_URL) throw new Error("DATABASE_URL is not set — see .env.example");
-  globalForDb.pg ??= postgres(env.DATABASE_URL, { prepare: false, max: 5 });
+  globalForDb.pg ??= postgres(env.DATABASE_URL, { prepare: false, max: env.DATABASE_POOL_MAX });
   return drizzle(globalForDb.pg, { schema });
 }

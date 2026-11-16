@@ -24,8 +24,46 @@ export const users = pgTable("users", {
   email: text("email").notNull().unique(),
   emailVerified: boolean("email_verified").notNull().default(false),
   displayName: text("display_name").notNull(),
+  image: text("image"),
   locale: text("locale").notNull().default("th"),
   timeZone: text("time_zone").notNull().default("Asia/Bangkok"),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+});
+
+// ===== ตารางของ Better Auth (session / บัญชี OAuth / token ยืนยัน) =====
+export const sessions = pgTable("sessions", {
+  id: id(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  token: text("token").notNull().unique(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+});
+
+export const accounts = pgTable("accounts", {
+  id: id(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  accountId: text("account_id").notNull(),
+  providerId: text("provider_id").notNull(), // "credential" | "google" ...
+  accessToken: text("access_token"),
+  refreshToken: text("refresh_token"),
+  idToken: text("id_token"),
+  accessTokenExpiresAt: timestamp("access_token_expires_at", { withTimezone: true }),
+  refreshTokenExpiresAt: timestamp("refresh_token_expires_at", { withTimezone: true }),
+  scope: text("scope"),
+  password: text("password"), // hash
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+});
+
+export const verifications = pgTable("verifications", {
+  id: id(),
+  identifier: text("identifier").notNull(),
+  value: text("value").notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
 });

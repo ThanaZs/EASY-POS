@@ -56,9 +56,17 @@ src/
 ตารางทั้งหมด: `src/adapters/db/postgres/schema.ts`
 
 ## Auth {#auth}
-ยังไม่ได้เชื่อม (ตอนนี้กดเข้าสู่ระบบแล้วไปหน้า hub ได้เลยเพื่อดู UI)
-แผน: ใช้ **Better Auth** (ไลบรารีที่เก็บ user/session ในฐานข้อมูลของเราเอง) → ไม่ผูกกับผู้ให้บริการ, รองรับ email+password, Google, email OTP
-ทางเลือก: Supabase Auth (ง่ายกว่าแต่ผูกกับ Supabase) — สลับได้ผ่าน `AUTH_PROVIDER` ใน env
+ใช้ **Better Auth** — เก็บ user/session ใน Postgres ของเราเอง (ตาราง `users`, `sessions`, `accounts`, `verifications`) จึงไม่ผูกกับผู้ให้บริการ
+- `src/server/auth.ts` — ตั้งค่า Better Auth (email+password, Google ถ้าใส่ env ครบ, id เป็น uuid)
+- `src/server/session.ts` — **หน้าเว็บเรียกผ่านไฟล์นี้เท่านั้น**: `getSessionUser()`, `requireUser(locale)`, `requireStoreAccess(locale, storeId, permission?)`
+- `src/app/api/auth/[...all]` — endpoint ของ Better Auth (callback Google)
+- ล็อกอิน/สมัคร/ออก ทำผ่าน server action ใน `src/app/[locale]/(auth)/actions.ts`
+- ทุกหน้าใต้ `/hub` และ `/store/[storeId]` เช็กสิทธิ์ฝั่ง server (ไม่ใช่แค่ซ่อนปุ่ม) — พิมพ์ URL ตรงก็เข้าไม่ได้
+- เปลี่ยนผู้ให้บริการ auth (เช่น Supabase Auth/Clerk): แก้ `auth.ts` + `session.ts` + `actions.ts`
+
+## เข้าร่วมร้าน
+เจ้าของ/ผู้จัดการสร้าง **รหัสเชิญ** (8 ตัว, กำหนดบทบาท/จำนวนครั้ง/วันหมดอายุ) ที่เมนู **พนักงาน** → คนที่ได้รหัสไปที่ hub > เข้าร่วมร้านค้า
+`redeemInvite` ทำใน transaction + `SELECT ... FOR UPDATE` กันใช้รหัสเกินจำนวน; ผู้จัดการเชิญ/ลบผู้จัดการคนอื่นไม่ได้
 
 ## สิทธิ์ผู้ใช้ในร้าน
 บทบาท `owner / manager / cashier / staff` + override รายสิทธิ์ได้ (ดู `core/domain/permissions.ts`)

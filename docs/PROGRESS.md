@@ -4,8 +4,29 @@
 > เครื่องใหม่ / Claude session ใหม่: อ่านไฟล์นี้ + ROADMAP.md ก่อนเริ่มงาน
 
 ## สถานะปัจจุบัน
-- Phase 0 (โครงสร้าง) เสร็จ — UI เดินได้ทุกหน้า แต่ **ยังไม่ต่อฐานข้อมูลและยังไม่มีระบบล็อกอินจริง**
-- งานถัดไป: Phase 1 ข้อแรก — สร้าง Supabase แล้วรัน migration (ดู docs/DEPLOY.md)
+- Phase 1 เกือบเสร็จ — ล็อกอิน/สมัคร/สร้างร้าน/เข้าร่วมร้าน/บัญชี ใช้งานจริงแล้ว (ทดสอบกับ PGlite ในเครื่อง)
+- งานถัดไป: ต่อ Supabase (`DATABASE_URL` ใน `.env.local` → `db:migrate`) → Deploy Vercel → Phase 2 (คลังสินค้า + POS)
+
+---
+
+## 2026-11-16 — Phase 1: Auth + ร้านค้า + รหัสเชิญ
+**ทำอะไรไปบ้าง**
+- ติดตั้ง Better Auth 1.7 (`src/server/auth.ts`) ใช้ตาราง `users` เดิม + เพิ่ม `sessions`, `accounts`, `verifications`; id เป็น uuid
+- `src/server/session.ts`: `getSessionUser`, `requireUser`, `requireStoreAccess` (เช็กสมาชิก + สิทธิ์ฝั่ง server)
+- Repositories จริง: `users`, `stores` (createWithOwner ใน transaction, redeemInvite ใน transaction + FOR UPDATE)
+- หน้า login/register/logout จริง (server actions), แสดง error ตาม `?error=`; ปุ่ม Google แสดงเมื่อมี env
+- hub: สร้างร้าน, ร้านของฉัน, เข้าร่วมร้าน (รหัสเชิญ), บัญชี (ชื่อ/ภาษา/ทามโซน)
+- ร้าน: เมนูกรองตามสิทธิ์, หน้า **พนักงาน** (`store/[storeId]/staff`) สร้างรหัสเชิญ + เอาสมาชิกออก
+- Migration แรก `drizzle/0000_init.sql`; env ใหม่ `DATABASE_POOL_MAX`
+- ตรวจแล้ว: lint ✅ build ✅ และทดสอบในเบราว์เซอร์กับ PGlite: สมัคร 2 บัญชี → สร้างร้าน → สร้างรหัสเชิญ (cashier) →
+  บัญชีที่ 2 เข้าร่วม (รหัสผิดขึ้น error, พิมพ์ตัวเล็ก/มีขีดก็ได้) → เห็นเฉพาะเมนู cashier → เข้า /staff, /reports ตรงๆ ถูกเด้งกลับ →
+  ร้านที่ไม่มีอยู่ได้ 404 → บันทึกบัญชีเปลี่ยนภาษา/ทามโซนได้ → รหัสผ่านผิดขึ้น error → ออกจากระบบได้
+
+**ข้อสังเกต / สิ่งที่ต้องรู้**
+- หน้าใช้ session ต้องเรียก `headers()` ก่อน (ทำใน `getSessionUser` แล้ว) ไม่งั้น build จะพยายาม prerender แล้วต่อ DB
+- PGlite ต้องใช้ `DATABASE_POOL_MAX=1` (ไม่งั้น error `bind message supplies 2 parameters...`) — Postgres จริงไม่มีปัญหานี้
+- ยังไม่มี: ยืนยันอีเมล, ลืมรหัสผ่าน, ลบบัญชี (ต้องมีบริการส่งอีเมล — Phase 3)
+- `.env.local` ในเครื่องนี้ชี้ไป PGlite — ห้าม commit
 
 ---
 

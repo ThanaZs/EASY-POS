@@ -9,14 +9,17 @@
 - [x] เอกสาร
 
 ## Phase 1 — ใช้งานได้จริงขั้นต่ำ
-- [ ] สร้าง Supabase project + `npm run db:generate && npm run db:migrate`
-- [ ] Auth ด้วย Better Auth (email+password, Google) + ป้องกันหน้า hub/store
-- [ ] Implement `adapters/db/postgres/repositories.ts` (users, stores, products, stock, sales)
-- [ ] สร้างร้าน / ร้านของฉัน / เข้าร่วมร้าน (รหัสเชิญ) ใช้งานจริง
-- [ ] บันทึกภาษา/ทามโซนของผู้ใช้
+- [x] Migration แรก `drizzle/0000_init.sql` (14 ตาราง) — ทดสอบกับ PGlite แล้ว
+- [ ] สร้าง Supabase project + `db:migrate` ขึ้น Supabase  ← **ผู้ใช้กำลังทำ**
+- [x] Auth ด้วย Better Auth (email+password; Google พร้อมใช้เมื่อใส่ env) + ป้องกันหน้า hub/store ฝั่ง server
+- [x] Repositories: users, stores (+ สมาชิก, รหัสเชิญ) — products/stock/sales ย้ายไป Phase 2
+- [x] สร้างร้าน / ร้านของฉัน / เข้าร่วมร้าน (รหัสเชิญ) / หน้า พนักงาน (สร้างรหัสเชิญ, เอาสมาชิกออก)
+- [x] บันทึกชื่อ/ภาษา/ทามโซนของผู้ใช้ (ทามโซนตอนสมัครเอาจากเครื่องผู้ใช้)
+- [x] เมนูร้านแสดงตามสิทธิ์ของบทบาท
 - [ ] Deploy Vercel ครั้งแรก
 
 ## Phase 2 — POS + คลังสินค้า
+- [ ] Repositories: products, stock (transaction), sales (transaction + ตัดสต็อก + เลขใบเสร็จ)
 - [ ] คลังสินค้า: CRUD สินค้า, หมวดหมู่, สร้างบาร์โค้ด, ค้นหา
 - [ ] สแกนบาร์โค้ดด้วยกล้อง (เดิมใช้ jsQR/ZXing — พิจารณา `BarcodeDetector` API + fallback)
 - [ ] ระบบขาย: ตะกร้า, ส่วนลด, รับเงิน/ทอน, วิธีชำระ, ใบเสร็จ (พิมพ์ 58/80mm)
@@ -25,7 +28,8 @@
 
 ## Phase 3 — ต่อยอด
 - [ ] รายงาน (กำไร, สินค้าขายดี/ขายไม่ออก), export CSV
-- [ ] พนักงาน + สิทธิ์ละเอียด, บันทึกเวลาทำงาน
+- [ ] พนักงาน: แก้บทบาท/สิทธิ์รายคน, ยกเลิกรหัสเชิญ, บันทึกเวลาทำงาน
+- [ ] ยืนยันอีเมล OTP, ลืมรหัสผ่าน (ต้องมีบริการส่งอีเมล เช่น Resend), ลบบัญชี
 - [ ] สมาชิก/ลูกค้า + แต้มสะสม
 - [ ] ป้ายราคา, สินค้าใกล้หมดอายุ, บันทึกค่าใช้จ่าย, เบิกใช้ในร้าน
 - [ ] PWA + ขายแบบ offline แล้ว sync

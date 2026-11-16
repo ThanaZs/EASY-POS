@@ -58,6 +58,22 @@ export interface StoreMember {
   joinedAt: Date;
 }
 
+export interface StoreInvite {
+  id: ID;
+  storeId: ID;
+  code: string;
+  role: Exclude<Role, "owner">;
+  maxUses: number;
+  usedCount: number;
+  expiresAt: Date | null;
+  createdBy: ID | null;
+  createdAt: Date;
+}
+
+export type RedeemInviteResult =
+  | { ok: true; storeId: ID }
+  | { ok: false; reason: "not_found" | "expired" | "used_up" | "already_member" };
+
 export interface Product {
   id: ID;
   storeId: ID;
