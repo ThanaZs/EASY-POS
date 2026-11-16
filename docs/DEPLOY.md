@@ -4,7 +4,9 @@
 
 ### 1) สร้างฐานข้อมูลบน Supabase
 1. สมัคร https://supabase.com → New project (เลือก region Singapore ใกล้ไทยสุด)
-2. Project Settings → Database → Connection string → เลือก **Transaction pooler** (port 6543) คัดลอกมา
+2. ปุ่ม **Connect** (บนสุด) → **Direct** → Method **Transaction pooler** (port 6543) คัดลอกมา
+   - ห้ามใช้ `db.<ref>.supabase.co:5432` (Direct) — เป็น IPv6 อย่างเดียว ต่อจาก Vercel/เน็ตบ้านส่วนใหญ่ไม่ได้
+   - Supabase ไม่แสดงรหัสฐานข้อมูล — ลืมให้กด Reset database password
 3. ใส่ในเครื่องที่ `.env.local` เป็น `DATABASE_URL=...` (แทนรหัส `[YOUR-PASSWORD]` ด้วยรหัสฐานข้อมูลที่ตั้งตอนสร้าง project) และตั้ง `DATABASE_POOL_MAX=5`
 4. สร้างตาราง (ไฟล์ migration อยู่ใน `drizzle/` แล้ว):
    ```bash
@@ -12,6 +14,7 @@
    ```
    (`drizzle.config.ts` อ่าน `.env.local` ให้เอง)
    - แก้ schema ภายหลัง: `npm run db:generate` (สร้างไฟล์ migration ใหม่) แล้ว `db:migrate`
+   - migration `0001_enable_rls` เปิด RLS ทุกตาราง เพื่อปิด Supabase Data API — ตารางใหม่ต้องเปิด RLS ด้วย
 
 ### ทดสอบในเครื่องโดยไม่มี Supabase (PGlite)
 Postgres แบบ WASM ในหน่วยความจำ — ข้อมูลหายเมื่อปิด

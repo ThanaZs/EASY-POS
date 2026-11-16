@@ -4,8 +4,19 @@
 > เครื่องใหม่ / Claude session ใหม่: อ่านไฟล์นี้ + ROADMAP.md ก่อนเริ่มงาน
 
 ## สถานะปัจจุบัน
-- Phase 1 เกือบเสร็จ — ล็อกอิน/สมัคร/สร้างร้าน/เข้าร่วมร้าน/บัญชี ใช้งานจริงแล้ว (ทดสอบกับ PGlite ในเครื่อง)
-- งานถัดไป: ต่อ Supabase (`DATABASE_URL` ใน `.env.local` → `db:migrate`) → Deploy Vercel → Phase 2 (คลังสินค้า + POS)
+- Phase 1 เกือบเสร็จ — ต่อ Supabase แล้ว ล็อกอิน/สมัคร/สร้างร้าน/เข้าร่วมร้าน/บัญชี ใช้งานจริง
+- งานถัดไป: Deploy Vercel → Phase 2 (คลังสินค้า + POS)
+
+---
+
+## 2026-11-16 — ต่อ Supabase
+- Project `easy-pos` อยู่ region **Tokyo** (ap-northeast-1); ใช้ Transaction pooler
+  `postgres.<ref>@aws-1-ap-northeast-1.pooler.supabase.com:6543` (เป็น **aws-1** ไม่ใช่ aws-0)
+- ลิงก์ Direct `db.<ref>.supabase.co:5432` เป็น IPv6 อย่างเดียว — เครื่องนี้และ Vercel ต่อไม่ได้ ห้ามใช้
+- รัน migration 0000 + **0001_enable_rls** (เปิด RLS ทุกตาราง ไม่มี policy) — กันไม่ให้ Supabase Data API
+  (anon key) อ่าน/เขียนตารางได้ เพราะแอปต่อด้วย role postgres ซึ่งข้าม RLS อยู่แล้ว
+  - **ตารางใหม่ทุกตารางต้องเพิ่ม `ENABLE ROW LEVEL SECURITY` ใน migration ด้วย**
+- ทดสอบกับ Supabase: สมัคร → สร้างร้าน → หน้า พนักงาน → สร้างรหัสเชิญ ✅ แล้วลบข้อมูลทดสอบออก (DB ว่าง)
 
 ---
 

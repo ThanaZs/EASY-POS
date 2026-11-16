@@ -10,7 +10,7 @@
 
 ## Phase 1 — ใช้งานได้จริงขั้นต่ำ
 - [x] Migration แรก `drizzle/0000_init.sql` (14 ตาราง) — ทดสอบกับ PGlite แล้ว
-- [ ] สร้าง Supabase project + `db:migrate` ขึ้น Supabase  ← **ผู้ใช้กำลังทำ**
+- [x] สร้าง Supabase project (Tokyo) + `db:migrate` + เปิด RLS ทุกตาราง
 - [x] Auth ด้วย Better Auth (email+password; Google พร้อมใช้เมื่อใส่ env) + ป้องกันหน้า hub/store ฝั่ง server
 - [x] Repositories: users, stores (+ สมาชิก, รหัสเชิญ) — products/stock/sales ย้ายไป Phase 2
 - [x] สร้างร้าน / ร้านของฉัน / เข้าร่วมร้าน (รหัสเชิญ) / หน้า พนักงาน (สร้างรหัสเชิญ, เอาสมาชิกออก)
