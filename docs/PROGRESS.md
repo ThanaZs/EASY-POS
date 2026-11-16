@@ -4,9 +4,13 @@
 > เครื่องใหม่ / Claude session ใหม่: อ่านไฟล์นี้ + ROADMAP.md ก่อนเริ่มงาน
 
 ## สถานะปัจจุบัน
-- Phase 2 + ยกเลิกบิล + ตั้งค่าร้าน + สแกนด้วยกล้อง + OTP/ลืมรหัสผ่าน เสร็จบน branch **`dev`** — ทดสอบ local แล้ว, **ยังไม่ deploy**
-- DB บน Supabase migrate ถึง `0002` แล้ว (เพิ่มคอลัมน์อย่างเดียว เว็บจริงเวอร์ชันเก่ายังใช้ได้)
-- เว็บจริง https://easy-pos-beta.vercel.app ยังเป็น Phase 1 (deploy = merge `dev` → `main` เมื่อผู้ใช้สั่ง)
+- **Deploy แล้ว (2026-11-16)** — https://easy-pos-beta.vercel.app = Phase 1 + Phase 2 + ยกเลิกบิล + ตั้งค่าร้าน + สแกนกล้อง +
+  OTP/ลืมรหัสผ่าน/Google + ธีมขาว-ส้ม/มืด + เปลี่ยนรหัส/ลบบัญชี
+- `main` = `dev` ณ ตอน deploy; ทำงานต่อบน `dev` แล้ว merge เข้า `main` เมื่อผู้ใช้สั่ง deploy
+- DB บน Supabase migrate ถึง `0002`; env บน Vercel ครบ (DATABASE_URL, DATABASE_POOL_MAX, DB_DRIVER, AUTH_PROVIDER, AUTH_SECRET,
+  SMTP_USER, SMTP_PASS, MAIL_FROM_NAME, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET)
+- ตรวจเว็บจริงหลัง deploy: health/login/register/wasm = 200, /th/hub ไม่ล็อกอิน → 307, ปุ่ม Google ขึ้น, API ปฏิเสธ hotmail ✅
+  (ยังไม่ได้ทดสอบส่ง OTP บนเว็บจริง — ผู้ใช้ทดสอบเอง)
 - งานถัดไป: ดู ROADMAP (ยกเลิกบิล/คืนสินค้า, ตั้งค่าร้าน/VAT, สแกนด้วยกล้อง ...)
 
 ---
