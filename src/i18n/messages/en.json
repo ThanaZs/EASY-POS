@@ -27,7 +27,7 @@
     },
     "or": "or",
     "gmailHint": "@gmail.com addresses only — we will email you a verification code",
-    "forgotButton": "Forgot password? Email me a code",
+    "forgotButton": "Forgot password",
     "verifyTitle": "Verify your email",
     "resetTitle": "Set a new password",
     "otpSentTo": "We sent a 6-digit code to {email} (check inbox or spam)",
