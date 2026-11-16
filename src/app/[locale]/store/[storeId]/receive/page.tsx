@@ -8,6 +8,7 @@ import { requireStoreAccess } from "@/server/session";
 import { BackLink } from "../BackLink";
 import { MovementList } from "../history/MovementList";
 import { stockMoveAction } from "./actions";
+import { ScanSelect } from "./ScanSelect";
 
 export default async function ReceivePage({ params, searchParams }: PageProps<"/[locale]/store/[storeId]/receive">) {
   const { locale, t } = await loadLocale(params);
@@ -54,6 +55,10 @@ export default async function ReceivePage({ params, searchParams }: PageProps<"/
                 </label>
               ))}
             </fieldset>
+            <ScanSelect
+              devices={t.devices}
+              products={tracked.map((p) => ({ id: p.id, name: p.name, codes: [p.barcode, p.sku].filter((c): c is string => Boolean(c)) }))}
+            />
             <div className="sm:col-span-2">
               <Select
                 label={t.stock.product}

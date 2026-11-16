@@ -6,6 +6,11 @@ import { useMemo, useRef, useState, useTransition } from "react";
 import { ArrowLeft, Camera, LoaderCircle, Minus, Plus, Printer, Search, ShoppingCart, Trash2, X } from "lucide-react";
 import { calcSaleTotals } from "@/core/domain/sale";
 import { CameraScanner } from "@/components/CameraScanner";
+import { PrinterStatus } from "@/components/devices/PrinterStatus";
+import { ScannerStatus } from "@/components/devices/ScannerStatus";
+import { getAutoPrint, printSlip } from "@/client/devices/printer";
+import { useBarcodeScanner } from "@/client/devices/scanner";
+import { receiptToSlip } from "@/client/devices/slip";
 import type { PaymentMethod } from "@/core/domain/types";
 import { fill, formatMoney, parseMoney } from "@/core/lib/format";
 import type { Locale } from "@/i18n/config";
@@ -38,7 +43,7 @@ type Props = {
   allowNegativeStock: boolean;
   receiptFooter: string;
   products: PosProduct[];
-  t: { pos: Dictionary["pos"]; store: { back: string }; scan: Dictionary["scan"] };
+  t: { pos: Dictionary["pos"]; store: { back: string }; scan: Dictionary["scan"]; devices: Dictionary["devices"] };
 };
 
 const METHODS: PaymentMethod[] = ["cash", "qr", "card", "transfer"];
@@ -143,6 +148,31 @@ export function PosClient(props: Props) {
     }
   }
 
+  // เครื่องสแกน (USB/Bluetooth แบบคีย์บอร์ด): ยิงได้เลยไม่ต้องคลิกช่องค้นหา, ภาษาคีย์บอร์ดไม่มีผล
+  useBarcodeScanner((code) => {
+    if (payOpen || receipt) return; // กำลังชำระเงิน/ดูใบเสร็จ — ไม่หยิบของเพิ่ม
+    onCameraCode(code);
+  });
+
+  /** พิมพ์ใบเสร็จ: มีเครื่องพิมพ์สลิปที่เชื่อมไว้ → พิมพ์ตรง, ไม่มี → พิมพ์ผ่านเบราว์เซอร์ */
+  async function printReceipt(r: ReceiptData) {
+    const slip = receiptToSlip({
+      r,
+      t: t.pos,
+      locale,
+      currency,
+      timeZone: props.timeZone,
+      storeName: props.storeName,
+      cashierName: props.cashierName,
+      footer: props.receiptFooter,
+    });
+    try {
+      if (!(await printSlip(slip))) window.print();
+    } catch {
+      // สถานะ error แสดงที่ปุ่มเครื่องพิมพ์แล้ว
+    }
+  }
+
   function quickAmounts(total: number): number[] {
     const unit = currency === "JPY" || currency === "VND" ? 1 : 100; // หน่วยย่อยต่อ 1 หน่วยหลัก
     const steps = [20, 100, 500, 1000].map((v) => v * unit);
@@ -167,6 +197,7 @@ export function PosClient(props: Props) {
         return;
       }
       setReceipt(res.receipt);
+      if (getAutoPrint()) void printReceipt(res.receipt);
       setCart(new Map());
       setDiscountText("");
       setReceivedText("");
@@ -276,6 +307,10 @@ export function PosClient(props: Props) {
         </Link>
         <div className="grid gap-4 pb-24 lg:grid-cols-[1fr_380px] lg:pb-0">
           <section className="min-w-0 space-y-3">
+            <div className="flex flex-wrap gap-2">
+              <ScannerStatus t={t.devices} />
+              <PrinterStatus t={t.devices} storeName={props.storeName} />
+            </div>
             <div className="flex gap-2">
             <label className="relative block flex-1">
               <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted" />
@@ -301,6 +336,11 @@ export function PosClient(props: Props) {
                 <Camera className="size-5" />
               </button>
             </div>
+            {scanStatus && !scanOpen && (
+              <p className="rounded-lg bg-brand-soft px-3 py-1.5 text-sm text-brand-ink" role="status">
+                {scanStatus}
+              </p>
+            )}
             {categories.length > 0 && (
               <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
                 {[null, ...categories].map((c) => (
@@ -472,7 +512,7 @@ export function PosClient(props: Props) {
             />
             <div className="mt-4 grid grid-cols-2 gap-2 font-sans print:hidden">
               <button
-                onClick={() => window.print()}
+                onClick={() => void printReceipt(receipt)}
                 className="flex items-center justify-center gap-1 rounded-xl border border-neutral-300 px-3 py-2.5 font-medium"
               >
                 <Printer className="size-4" /> {t.pos.print}

@@ -299,5 +299,38 @@
   "theme": {
     "light": "Switch to light mode",
     "dark": "Switch to dark mode"
+  },
+  "devices": {
+    "printer": "Printer",
+    "connected": "Connected",
+    "notConnected": "Not connected",
+    "connecting": "Connecting…",
+    "printing": "Printing…",
+    "error": "Connect/print failed — try reconnecting",
+    "printerTitle": "Receipt printer",
+    "connectBt": "Connect via Bluetooth",
+    "connectUsb": "Connect via USB",
+    "btHint": "Turn on the printer and Bluetooth, then pick it in the browser dialog",
+    "disconnect": "Disconnect",
+    "testPrint": "Test print",
+    "testText": "Printer test — text prints correctly ✓",
+    "paper": "Paper width",
+    "paper58": "58 mm",
+    "paper80": "80 mm",
+    "autoPrint": "Print receipt automatically after each sale",
+    "unsupported": "This browser can't connect to printers directly (e.g. iPhone) — use Print receipt, which prints through the browser",
+    "close": "Close",
+    "scanner": "Scanner",
+    "scannerNotFound": "Not detected",
+    "scannerTitle": "Barcode scanner",
+    "scannerUsb": "USB: plug it into the computer or phone (OTG cable)",
+    "scannerBt": "Bluetooth: pair it in the device's Bluetooth settings first (keyboard / HID mode)",
+    "scannerTest": "Then scan any barcode once — status changes to Connected",
+    "scannerLang": "Works even when the keyboard is set to another language, and no need to click a field first",
+    "scannerWaiting": "Waiting for a scan…",
+    "scannerLast": "Last scan",
+    "scanNotFound": "No product with barcode {code}",
+    "scanFilled": "✓ Barcode {code} filled in",
+    "scanSelected": "✓ Selected {name}"
   }
 }

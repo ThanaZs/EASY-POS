@@ -35,7 +35,7 @@ export default async function PosPage({ params }: PageProps<"/[locale]/store/[st
       allowNegativeStock={store.allowNegativeStock}
       receiptFooter={store.receiptFooter}
       products={items}
-      t={{ pos: t.pos, store: { back: t.store.back }, scan: t.scan }}
+      t={{ pos: t.pos, store: { back: t.store.back }, scan: t.scan, devices: t.devices }}
     />
   );
 }

@@ -54,7 +54,7 @@ export function ProductForm({
           defaultValue={money(product?.costMinor)}
           placeholder="0"
         />
-        <BarcodeField label={t.inventory.barcode} defaultValue={product?.barcode ?? ""} scan={t.scan} />
+        <BarcodeField label={t.inventory.barcode} defaultValue={product?.barcode ?? ""} scan={t.scan} devices={t.devices} />
         <Field label={t.inventory.sku} name="sku" defaultValue={product?.sku ?? ""} maxLength={60} autoComplete="off" />
         <Field
           label={t.inventory.category}
