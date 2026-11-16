@@ -1,8 +1,9 @@
 "use server";
 
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { defaultLocale, defaultTimeZone, isLocale } from "@/i18n/config";
+import { getAuth } from "@/server/auth";
 import { getRepositories } from "@/server/container";
 import { requireUser } from "@/server/session";
 
@@ -59,6 +60,8 @@ export async function saveAccountAction(form: FormData) {
     locale: nextLocale,
     timeZone: validTimeZone(str(form, "timeZone")),
   });
+  // อัปเดต session cookie ให้มีชื่อ/ภาษา/ทามโซนใหม่ทันที
+  await getAuth().api.getSession({ headers: await headers(), query: { disableCookieCache: true } });
   (await cookies()).set("locale", nextLocale, { path: "/", maxAge: 60 * 60 * 24 * 365, sameSite: "lax" });
   redirect(`/${nextLocale}/hub/account?saved=1`);
 }

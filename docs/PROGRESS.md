@@ -9,6 +9,16 @@
 
 ---
 
+## 2026-11-16 — แก้เว็บหน่วง
+- สาเหตุ: Vercel รันฟังก์ชันที่ **iad1 (สหรัฐฯ)** แต่ DB อยู่ **Tokyo** → ทุก query ข้ามแปซิฟิก ~150ms × 5-10 query ต่อการกด
+- แก้: `vercel.json` → `"regions": ["hnd1"]` (Tokyo ข้าง DB) — **ถ้าย้าย DB ต้องย้าย region ตาม**
+- Better Auth `cookieCache` 5 นาที (ไม่ query session ทุกหน้า); `saveAccountAction` refresh cookie หลังแก้โปรไฟล์
+  - สิทธิ์ในร้าน (`requireStoreAccess`) ยังเช็กจาก DB ทุกครั้ง — ไม่ cache
+- `PrimaryButton` เป็น client component ใช้ `useFormStatus`: หมุน + กดซ้ำไม่ได้ระหว่างส่ง
+- `loading.tsx` ใน hub และ store → ขึ้นตัวหมุนทันทีเมื่อกดเมนู
+
+---
+
 ## 2026-11-16 — Deploy Vercel
 - Vercel project `easy-pos` → https://easy-pos-beta.vercel.app (push `main` = deploy อัตโนมัติ)
 - Env บน Vercel: `DATABASE_URL` (pooler), `DATABASE_POOL_MAX=2`, `DB_DRIVER`, `AUTH_PROVIDER`, `AUTH_SECRET` (คนละค่ากับในเครื่อง)

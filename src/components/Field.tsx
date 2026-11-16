@@ -1,3 +1,5 @@
+export { PrimaryButton } from "./PrimaryButton";
+
 export function Field({
   label,
   className = "",
@@ -11,15 +13,6 @@ export function Field({
         className={`w-full rounded-xl border border-line bg-card px-3 py-2.5 outline-none focus:border-brand focus:ring-2 focus:ring-brand-soft ${className}`}
       />
     </label>
-  );
-}
-
-export function PrimaryButton(props: React.ButtonHTMLAttributes<HTMLButtonElement>) {
-  return (
-    <button
-      {...props}
-      className="w-full rounded-xl bg-brand px-4 py-2.5 font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
-    />
   );
 }
 

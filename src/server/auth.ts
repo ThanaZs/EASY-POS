@@ -28,7 +28,12 @@ function createAuth() {
         timeZone: { type: "string", required: false, defaultValue: defaultTimeZone, input: true },
       },
     },
-    session: { modelName: "sessions" },
+    session: {
+      modelName: "sessions",
+      // เก็บ session ใน cookie ที่เซ็นแล้ว 5 นาที → ไม่ต้อง query DB ทุกหน้า
+      // (ผลข้างเคียง: ออกจากระบบที่เครื่องอื่น/แก้โปรไฟล์ อาจช้าสุด 5 นาที — แก้โปรไฟล์จะ refresh ให้ใน saveAccountAction)
+      cookieCache: { enabled: true, maxAge: 5 * 60 },
+    },
     account: { modelName: "accounts" },
     verification: { modelName: "verifications" },
     advanced: { database: { generateId: "uuid" } }, // ให้ Postgres สร้าง uuid เอง
