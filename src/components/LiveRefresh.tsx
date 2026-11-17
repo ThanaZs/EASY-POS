@@ -22,20 +22,26 @@ export function LiveRefresh() {
       return typing || !!document.querySelector("dialog[open], [role=dialog]");
     };
     const refresh = (force: boolean) => {
-      if (document.visibilityState !== "visible") return;
+      if (document.visibilityState !== "visible" || !navigator.onLine) return;
       if (!force && busy()) return;
       if (Date.now() - last < MIN_GAP_MS) return;
       last = Date.now();
       router.refresh();
     };
-    const onBack = () => refresh(true);
-    const onVisible = () => document.visibilityState === "visible" && refresh(true);
+    // เพิ่งกลับมา/ปลุกเครื่อง: เน็ตมักยังต่อไม่เสร็จ → รอ 1.5 วิก่อนดึง (กันโหลดพังขึ้นหน้า error)
+    let wake: ReturnType<typeof setTimeout> | undefined;
+    const onBack = () => {
+      clearTimeout(wake);
+      wake = setTimeout(() => refresh(true), 1500);
+    };
+    const onVisible = () => document.visibilityState === "visible" && onBack();
     const timer = setInterval(() => refresh(false), POLL_MS);
     document.addEventListener("visibilitychange", onVisible);
     window.addEventListener("focus", onBack);
     window.addEventListener("online", onBack);
     return () => {
       clearInterval(timer);
+      clearTimeout(wake);
       document.removeEventListener("visibilitychange", onVisible);
       window.removeEventListener("focus", onBack);
       window.removeEventListener("online", onBack);

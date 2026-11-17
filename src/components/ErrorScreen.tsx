@@ -21,15 +21,37 @@ const TEXT = {
 };
 
 /** หน้าแสดงเมื่อเกิด error (ใช้ใน error.tsx / global-error.tsx) */
+let autoRetries: number[] = []; // ลองใหม่เองไม่เกิน 3 ครั้งต่อนาที (กันวนไม่จบถ้าเซิร์ฟเวอร์มีปัญหาจริง)
+
 export function ErrorScreen({ error, retry }: { error: unknown; retry: () => void }) {
   const lang = typeof window !== "undefined" && window.location.pathname.startsWith("/en") ? "en" : "th";
   const t = TEXT[lang];
   const digest = error instanceof Error ? (error as Error & { digest?: string }).digest : undefined;
 
+  const msg = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+
   useEffect(() => {
     console.error(error);
+    // เน็ตหลุดชั่วคราว (เช่น iPad/มือถือเพิ่งปลุกจากพักหน้าจอ — Safari แจ้ง "Load failed") → รอเน็ตมาแล้วลองใหม่เอง
+    if (/Load failed|Failed to fetch|NetworkError|network connection/i.test(msg)) {
+      let done = false;
+      const again = () => {
+        if (done || !navigator.onLine) return;
+        const now = Date.now();
+        autoRetries = autoRetries.filter((t) => now - t < 60_000);
+        if (autoRetries.length >= 3) return;
+        autoRetries.push(now);
+        done = true;
+        retry();
+      };
+      const timer = setTimeout(again, 1500);
+      window.addEventListener("online", again);
+      return () => {
+        clearTimeout(timer);
+        window.removeEventListener("online", again);
+      };
+    }
     // ไฟล์ JS ของเวอร์ชันเก่าหาย (เพิ่ง deploy) → reload เต็มหน้าอัตโนมัติ 1 ครั้ง
-    const msg = error instanceof Error ? `${error.name} ${error.message}` : String(error);
     if (/ChunkLoadError|Loading chunk|Failed to fetch dynamically imported module|Server Action/i.test(msg)) {
       try {
         if (!sessionStorage.getItem("ep_reloaded")) {
@@ -40,7 +62,7 @@ export function ErrorScreen({ error, retry }: { error: unknown; retry: () => voi
         // sessionStorage ใช้ไม่ได้ — ให้ผู้ใช้กดเอง
       }
     }
-  }, [error]);
+  }, [error, msg, retry]);
 
   return (
     <div className="grid min-h-[60vh] place-items-center px-4 py-10" role="alert">
@@ -62,11 +84,9 @@ export function ErrorScreen({ error, retry }: { error: unknown; retry: () => voi
         >
           {t.reload}
         </button>
-        {digest && (
-          <p className="text-xs text-muted">
-            {t.code}: <code className="select-all">{digest}</code>
-          </p>
-        )}
+        <p className="break-all text-xs text-muted">
+          {t.code}: <code className="select-all">{digest ?? msg.slice(0, 160)}</code>
+        </p>
       </div>
     </div>
   );
