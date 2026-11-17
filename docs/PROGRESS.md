@@ -25,6 +25,15 @@
 
 ---
 
+## 2026-11-17 — แก้ React error #185 (หน้าต่างทดสอบเครื่องสแกนวนไม่จบ) (branch dev)
+- ผู้ใช้แคปจาก iPad: "Minified React error #185" (Maximum update depth exceeded)
+- สาเหตุ: `useKeyLog` ส่ง subscribe เป็นฟังก์ชันใหม่ทุก render และ subscribe ล้าง keyLog → snapshot เปลี่ยน → render → subscribe ใหม่ → วน
+- แก้: subscribe/getSnapshot เป็นฟังก์ชันระดับ module (ทั้ง useKeyLog และ useScannerState), ล้างบันทึกเฉพาะตอนผู้ฟังคนแรก
+- ทดสอบ: หน้าทดสอบชั่วคราวเปิดหน้าต่าง + ยิง 13 หลัก → ขึ้นรหัส + บันทึกปุ่ม ไม่ error (ลบหน้าทดสอบแล้ว); build ✅
+- บทเรียน: useSyncExternalStore ห้ามใช้ subscribe แบบ inline ถ้า subscribe แก้ข้อมูล
+
+---
+
 ## 2026-11-17 — หน้า "โหลดหน้านี้ไม่สำเร็จ" บน iPad (branch dev)
 - ผู้ใช้เจอบน iPad Safari (หลาย tab, กลับมาที่แท็บ) — ไม่มีรหัสอ้างอิง = error ฝั่งเครื่อง; สันนิษฐาน: ปลุกเครื่องแล้วดึงข้อมูลก่อนเน็ตต่อเสร็จ (Safari: "Load failed")
 - `LiveRefresh`: กลับมาที่แอป → รอ 1.5 วิก่อนดึง; ไม่ดึงตอน offline

@@ -117,18 +117,21 @@ function logKey(key: string, code: string, src: KeyLog["src"]) {
   logLast = now;
   logListeners.forEach((l) => l());
 }
+// subscribe ต้องเป็นฟังก์ชันเดิมทุกครั้ง (ถ้าสร้างใหม่ทุก render React จะ subscribe ซ้ำ → เคยวนไม่จบ React error #185)
+function subscribeLog(cb: () => void) {
+  install();
+  if (!logListeners.size) {
+    keyLog = []; // เปิดหน้าต่างทดสอบใหม่ → เริ่มบันทึกใหม่
+    logLast = 0;
+  }
+  logListeners.add(cb);
+  return () => {
+    logListeners.delete(cb);
+  };
+}
+const getLog = () => keyLog;
 export function useKeyLog(): KeyLog[] {
-  return useSyncExternalStore(
-    (cb) => {
-      install();
-      logListeners.add(cb);
-      keyLog = [];
-      logLast = 0;
-      return () => logListeners.delete(cb);
-    },
-    () => keyLog,
-    () => keyLog,
-  );
+  return useSyncExternalStore(subscribeLog, getLog, getLog);
 }
 const NO_SUFFIX_MIN_LEN = 6; // ...และต้องยาวพอ (กันคนพิมพ์เร็วๆ สั้นๆ)
 
@@ -247,14 +250,14 @@ export function useBarcodeScanner(onScan: Handler) {
   }, []);
 }
 
+function subscribeState(cb: () => void) {
+  install();
+  listeners.add(cb);
+  return () => {
+    listeners.delete(cb);
+  };
+}
+const getState = () => state;
 export function useScannerState(): ScannerState {
-  return useSyncExternalStore(
-    (cb) => {
-      install();
-      listeners.add(cb);
-      return () => listeners.delete(cb);
-    },
-    () => state,
-    () => state,
-  );
+  return useSyncExternalStore(subscribeState, getState, getState);
 }
