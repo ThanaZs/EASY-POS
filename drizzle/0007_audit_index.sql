@@ -1,0 +1,1 @@
+CREATE INDEX "audit_logs_store_time" ON "audit_logs" USING btree ("store_id","created_at");

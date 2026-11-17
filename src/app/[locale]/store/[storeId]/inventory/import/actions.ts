@@ -5,6 +5,7 @@ import { parseMoney } from "@/core/lib/format";
 import { toEnglishLayout } from "@/core/lib/keyboard";
 import { isLocale } from "@/i18n/config";
 import { getRepositories } from "@/server/container";
+import { audit } from "@/server/audit";
 import { requireStoreAccess } from "@/server/session";
 
 /** ข้อมูลดิบจากไฟล์ (ข้อความทุกช่อง) — server ตรวจ/แปลงเองทั้งหมด ไม่เชื่อค่าจาก client */
@@ -105,5 +106,9 @@ export async function importProductsAction(input: {
         })),
     )
     .catch((e) => console.error("catalog contribute failed", e));
+  await audit(store.id, user, "product.import", {
+    entityType: "product",
+    note: `+${res.created} / ~${res.updated} / skip ${res.skipped}${input.updateStock ? " (stock)" : ""}`,
+  });
   return { ok: true, ...res };
 }

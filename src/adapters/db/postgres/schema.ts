@@ -224,16 +224,22 @@ export const expenses = pgTable("expenses", {
   createdAt: createdAt(),
 });
 
-export const auditLogs = pgTable("audit_logs", {
-  id: id(),
-  storeId: uuid("store_id").notNull().references(() => stores.id, { onDelete: "cascade" }),
-  actorId: uuid("actor_id").references(() => users.id, { onDelete: "set null" }),
-  action: text("action").notNull(),
-  entityType: text("entity_type").notNull(),
-  entityId: text("entity_id"),
-  details: jsonb("details").notNull().default({}),
-  createdAt: createdAt(),
-});
+// บันทึกการแก้ไข: ใคร ทำอะไร กับอะไร เปลี่ยนจากอะไรเป็นอะไร เมื่อไร
+// details = { actorName, entityName, changes: { field: [ก่อน, หลัง] }, note }
+export const auditLogs = pgTable(
+  "audit_logs",
+  {
+    id: id(),
+    storeId: uuid("store_id").notNull().references(() => stores.id, { onDelete: "cascade" }),
+    actorId: uuid("actor_id").references(() => users.id, { onDelete: "set null" }),
+    action: text("action").notNull(),
+    entityType: text("entity_type").notNull(),
+    entityId: text("entity_id"),
+    details: jsonb("details").notNull().default({}),
+    createdAt: createdAt(),
+  },
+  (t) => [index("audit_logs_store_time").on(t.storeId, t.createdAt)],
+);
 
 // ===== คลังข้อมูลสินค้ากลาง (ใช้ร่วมทุกร้าน) =====
 // บาร์โค้ด → ชื่อ/หมวด/หน่วย/รูป สำหรับกรอกให้อัตโนมัติตอนเพิ่มสินค้า

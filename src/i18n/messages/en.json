@@ -126,7 +126,8 @@
       "summary": "Overview",
       "bills": "All bills",
       "storeInfo": "Store info",
-      "staff": "Staff & invites"
+      "staff": "Staff & invites",
+      "activity": "Activity log"
     },
     "backInventory": "Back to inventory",
     "backSales": "Back to sales"
@@ -206,7 +207,9 @@
     "packPriceHint": "Leave blank = unit price × pack size",
     "packBarcode": "Case barcode (optional)",
     "allSub": "All",
-    "noSub": "No subcategory"
+    "noSub": "No subcategory",
+    "currentStock": "Quantity in stock",
+    "currentStockHint": "Set to the counted amount — recorded as an adjustment in stock history"
   },
   "stock": {
     "product": "Product",
@@ -521,5 +524,55 @@
   "keyboard": {
     "done": "Done",
     "space": "space"
+  },
+  "audit": {
+    "hint": "Every change in this store: who did what, to which item, from what to what, and when (latest 300)",
+    "productHistory": "Change history of this product",
+    "empty": "No changes yet",
+    "by": "by",
+    "yes": "Yes",
+    "no": "No",
+    "photoNew": "new photo",
+    "photoOld": "had photo",
+    "actions": {
+      "product.create": "Added product",
+      "product.update": "Edited product",
+      "product.delete": "Deleted product",
+      "product.import": "Excel import",
+      "stock.in": "Received stock",
+      "stock.out": "Issued stock",
+      "stock.adjust": "Adjusted stock",
+      "sale.void": "Voided bill",
+      "settings.update": "Changed store settings",
+      "invite.create": "Created invite",
+      "invite.delete": "Deleted invite",
+      "member.remove": "Removed staff",
+      "member.leave": "Left store"
+    },
+    "fields": {
+      "name": "Name",
+      "barcode": "Barcode",
+      "sku": "SKU",
+      "category": "Category",
+      "subcategory": "Subcategory",
+      "unit": "Unit",
+      "priceMinor": "Price",
+      "costMinor": "Cost",
+      "packUnit": "Pack unit",
+      "packSize": "Pieces per pack",
+      "packPriceMinor": "Pack price",
+      "packBarcode": "Pack barcode",
+      "lowStockThreshold": "Low-stock alert",
+      "trackStock": "Track stock",
+      "expiresAt": "Expiry date",
+      "photo": "Photo",
+      "stockQty": "Quantity",
+      "totalMinor": "Bill total",
+      "timeZone": "Time zone",
+      "taxRateBp": "Tax",
+      "taxIncluded": "Prices include tax",
+      "receiptFooter": "Receipt footer",
+      "allowNegativeStock": "Allow negative stock"
+    }
   }
 }

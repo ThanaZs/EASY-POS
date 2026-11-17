@@ -172,7 +172,29 @@ export interface CatalogRepo {
   setImageIfMissing(barcode: string, imagePath: string): Promise<boolean>;
 }
 
+/** { field: [ก่อน, หลัง] } */
+export type AuditChanges = Record<string, [unknown, unknown]>;
+
+export type AuditEntry = {
+  id: ID;
+  at: Date;
+  actorId: ID | null;
+  actorName: string;
+  action: string;
+  entityType: string;
+  entityId: string | null;
+  entityName: string;
+  changes: AuditChanges | null;
+  note: string;
+};
+
+export interface AuditRepo {
+  log(e: Omit<AuditEntry, "id" | "at"> & { storeId: ID }): Promise<void>;
+  list(storeId: ID, q?: { limit?: number; entityId?: string; before?: Date }): Promise<AuditEntry[]>;
+}
+
 export interface Repositories {
+  audit: AuditRepo;
   catalog: CatalogRepo;
   users: UserRepo;
   stores: StoreRepo;

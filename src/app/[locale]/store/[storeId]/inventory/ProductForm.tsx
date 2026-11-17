@@ -131,6 +131,18 @@ export function ProductForm({
             packBarcode: inv.packBarcode,
           }}
         />
+        {product && (
+          <div className="space-y-1">
+            <Field
+              label={inv.currentStock}
+              name="stockQty"
+              type="number"
+              defaultValue={product.stockQty}
+              inputMode="numeric"
+            />
+            <p className="text-xs text-muted">{inv.currentStockHint}</p>
+          </div>
+        )}
         {!product && (
           <Field
             label={inv.initialStock}

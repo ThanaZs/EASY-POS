@@ -5,6 +5,7 @@ import { getRepositories, getStorage } from "@/server/container";
 import { requireStoreAccess } from "@/server/session";
 import { BackLink } from "../../BackLink";
 import { deleteProductAction } from "../actions";
+import { AuditList } from "../../AuditList";
 import { ProductForm } from "../ProductForm";
 import { StockBadge } from "../StockBadge";
 
@@ -16,19 +17,27 @@ export default async function EditProductPage({
 }: PageProps<"/[locale]/store/[storeId]/inventory/[productId]">) {
   const { locale, t } = await loadLocale(params);
   const { storeId, productId } = await params;
-  const { store, member } = await requireStoreAccess(locale, storeId, "products.edit");
+  const { store, member } = await requireStoreAccess(
+    locale,
+    storeId,
+    "products.edit",
+  );
   if (!UUID.test(productId)) notFound();
   const repos = await getRepositories();
-  const [product, categories] = await Promise.all([
+  const [product, categories, history] = await Promise.all([
     repos.products.findById(storeId, productId),
     repos.products.categoryTree(storeId),
+    repos.audit.list(storeId, { entityId: productId, limit: 30 }),
   ]);
   if (!product || !product.isActive) notFound();
   const storage = await getStorage();
 
   return (
     <div className="mx-auto max-w-2xl space-y-4">
-      <BackLink href={`/${locale}/store/${storeId}/inventory`} label={t.store.modules.inventory} />
+      <BackLink
+        href={`/${locale}/store/${storeId}/inventory`}
+        label={t.store.modules.inventory}
+      />
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-xl font-bold">{t.inventory.edit}</h1>
         <StockBadge p={product} t={t} />
@@ -41,8 +50,23 @@ export default async function EditProductPage({
         categoryTree={categories}
         error={(await searchParams).error}
         photoEnabled={storage !== null}
-        photoUrl={product.imagePath && storage ? storage.publicUrl(product.imagePath) : null}
+        photoUrl={
+          product.imagePath && storage
+            ? storage.publicUrl(product.imagePath)
+            : null
+        }
       />
+      <section className="space-y-2">
+        <h2 className="font-semibold">{t.audit.productHistory}</h2>
+        <AuditList
+          entries={history}
+          t={t.audit}
+          locale={locale}
+          timeZone={store.timeZone}
+          currency={store.currency}
+          showEntity={false}
+        />
+      </section>
       {can(member, "products.delete") && (
         <form action={deleteProductAction}>
           <input type="hidden" name="locale" value={locale} />

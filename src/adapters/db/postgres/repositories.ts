@@ -1,5 +1,5 @@
 import "server-only";
-import { and, asc, desc, eq, isNull, ne, sql } from "drizzle-orm";
+import { and, asc, desc, eq, isNull, lt, ne, sql } from "drizzle-orm";
 import type {
   Store,
   StoreInvite,
@@ -9,6 +9,8 @@ import type {
 import { inviteState } from "@/core/domain/invite";
 import { normalizeCode, randomCode } from "@/core/lib/code";
 import type {
+  AuditEntry,
+  AuditRepo,
   CatalogItem,
   CatalogRepo,
   Repositories,
@@ -19,6 +21,7 @@ import { getDb } from "./client";
 import { productRepo, saleRepo, stockRepo } from "./inventory";
 import {
   accounts,
+  auditLogs,
   catalogItems,
   storeInvites,
   storeMembers,
@@ -321,6 +324,58 @@ function storeRepo(): StoreRepo {
   };
 }
 
+function auditRepo(): AuditRepo {
+  const db = getDb();
+  return {
+    async log(e) {
+      await db.insert(auditLogs).values({
+        storeId: e.storeId,
+        actorId: e.actorId,
+        action: e.action,
+        entityType: e.entityType,
+        entityId: e.entityId,
+        details: {
+          actorName: e.actorName,
+          entityName: e.entityName,
+          changes: e.changes,
+          note: e.note,
+        },
+      });
+    },
+    async list(storeId, q = {}) {
+      const conds = [eq(auditLogs.storeId, storeId)];
+      if (q.entityId) conds.push(eq(auditLogs.entityId, q.entityId));
+      if (q.before) conds.push(lt(auditLogs.createdAt, q.before));
+      const rows = await db
+        .select()
+        .from(auditLogs)
+        .where(and(...conds))
+        .orderBy(desc(auditLogs.createdAt))
+        .limit(Math.min(q.limit ?? 100, 500));
+      return rows.map((r) => {
+        const d = (r.details ?? {}) as {
+          actorName?: string;
+          entityName?: string;
+          changes?: AuditEntry["changes"];
+          note?: string;
+        };
+        return {
+          id: r.id,
+          at: r.createdAt,
+          actorId: r.actorId,
+          actorName: d.actorName ?? "",
+          action: r.action,
+          entityType: r.entityType,
+          entityId: r.entityId,
+          entityName: d.entityName ?? "",
+          changes: d.changes ?? null,
+          note: d.note ?? "",
+        };
+      });
+    },
+  };
+}
+
 function catalogRepo(): CatalogRepo {
   const db = getDb();
   const toItem = (r: typeof catalogItems.$inferSelect): CatalogItem => ({
@@ -387,6 +442,7 @@ function catalogRepo(): CatalogRepo {
 
 export function createPostgresRepositories(): Repositories {
   return {
+    audit: auditRepo(),
     catalog: catalogRepo(),
     users: userRepo(),
     stores: storeRepo(),

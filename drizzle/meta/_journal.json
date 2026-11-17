@@ -50,6 +50,13 @@
       "when": 1794909000888,
       "tag": "0006_db_timeouts",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1794916119274,
+      "tag": "0007_audit_index",
+      "breakpoints": true
     }
   ]
 }

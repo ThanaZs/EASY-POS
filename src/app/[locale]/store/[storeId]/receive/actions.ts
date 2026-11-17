@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { can } from "@/core/domain/permissions";
 import { getRepositories } from "@/server/container";
 import { int, storeCtx, str } from "@/server/form";
+import { audit } from "@/server/audit";
 import { requireStoreAccess } from "@/server/session";
 
 /**
@@ -30,11 +31,27 @@ export async function stockMoveAction(form: FormData) {
   let delta: number;
   if (mode === "in" && can(member, "stock.receive")) delta = qty;
   else if (mode === "out" && can(member, "stock.issue")) delta = -qty;
-  else if (mode === "adjust" && can(member, "products.edit")) delta = qty - p.stockQty;
+  else if (mode === "adjust" && can(member, "products.edit"))
+    delta = qty - p.stockQty;
   else redirect(back);
 
   if (delta !== 0 || mode === "adjust") {
-    await repos.stock.move({ storeId, productId, type: mode as "in" | "out" | "adjust", qty: delta, note: fullNote, actorId: user.id });
+    const mv = await repos.stock.move({
+      storeId,
+      productId,
+      type: mode as "in" | "out" | "adjust",
+      qty: delta,
+      note: fullNote,
+      actorId: user.id,
+    });
+    if (mv)
+      await audit(storeId, user, `stock.${mode}`, {
+        entityType: "product",
+        entityId: productId,
+        entityName: p.name,
+        changes: { stockQty: [mv.qtyBefore, mv.qtyAfter] },
+        note: fullNote,
+      });
   }
   redirect(`${back}?saved=1&mode=${mode}&unit=${byPack ? "pack" : "base"}`);
 }

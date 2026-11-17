@@ -13,9 +13,29 @@ import {
   MAX_IMAGE_BYTES,
   sniffImage,
 } from "@/server/catalog";
+import { audit, diff } from "@/server/audit";
 import { getRepositories, getStorage } from "@/server/container";
 import { int, optStr, storeCtx, str } from "@/server/form";
 import { requireStoreAccess } from "@/server/session";
+
+/** ช่องสินค้าที่ติดตามการแก้ไข */
+const PRODUCT_FIELDS = [
+  "name",
+  "barcode",
+  "sku",
+  "category",
+  "subcategory",
+  "unit",
+  "priceMinor",
+  "costMinor",
+  "packUnit",
+  "packSize",
+  "packPriceMinor",
+  "packBarcode",
+  "lowStockThreshold",
+  "trackStock",
+  "expiresAt",
+] as const satisfies ReadonlyArray<keyof ProductInput>;
 
 type Image = { bytes: Uint8Array; type: string; ext: string };
 
@@ -148,6 +168,9 @@ export async function saveProductAction(form: FormData) {
   };
 
   const repos = await getRepositories();
+  const before = productId
+    ? await repos.products.findById(storeId, productId)
+    : null;
   let error: string | null = null;
   let savedId = productId;
   try {
@@ -168,6 +191,60 @@ export async function saveProductAction(form: FormData) {
   if (error) redirect(`${back}?error=${error}`);
   // รูปพัง ≠ สินค้าพัง: บันทึกสินค้าแล้ว แจ้งให้ถ่ายใหม่ในหน้าแก้ไข
   const { error: photoError, image } = await applyPhoto(form, storeId, savedId);
+
+  // ----- บันทึกการแก้ไข -----
+  if (before) {
+    const changes = diff(before, input, [...PRODUCT_FIELDS]);
+    if (image) changes.photo = [before.imagePath ? "old" : null, "new"];
+    else if (form.get("removePhoto") === "1" && before.imagePath)
+      changes.photo = ["old", null];
+    await audit(storeId, user, "product.update", {
+      entityType: "product",
+      entityId: savedId,
+      entityName: input.name,
+      changes,
+    });
+    // แก้จำนวนคงเหลือในหน้าแก้ไขสินค้า → ปรับสต็อก (บันทึกในประวัติสต็อกด้วย)
+    const wanted = form.get("stockQty");
+    if (wanted !== null && String(wanted).trim() !== "") {
+      const target = int(
+        form,
+        "stockQty",
+        -1_000_000,
+        1_000_000,
+        before.stockQty,
+      );
+      const fresh = await repos.products.findById(storeId, savedId);
+      if (fresh && target !== fresh.stockQty) {
+        const mv = await repos.stock.move({
+          storeId,
+          productId: savedId,
+          type: "adjust",
+          qty: target - fresh.stockQty,
+          note: "แก้จำนวนในหน้าแก้ไขสินค้า",
+          actorId: user.id,
+        });
+        await audit(storeId, user, "stock.adjust", {
+          entityType: "product",
+          entityId: savedId,
+          entityName: input.name,
+          changes: {
+            stockQty: [mv?.qtyBefore ?? fresh.stockQty, mv?.qtyAfter ?? target],
+          },
+        });
+      }
+    }
+  } else {
+    await audit(storeId, user, "product.create", {
+      entityType: "product",
+      entityId: savedId,
+      entityName: input.name,
+      changes: {
+        priceMinor: [null, input.priceMinor],
+        stockQty: [null, int(form, "initialQty", 0, 1_000_000, 0)],
+      },
+    });
+  }
   // เติมคลังข้อมูลกลาง (ชื่อ/หมวด/หน่วย/รูป — ไม่มีราคา) ให้ร้านอื่นสแกนแล้วได้ข้อมูลเลย
   if (input.barcode) {
     await contributeToCatalog(
@@ -186,10 +263,18 @@ export async function saveProductAction(form: FormData) {
 
 export async function deleteProductAction(form: FormData) {
   const { locale, storeId } = storeCtx(form);
-  await requireStoreAccess(locale, storeId, "products.delete");
-  const oldImage = await (
-    await getRepositories()
-  ).products.deactivate(storeId, str(form, "productId"));
+  const { user } = await requireStoreAccess(locale, storeId, "products.delete");
+  const repos = await getRepositories();
+  const productId = str(form, "productId");
+  const product = await repos.products.findById(storeId, productId);
+  const oldImage = await repos.products.deactivate(storeId, productId);
+  if (product)
+    await audit(storeId, user, "product.delete", {
+      entityType: "product",
+      entityId: productId,
+      entityName: product.name,
+      note: product.barcode ?? "",
+    });
   if (oldImage) await (await getStorage())?.remove([oldImage]).catch(() => {});
   redirect(`/${locale}/store/${storeId}/inventory`);
 }

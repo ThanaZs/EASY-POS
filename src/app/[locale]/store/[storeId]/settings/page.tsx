@@ -3,9 +3,8 @@ import { Card, Field, PrimaryButton } from "@/components/Field";
 import { Select, timeZoneOptions } from "@/components/Select";
 import { loadLocale } from "@/i18n/page";
 import { requireStoreAccess } from "@/server/session";
-import { SubTabs } from "@/components/SubTabs";
-import { can } from "@/core/domain/permissions";
 import { BackLink } from "../BackLink";
+import { SettingsTabs } from "../SettingsTabs";
 import { StoreDangerDialog } from "../StoreDangerDialog";
 import { saveSettingsAction } from "./actions";
 
@@ -29,27 +28,12 @@ export default async function SettingsPage({
     <div className="mx-auto max-w-xl space-y-4">
       <BackLink href={`/${locale}/store/${storeId}`} label={t.store.back} />
       <h1 className="text-xl font-bold">{t.store.modules.settings}</h1>
-      <SubTabs
-        tabs={[
-          ...(can(member, "store.settings")
-            ? [
-                {
-                  href: `/${locale}/store/${storeId}/settings`,
-                  label: t.store.tabs.storeInfo,
-                  active: true,
-                },
-              ]
-            : []),
-          ...(can(member, "staff.manage")
-            ? [
-                {
-                  href: `/${locale}/store/${storeId}/staff`,
-                  label: t.store.tabs.staff,
-                  active: false,
-                },
-              ]
-            : []),
-        ]}
+      <SettingsTabs
+        locale={locale}
+        storeId={storeId}
+        member={member}
+        t={t.store.tabs}
+        active="settings"
       />
       <Card>
         <form action={saveSettingsAction} className="space-y-4">

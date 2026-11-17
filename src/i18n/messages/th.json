@@ -126,7 +126,8 @@
       "summary": "ภาพรวม",
       "bills": "บิลทั้งหมด",
       "storeInfo": "ข้อมูลร้าน",
-      "staff": "พนักงาน & รหัสเชิญ"
+      "staff": "พนักงาน & รหัสเชิญ",
+      "activity": "ประวัติการแก้ไข"
     },
     "backInventory": "กลับคลังสินค้า",
     "backSales": "กลับยอดขาย"
@@ -206,7 +207,9 @@
     "packPriceHint": "ว่างไว้ = ราคาชิ้น × จำนวนต่อแพ็ก",
     "packBarcode": "บาร์โค้ดลัง (ถ้ามี)",
     "allSub": "ทั้งหมด",
-    "noSub": "ไม่มีหมวดย่อย"
+    "noSub": "ไม่มีหมวดย่อย",
+    "currentStock": "จำนวนคงเหลือ",
+    "currentStockHint": "แก้เป็นจำนวนที่นับได้จริง — ระบบบันทึกเป็นการปรับยอดในประวัติสต็อกให้"
   },
   "stock": {
     "product": "สินค้า",
@@ -521,5 +524,55 @@
   "keyboard": {
     "done": "เสร็จ",
     "space": "เว้นวรรค"
+  },
+  "audit": {
+    "hint": "บันทึกทุกการแก้ไขในร้าน: ใคร ทำอะไร กับอะไร เปลี่ยนจากอะไรเป็นอะไร เมื่อไร (ล่าสุด 300 รายการ)",
+    "productHistory": "ประวัติการแก้ไขสินค้านี้",
+    "empty": "ยังไม่มีการแก้ไข",
+    "by": "โดย",
+    "yes": "ใช่",
+    "no": "ไม่",
+    "photoNew": "รูปใหม่",
+    "photoOld": "มีรูป",
+    "actions": {
+      "product.create": "เพิ่มสินค้า",
+      "product.update": "แก้ไขสินค้า",
+      "product.delete": "ลบสินค้า",
+      "product.import": "นำเข้า Excel",
+      "stock.in": "รับเข้าสินค้า",
+      "stock.out": "เบิกออก",
+      "stock.adjust": "ปรับจำนวนสต็อก",
+      "sale.void": "ยกเลิกบิล",
+      "settings.update": "แก้ตั้งค่าร้าน",
+      "invite.create": "สร้างรหัสเชิญ",
+      "invite.delete": "ลบรหัสเชิญ",
+      "member.remove": "เอาพนักงานออก",
+      "member.leave": "ออกจากร้าน"
+    },
+    "fields": {
+      "name": "ชื่อ",
+      "barcode": "บาร์โค้ด",
+      "sku": "SKU",
+      "category": "หมวดหลัก",
+      "subcategory": "หมวดย่อย",
+      "unit": "หน่วย",
+      "priceMinor": "ราคาขาย",
+      "costMinor": "ต้นทุน",
+      "packUnit": "หน่วยแพ็ก",
+      "packSize": "ชิ้นต่อแพ็ก",
+      "packPriceMinor": "ราคาแพ็ก",
+      "packBarcode": "บาร์โค้ดแพ็ก",
+      "lowStockThreshold": "เตือนใกล้หมดที่",
+      "trackStock": "นับสต็อก",
+      "expiresAt": "วันหมดอายุ",
+      "photo": "รูป",
+      "stockQty": "จำนวนคงเหลือ",
+      "totalMinor": "ยอดบิล",
+      "timeZone": "ทามโซน",
+      "taxRateBp": "ภาษี",
+      "taxIncluded": "ราคารวมภาษี",
+      "receiptFooter": "ท้ายใบเสร็จ",
+      "allowNegativeStock": "ขายได้แม้สต็อกติดลบ"
+    }
   }
 }
