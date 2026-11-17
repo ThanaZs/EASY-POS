@@ -75,7 +75,7 @@ export default async function StaffPage({
       <div className="grid gap-6 lg:grid-cols-2">
         <section className="space-y-3">
           <h2 className="font-semibold">{t.staff.members}</h2>
-          <ul className="divide-y divide-line rounded-2xl border border-line bg-card">
+          <ul className="scroll-box divide-y divide-line rounded-2xl border border-line bg-card">
             {members.map(({ member, user: u }) => {
               const removable =
                 u.id !== user.id &&
@@ -149,7 +149,7 @@ export default async function StaffPage({
           {invites.length === 0 ? (
             <p className="text-muted">{t.staff.noInvites}</p>
           ) : (
-            <ul className="divide-y divide-line rounded-2xl border border-line bg-card">
+            <ul className="scroll-box divide-y divide-line rounded-2xl border border-line bg-card">
               {invites.map((inv) => {
                 const dead = inviteState(inv) !== "active";
                 const deletable =

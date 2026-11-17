@@ -19,7 +19,7 @@ export function MovementList({
     return <p className="rounded-2xl border border-dashed border-line bg-card p-8 text-center text-muted">{t.stock.empty}</p>;
   }
   return (
-    <ul className="divide-y divide-line overflow-hidden rounded-2xl border border-line bg-card">
+    <ul className="scroll-box divide-y divide-line rounded-2xl border border-line bg-card">
       {items.map((m) => (
         <li key={m.id} className="flex items-center gap-3 p-3">
           <div className="min-w-0 flex-1">

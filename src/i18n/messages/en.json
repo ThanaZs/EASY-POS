@@ -128,7 +128,8 @@
       "storeInfo": "Store info",
       "staff": "Staff & invites"
     },
-    "backInventory": "Back to inventory"
+    "backInventory": "Back to inventory",
+    "backSales": "Back to sales"
   },
   "common": {
     "language": "Language",
@@ -284,7 +285,20 @@
     "recent": "Recent bills",
     "lowStock": "Low stock",
     "none": "None",
-    "noSales": "No sales yet"
+    "noSales": "No sales yet",
+    "sales": "Sales",
+    "avg": "Avg per bill",
+    "byHour": "Sales by hour (today)",
+    "byDay": "Sales by day",
+    "byMonth": "Sales by month",
+    "byYear": "Sales by year",
+    "ranges": {
+      "today": "Today",
+      "week": "7 days",
+      "month": "This month",
+      "year": "This year",
+      "all": "All time"
+    }
   },
   "sales": {
     "date": "Date",

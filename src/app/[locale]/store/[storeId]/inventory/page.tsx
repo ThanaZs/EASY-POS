@@ -115,7 +115,7 @@ export default async function InventoryPage({
           {t.inventory.empty}
         </p>
       ) : (
-        <ul className="divide-y divide-line overflow-hidden rounded-2xl border border-line bg-card">
+        <ul className="scroll-box divide-y divide-line rounded-2xl border border-line bg-card">
           {items.map((p) => {
             const body = (
               <>

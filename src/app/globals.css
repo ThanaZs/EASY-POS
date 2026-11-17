@@ -138,6 +138,15 @@ body {
   }
 }
 
+/* กล่องรายการยาว: สูงไม่เกิน ~2/3 จอ แล้วเลื่อนในกล่อง (ไม่ดันหน้าให้ยาว) */
+@utility scroll-box {
+  max-height: min(65vh, 36rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line) transparent;
+}
+
 /* เด้งเบาๆ เมื่อตัวเลขในตะกร้าเปลี่ยน */
 @keyframes pop {
   0% { scale: 1; }
