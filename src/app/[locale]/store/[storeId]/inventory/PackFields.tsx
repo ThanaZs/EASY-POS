@@ -51,7 +51,7 @@ export function PackFields({
       </label>
       <p className="text-xs text-muted">{labels.hint}</p>
       {on && (
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <label className="block space-y-1">
             <span className="text-sm text-muted">{labels.packUnit}</span>
             <input

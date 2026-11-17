@@ -151,7 +151,7 @@ export function ProductPicker({
   );
 
   return (
-    <div className="space-y-3 sm:col-span-2">
+    <div className="min-w-0 space-y-3 sm:col-span-2">
       {/* 1) บาร์โค้ด */}
       <div className="space-y-1">
         <div className="flex flex-wrap items-center justify-between gap-2">

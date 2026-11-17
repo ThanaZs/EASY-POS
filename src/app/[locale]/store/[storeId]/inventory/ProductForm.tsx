@@ -37,7 +37,7 @@ export function ProductForm({
   const inv = t.inventory;
   return (
     <Card>
-      <form action={saveProductAction} className="grid gap-4 sm:grid-cols-2">
+      <form action={saveProductAction} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <input type="hidden" name="locale" value={locale} />
         <input type="hidden" name="storeId" value={store.id} />
         {product && <input type="hidden" name="productId" value={product.id} />}

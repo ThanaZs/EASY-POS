@@ -53,7 +53,7 @@ export default async function ReceivePage({
         </p>
       ) : (
         <Card>
-          <form action={stockMoveAction} className="grid gap-4 sm:grid-cols-2">
+          <form action={stockMoveAction} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <input type="hidden" name="locale" value={locale} />
             <input type="hidden" name="storeId" value={storeId} />
             {sp.error === "noPack" && (
