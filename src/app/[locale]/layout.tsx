@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { isLocale, locales } from "@/i18n/config";
 import { IdleRefresh } from "@/components/IdleRefresh";
 import { PwaListener } from "@/components/InstallPrompt";
+import { LiveRefresh } from "@/components/LiveRefresh";
 import { getTheme } from "@/server/theme";
 import "../globals.css";
 
@@ -32,6 +33,7 @@ export default async function LocaleLayout({ children, params }: LayoutProps<"/[
       <body className="min-h-full bg-surface text-ink">
         <IdleRefresh />
         <PwaListener />
+        <LiveRefresh />
         {children}
       </body>
     </html>

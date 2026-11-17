@@ -25,6 +25,15 @@
 
 ---
 
+## 2026-11-17 — ข้อมูลอัปเดตข้ามเครื่องอัตโนมัติ (branch dev)
+- ปัญหา: แก้ข้อมูลในคอม → มือถือที่เปิดค้างไว้ไม่เห็นจนกดรีเฟรชเอง
+- `components/LiveRefresh.tsx` (root layout): `router.refresh()` เมื่อกลับมาที่แอป/แท็บ, focus, ต่อเน็ตได้ (ทันที)
+  และทุก 30 วิระหว่างเปิดหน้า (ข้ามตอนกำลังพิมพ์/มีป๊อปอัพเปิด); เว้นอย่างน้อย 5 วิ — state ฝั่งหน้า (ตะกร้า/ข้อความ) ไม่หาย
+- ทดสอบ: ยิง focus → server ได้ request ใหม่ หน้าไม่ reload ✅; build ✅
+- ถ้าต้องการเรียลไทม์ทันทีในอนาคต: Supabase Realtime / SSE (ตอนนี้ polling 30 วิ ภาระ DB น้อย)
+
+---
+
 ## 2026-11-17 — นำเข้า Excel + หมวดย่อย + ขายปลีก/ยกลัง (branch dev)
 **นำเข้า Excel/CSV** (`inventory/import`, ปุ่ม "นำเข้า Excel" ในคลัง — สิทธิ์ products.create)
 - อ่านไฟล์ในเบราว์เซอร์ `src/client/sheet.ts`: .xlsx = zip+XML → `fflate@0.8.3` (ไม่มี dependency) + DOMParser; .csv รองรับ quote/BOM
