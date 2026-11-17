@@ -74,10 +74,15 @@ export type ProductInput = Pick<
   | "expiresAt"
 >;
 
-export type CategoryNode = { category: string; subcategories: string[] };
+/** hasNoSub = มีสินค้าในหมวดนี้ที่ไม่ได้ใส่หมวดย่อย */
+export type CategoryNode = { category: string; subcategories: string[]; hasNoSub?: boolean };
 
 export interface ProductRepo {
-  list(storeId: ID, q?: { search?: string; category?: string; lowStockOnly?: boolean }): Promise<Product[]>;
+  /** subcategory: null = เฉพาะที่ไม่มีหมวดย่อย */
+  list(
+    storeId: ID,
+    q?: { search?: string; category?: string; subcategory?: string | null; lowStockOnly?: boolean },
+  ): Promise<Product[]>;
   findById(storeId: ID, id: ID): Promise<Product | null>;
   categories(storeId: ID): Promise<string[]>;
   /** หมวดหลัก + หมวดย่อยที่เคยใช้ (ให้เลือกในฟอร์ม/กรองหน้าขาย) */

@@ -7,7 +7,7 @@ import { loadLocale } from "@/i18n/page";
 import { getRepositories, getStorage } from "@/server/container";
 import { requireStoreAccess } from "@/server/session";
 import { BackLink } from "../BackLink";
-import { InventoryFilters } from "./InventoryFilters";
+import { InventoryFilters, NO_SUB } from "./InventoryFilters";
 import { ScanToSearch } from "./ScanToSearch";
 import { StockBadge } from "./StockBadge";
 
@@ -19,12 +19,17 @@ export default async function InventoryPage({ params, searchParams }: PageProps<
   const q = typeof sp.q === "string" ? sp.q : "";
   const cat = typeof sp.cat === "string" ? sp.cat : "";
   const low = sp.low === "1";
+  const subParam = cat && typeof sp.sub === "string" ? sp.sub : "";
 
   const repos = await getRepositories();
-  const filter = { category: cat || undefined, lowStockOnly: low };
-  const [found, categories, storage] = await Promise.all([
+  const filter = {
+    category: cat || undefined,
+    subcategory: subParam === NO_SUB ? null : subParam || undefined,
+    lowStockOnly: low,
+  };
+  const [found, tree, storage] = await Promise.all([
     repos.products.list(storeId, { ...filter, search: q }),
-    repos.products.categories(storeId),
+    repos.products.categoryTree(storeId),
     getStorage(),
   ]);
   // พิมพ์/ยิงตอนคีย์บอร์ดค้างภาษาไทย ("ๅ/-ภ") แล้วไม่เจอ → ลองแปลงเป็นแป้นอังกฤษ ("1234")
@@ -60,9 +65,16 @@ export default async function InventoryPage({ params, searchParams }: PageProps<
       <InventoryFilters
         q={q}
         cat={cat}
+        sub={subParam}
         low={low}
-        categories={categories}
-        labels={{ search: t.inventory.search, allCategories: t.inventory.allCategories, lowOnly: t.inventory.lowOnly }}
+        tree={tree}
+        labels={{
+          search: t.inventory.search,
+          allCategories: t.inventory.allCategories,
+          lowOnly: t.inventory.lowOnly,
+          allSub: t.inventory.allSub,
+          noSub: t.inventory.noSub,
+        }}
       />
 
       <p className="text-sm text-muted">{fill(t.inventory.count, { n: items.length })}</p>

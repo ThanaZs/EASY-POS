@@ -191,7 +191,9 @@
     "packSize": "1 {unit} = กี่{base}",
     "packPrice": "ราคาต่อ{unit}",
     "packPriceHint": "ว่างไว้ = ราคาชิ้น × จำนวนต่อแพ็ก",
-    "packBarcode": "บาร์โค้ดลัง (ถ้ามี)"
+    "packBarcode": "บาร์โค้ดลัง (ถ้ามี)",
+    "allSub": "ทั้งหมด",
+    "noSub": "ไม่มีหมวดย่อย"
   },
   "stock": {
     "product": "สินค้า",

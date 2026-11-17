@@ -191,7 +191,9 @@
     "packSize": "1 {unit} = how many {base}",
     "packPrice": "Price per {unit}",
     "packPriceHint": "Leave blank = unit price × pack size",
-    "packBarcode": "Case barcode (optional)"
+    "packBarcode": "Case barcode (optional)",
+    "allSub": "All",
+    "noSub": "No subcategory"
   },
   "stock": {
     "product": "Product",

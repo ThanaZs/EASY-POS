@@ -1,9 +1,33 @@
 import "server-only";
-import { and, asc, desc, eq, ilike, inArray, isNotNull, lte, or, sql } from "drizzle-orm";
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  ilike,
+  inArray,
+  isNotNull,
+  isNull,
+  lte,
+  or,
+  sql,
+} from "drizzle-orm";
 import { calcSaleTotals } from "@/core/domain/sale";
-import { packPrice, type Product, type Sale, type SaleHeader, type SaleItem, type StockMovement } from "@/core/domain/types";
+import {
+  packPrice,
+  type Product,
+  type Sale,
+  type SaleHeader,
+  type SaleItem,
+  type StockMovement,
+} from "@/core/domain/types";
 import { businessDate } from "@/core/lib/format";
-import type { DailySales, ProductRepo, SaleRepo, StockRepo } from "@/core/ports/repositories";
+import type {
+  DailySales,
+  ProductRepo,
+  SaleRepo,
+  StockRepo,
+} from "@/core/ports/repositories";
 import { getDb } from "./client";
 import { products, saleItems, sales, stockMovements } from "./schema";
 
@@ -66,19 +90,41 @@ export function productRepo(): ProductRepo {
   const db = getDb();
   return {
     async list(storeId, q = {}) {
-      const conds = [eq(products.storeId, storeId), eq(products.isActive, true)];
+      const conds = [
+        eq(products.storeId, storeId),
+        eq(products.isActive, true),
+      ];
       const search = q.search?.trim();
       if (search) {
         const like = `%${search.replace(/[%_\\]/g, "\\$&")}%`;
         conds.push(
-          or(ilike(products.name, like), ilike(products.sku, like), eq(products.barcode, search), eq(products.packBarcode, search))!,
+          or(
+            ilike(products.name, like),
+            ilike(products.sku, like),
+            eq(products.barcode, search),
+            eq(products.packBarcode, search),
+          )!,
         );
       }
       if (q.category) conds.push(eq(products.category, q.category));
+      if (q.subcategory === null)
+        conds.push(
+          or(isNull(products.subcategory), eq(products.subcategory, ""))!,
+        );
+      else if (q.subcategory)
+        conds.push(eq(products.subcategory, q.subcategory));
       if (q.lowStockOnly) {
-        conds.push(eq(products.trackStock, true), lte(products.stockQty, products.lowStockThreshold));
+        conds.push(
+          eq(products.trackStock, true),
+          lte(products.stockQty, products.lowStockThreshold),
+        );
       }
-      const rows = await db.select().from(products).where(and(...conds)).orderBy(asc(products.name)).limit(1000);
+      const rows = await db
+        .select()
+        .from(products)
+        .where(and(...conds))
+        .orderBy(asc(products.name))
+        .limit(1000);
       return rows.map(toProduct);
     },
     async findById(storeId, id) {
@@ -93,7 +139,13 @@ export function productRepo(): ProductRepo {
       const rows = await db
         .selectDistinct({ c: products.category })
         .from(products)
-        .where(and(eq(products.storeId, storeId), eq(products.isActive, true), isNotNull(products.category)))
+        .where(
+          and(
+            eq(products.storeId, storeId),
+            eq(products.isActive, true),
+            isNotNull(products.category),
+          ),
+        )
         .orderBy(asc(products.category));
       return rows.map((r) => r.c!).filter(Boolean);
     },
@@ -101,26 +153,44 @@ export function productRepo(): ProductRepo {
       const rows = await db
         .selectDistinct({ c: products.category, s: products.subcategory })
         .from(products)
-        .where(and(eq(products.storeId, storeId), eq(products.isActive, true), isNotNull(products.category)))
+        .where(
+          and(
+            eq(products.storeId, storeId),
+            eq(products.isActive, true),
+            isNotNull(products.category),
+          ),
+        )
         .orderBy(asc(products.category), asc(products.subcategory));
-      const tree = new Map<string, string[]>();
+      const tree = new Map<
+        string,
+        { subcategories: string[]; hasNoSub: boolean }
+      >();
       for (const r of rows) {
         if (!r.c) continue;
-        const subs = tree.get(r.c) ?? [];
-        if (r.s && !subs.includes(r.s)) subs.push(r.s);
-        tree.set(r.c, subs);
+        const node = tree.get(r.c) ?? { subcategories: [], hasNoSub: false };
+        if (!r.s) node.hasNoSub = true;
+        else if (!node.subcategories.includes(r.s))
+          node.subcategories.push(r.s);
+        tree.set(r.c, node);
       }
-      return [...tree].map(([category, subcategories]) => ({ category, subcategories }));
+      return [...tree].map(([category, n]) => ({ category, ...n }));
     },
     importRows(storeId, rows, actorId, opts) {
       return db.transaction(async (tx) => {
         const result = { created: 0, updated: 0, skipped: 0 };
-        const barcodes = rows.map((r) => r.barcode).filter((b): b is string => Boolean(b));
+        const barcodes = rows
+          .map((r) => r.barcode)
+          .filter((b): b is string => Boolean(b));
         const existing = barcodes.length
           ? await tx
               .select()
               .from(products)
-              .where(and(eq(products.storeId, storeId), inArray(products.barcode, barcodes)))
+              .where(
+                and(
+                  eq(products.storeId, storeId),
+                  inArray(products.barcode, barcodes),
+                ),
+              )
               .for("update")
           : [];
         const byBarcode = new Map(existing.map((p) => [p.barcode!, p]));
@@ -141,7 +211,10 @@ export function productRepo(): ProductRepo {
           const now = new Date();
           if (old) {
             // สินค้าที่มีอยู่แล้ว: แตะสต็อกเฉพาะเมื่อผู้ใช้เลือก "อัปเดตจำนวนคงเหลือ"
-            const qtyAfter = opts.updateStock && r.stockQty !== null ? r.stockQty : old.stockQty;
+            const qtyAfter =
+              opts.updateStock && r.stockQty !== null
+                ? r.stockQty
+                : old.stockQty;
             await tx
               .update(products)
               .set({
@@ -246,7 +319,12 @@ export function productRepo(): ProductRepo {
       // เอาบาร์โค้ดออกด้วย เพื่อให้นำบาร์โค้ดไปใช้กับสินค้าใหม่ได้; ลบรูปเพื่อประหยัดพื้นที่
       await db
         .update(products)
-        .set({ isActive: false, barcode: null, imagePath: null, updatedAt: new Date() })
+        .set({
+          isActive: false,
+          barcode: null,
+          imagePath: null,
+          updatedAt: new Date(),
+        })
         .where(and(eq(products.storeId, storeId), eq(products.id, id)));
       return old?.imagePath ?? null;
     },
@@ -273,7 +351,12 @@ export function stockRepo(): StockRepo {
         const [p] = await tx
           .select()
           .from(products)
-          .where(and(eq(products.storeId, input.storeId), eq(products.id, input.productId)))
+          .where(
+            and(
+              eq(products.storeId, input.storeId),
+              eq(products.id, input.productId),
+            ),
+          )
           .for("update")
           .limit(1);
         if (!p) return null;
@@ -318,28 +401,45 @@ export function saleRepo(): SaleRepo {
   return {
     create(input) {
       // รวมบรรทัดสินค้าเดียวกัน (แยกขายปลีก/ยกลัง) + ตัดจำนวนที่ไม่ถูกต้อง
-      const qtyByLine = new Map<string, { productId: string; unit: "base" | "pack"; qty: number }>();
+      const qtyByLine = new Map<
+        string,
+        { productId: string; unit: "base" | "pack"; qty: number }
+      >();
       for (const l of input.lines) {
         const qty = Math.floor(l.qty);
         if (!(qty > 0)) continue;
         const unit = l.unit === "pack" ? "pack" : "base";
         const key = `${l.productId}:${unit}`;
         const cur = qtyByLine.get(key);
-        qtyByLine.set(key, { productId: l.productId, unit, qty: (cur?.qty ?? 0) + qty });
+        qtyByLine.set(key, {
+          productId: l.productId,
+          unit,
+          qty: (cur?.qty ?? 0) + qty,
+        });
       }
-      if (qtyByLine.size === 0) return Promise.resolve({ ok: false, reason: "empty" } as const);
+      if (qtyByLine.size === 0)
+        return Promise.resolve({ ok: false, reason: "empty" } as const);
       const ids = [...new Set([...qtyByLine.values()].map((l) => l.productId))];
 
       return db.transaction(async (tx) => {
         // ล็อกต่อร้าน: เลขใบเสร็จไม่ชนกันเมื่อขายพร้อมกันหลายเครื่อง
-        await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${input.storeId}))`);
+        await tx.execute(
+          sql`select pg_advisory_xact_lock(hashtext(${input.storeId}))`,
+        );
 
         const rows = await tx
           .select()
           .from(products)
-          .where(and(eq(products.storeId, input.storeId), inArray(products.id, ids), eq(products.isActive, true)))
+          .where(
+            and(
+              eq(products.storeId, input.storeId),
+              inArray(products.id, ids),
+              eq(products.isActive, true),
+            ),
+          )
           .for("update");
-        if (rows.length !== ids.length) return { ok: false, reason: "product_not_found" } as const;
+        if (rows.length !== ids.length)
+          return { ok: false, reason: "product_not_found" } as const;
 
         const byId = new Map(rows.map((p) => [p.id, p]));
         const items: SaleItem[] = [];
@@ -347,7 +447,8 @@ export function saleRepo(): SaleRepo {
         for (const l of qtyByLine.values()) {
           const p = byId.get(l.productId)!;
           if (l.unit === "pack") {
-            if (!p.packUnit || !p.packSize || p.packSize < 1) return { ok: false, reason: "product_not_found" } as const;
+            if (!p.packUnit || !p.packSize || p.packSize < 1)
+              return { ok: false, reason: "product_not_found" } as const;
             const baseQty = l.qty * p.packSize;
             items.push({
               productId: p.id,
@@ -373,8 +474,16 @@ export function saleRepo(): SaleRepo {
           }
         }
         for (const p of rows) {
-          if (p.trackStock && !input.allowNegativeStock && p.stockQty < baseById.get(p.id)!) {
-            return { ok: false, reason: "insufficient_stock", productName: p.name } as const;
+          if (
+            p.trackStock &&
+            !input.allowNegativeStock &&
+            p.stockQty < baseById.get(p.id)!
+          ) {
+            return {
+              ok: false,
+              reason: "insufficient_stock",
+              productName: p.name,
+            } as const;
           }
         }
 
@@ -384,14 +493,17 @@ export function saleRepo(): SaleRepo {
           taxIncluded: input.taxIncluded,
         });
         const paidMinor = input.paidMinor ?? totals.totalMinor;
-        if (paidMinor < totals.totalMinor) return { ok: false, reason: "insufficient_payment" } as const;
+        if (paidMinor < totals.totalMinor)
+          return { ok: false, reason: "insufficient_payment" } as const;
 
         const now = new Date();
         const day = businessDate(now, input.timeZone);
         const [{ n }] = await tx
           .select({ n: sql<number>`count(*)::int` })
           .from(sales)
-          .where(and(eq(sales.storeId, input.storeId), eq(sales.businessDate, day)));
+          .where(
+            and(eq(sales.storeId, input.storeId), eq(sales.businessDate, day)),
+          );
         const receiptNo = `${day.replaceAll("-", "").slice(2)}-${String(n + 1).padStart(4, "0")}`;
 
         const [sale] = await tx
@@ -408,7 +520,9 @@ export function saleRepo(): SaleRepo {
             createdAt: now,
           })
           .returning();
-        await tx.insert(saleItems).values(items.map((i) => ({ ...i, saleId: sale.id })));
+        await tx
+          .insert(saleItems)
+          .values(items.map((i) => ({ ...i, saleId: sale.id })));
 
         for (const p of rows) {
           if (!p.trackStock) continue;
@@ -440,7 +554,11 @@ export function saleRepo(): SaleRepo {
         .where(and(eq(sales.storeId, storeId), eq(sales.id, id)))
         .limit(1);
       if (!s) return null;
-      const items = await db.select().from(saleItems).where(eq(saleItems.saleId, id)).orderBy(asc(saleItems.name));
+      const items = await db
+        .select()
+        .from(saleItems)
+        .where(eq(saleItems.saleId, id))
+        .orderBy(asc(saleItems.name));
       const sale: Sale = {
         ...toSaleHeader(s),
         items: items.map((i) => ({
@@ -475,22 +593,41 @@ export function saleRepo(): SaleRepo {
           .for("update")
           .limit(1);
         if (!s) return { ok: false, reason: "not_found" } as const;
-        if (s.status !== "completed") return { ok: false, reason: "already_voided" } as const;
+        if (s.status !== "completed")
+          return { ok: false, reason: "already_voided" } as const;
         const now = new Date();
         await tx
           .update(sales)
-          .set({ status: "voided", voidedAt: now, voidedBy: actorId, voidReason: reason || null })
+          .set({
+            status: "voided",
+            voidedAt: now,
+            voidedBy: actorId,
+            voidReason: reason || null,
+          })
           .where(eq(sales.id, id));
 
         // คืนสต็อก (รวมจำนวนต่อสินค้า) เฉพาะสินค้าที่ยังมีอยู่และนับสต็อก
-        const items = await tx.select().from(saleItems).where(eq(saleItems.saleId, id));
+        const items = await tx
+          .select()
+          .from(saleItems)
+          .where(eq(saleItems.saleId, id));
         const qtyById = new Map<string, number>();
-        for (const i of items) if (i.productId) qtyById.set(i.productId, (qtyById.get(i.productId) ?? 0) + (i.baseQty ?? i.qty));
+        for (const i of items)
+          if (i.productId)
+            qtyById.set(
+              i.productId,
+              (qtyById.get(i.productId) ?? 0) + (i.baseQty ?? i.qty),
+            );
         if (qtyById.size === 0) return { ok: true } as const;
         const prods = await tx
           .select()
           .from(products)
-          .where(and(eq(products.storeId, storeId), inArray(products.id, [...qtyById.keys()])))
+          .where(
+            and(
+              eq(products.storeId, storeId),
+              inArray(products.id, [...qtyById.keys()]),
+            ),
+          )
           .for("update");
         for (const p of prods) {
           if (!p.trackStock) continue;
@@ -516,7 +653,12 @@ export function saleRepo(): SaleRepo {
       });
     },
     async dailyTotals(storeId, from, to) {
-      const rows = await db.execute<{ d: string; c: number; t: string; k: string }>(sql`
+      const rows = await db.execute<{
+        d: string;
+        c: number;
+        t: string;
+        k: string;
+      }>(sql`
         select s.business_date as d,
                count(*)::int as c,
                coalesce(sum(s.total_minor), 0)::text as t,
@@ -526,9 +668,12 @@ export function saleRepo(): SaleRepo {
           and s.business_date between ${from} and ${to}
         group by s.business_date
         order by s.business_date`);
-      return rows.map(
-        (r): DailySales => ({ businessDate: r.d, count: r.c, totalMinor: Number(r.t), costMinor: Number(r.k) }),
-      );
+      return rows.map((r): DailySales => ({
+        businessDate: r.d,
+        count: r.c,
+        totalMinor: Number(r.t),
+        costMinor: Number(r.k),
+      }));
     },
   };
 }
