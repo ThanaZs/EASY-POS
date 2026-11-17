@@ -3,6 +3,7 @@
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { LoaderCircle, Search, X } from "lucide-react";
+import { useBarcodeScanner } from "@/client/devices/scanner";
 import type { CategoryNode } from "@/core/ports/repositories";
 
 /** ค่า ?sub= สำหรับ "ไม่มีหมวดย่อย" (สินค้าที่มีแค่หมวดหลัก) */
@@ -44,6 +45,18 @@ export function InventoryFilters({
   const state = useRef({ q, cat, sub, low });
   const [selCat, setSelCat] = useState(cat);
   const [selSub, setSelSub] = useState(sub);
+  const [selLow, setSelLow] = useState(low);
+
+  // ยิงบาร์โค้ด (จะโฟกัสช่องค้นหาอยู่หรือไม่ก็ได้) → แทนที่คำค้นด้วยรหัสใหม่ + ล้างตัวกรองอื่นให้เจอสินค้าแน่ๆ
+  // ต้องยกเลิกตัวหน่วงเวลาของช่องพิมพ์ด้วย ไม่งั้นค่าที่เครื่องสแกนพิมพ์ทับ/คืนค่าเดิม จะมาทับผลการยิงทีหลัง (เคยเด้งกลับโล่ง/เป็นรหัสเก่า)
+  useBarcodeScanner((code) => {
+    clearTimeout(timer.current);
+    setText(code);
+    setSelCat("");
+    setSelSub("");
+    setSelLow(false);
+    apply({ q: code, cat: "", sub: "", low: false });
+  });
   const node = tree.find((n) => n.category === selCat);
   const showSubs = !!node && node.subcategories.length > 0;
 
@@ -151,8 +164,11 @@ export function InventoryFilters({
         <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-line bg-card px-3 py-2 text-sm">
           <input
             type="checkbox"
-            defaultChecked={low}
-            onChange={(e) => apply({ low: e.target.checked })}
+            checked={selLow}
+            onChange={(e) => {
+              setSelLow(e.target.checked);
+              apply({ low: e.target.checked });
+            }}
           />
           {labels.lowOnly}
         </label>
