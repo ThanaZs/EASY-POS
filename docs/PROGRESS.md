@@ -25,6 +25,18 @@
 
 ---
 
+## 2026-11-17 — หน้ายอดขายค้าง (เว็บจริง) — สืบสวน (branch dev)
+- query ของหน้ายอดขายกับข้อมูลร้านจริงเร็วทุกตัว (< 0.3 วิ), /api/health?db=1 ปกติ
+- จำลองบน prod build ในเครื่อง: ครั้งแรก request ค้าง ~2 นาทีแล้ว 500 — `select ... from store_members` โดน
+  "canceling statement due to statement timeout" (ค่าเริ่มต้น Supabase role = 2min) → ฐานข้อมูล/pooler ค้างเป็นช่วงๆ ไม่ใช่โค้ดหน้า; ลองซ้ำหลายรอบไม่เกิดอีก
+- pooler แบบ transaction (Supavisor) **ไม่รับ** statement_timeout จาก connection (ทดสอบแล้ว)
+- ทำแล้ว: `ErrorScreen` ลองใหม่เองเมื่อเป็น error ฝั่ง server (มี digest) ด้วย (≤3 ครั้ง/นาที)
+- **รออนุมัติผู้ใช้**: ตั้ง timeout ที่ role ของ DB (ยังไม่ได้รัน — อยู่ใน git stash บนเครื่องนี้ ถ้าไม่มีให้สร้างใหม่ด้วย `npx drizzle-kit generate --custom --name=db_timeouts`):
+  `ALTER ROLE CURRENT_USER SET statement_timeout='20s'; ... lock_timeout='10s'; ... idle_in_transaction_session_timeout='30s';`
+  ผล: ค้างสูงสุด ~20 วิแล้วหน้า error ลองใหม่เอง แทนการหมุน 2 นาที
+
+---
+
 ## 2026-11-17 — คลังข้อมูลสินค้ากลาง: สแกนบาร์โค้ดแล้วกรอกชื่อ/รูปให้ (branch dev)
 - ตาราง `catalog_items` (migration `0005` + RLS — migrate Supabase แล้ว): barcode → ชื่อ/ยี่ห้อ/หมวด/หน่วย/รูป, ไม่มีราคา/สต็อก/store_id
 - ค้นตามลำดับ (`server/catalog.ts`): คลังของเรา → Open Food Facts → Open Beauty Facts (timeout 4 วิ, ผลภายนอกเก็บแคชในคลัง)

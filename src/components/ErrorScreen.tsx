@@ -33,7 +33,8 @@ export function ErrorScreen({ error, retry }: { error: unknown; retry: () => voi
   useEffect(() => {
     console.error(error);
     // เน็ตหลุดชั่วคราว (เช่น iPad/มือถือเพิ่งปลุกจากพักหน้าจอ — Safari แจ้ง "Load failed") → รอเน็ตมาแล้วลองใหม่เอง
-    if (/Load failed|Failed to fetch|NetworkError|network connection/i.test(msg)) {
+    // + error ฝั่ง server (มี digest เช่นฐานข้อมูลช้าชั่วคราว) → ลองใหม่เองด้วย (จำกัด 3 ครั้ง/นาที)
+    if (digest || /Load failed|Failed to fetch|NetworkError|network connection/i.test(msg)) {
       let done = false;
       const again = () => {
         if (done || !navigator.onLine) return;
@@ -62,7 +63,7 @@ export function ErrorScreen({ error, retry }: { error: unknown; retry: () => voi
         // sessionStorage ใช้ไม่ได้ — ให้ผู้ใช้กดเอง
       }
     }
-  }, [error, msg, retry]);
+  }, [error, msg, retry, digest]);
 
   return (
     <div className="grid min-h-[60vh] place-items-center px-4 py-10" role="alert">
