@@ -65,11 +65,67 @@ export function scanFeedback(ok = true) {
   }
 }
 
+/** ตรวจเลขตรวจสอบ (check digit) ของ EAN-8 / UPC-A / EAN-13 / GTIN-14 — กันอ่านผิดหลัก */
+export function validGtin(code: string): boolean {
+  if (!/^\d+$/.test(code) || ![8, 12, 13, 14].includes(code.length))
+    return true; // ไม่ใช่ GTIN (เช่น Code128) → ไม่ตรวจ
+  const digits = code.split("").map(Number);
+  const check = digits.pop()!;
+  const sum = digits
+    .reverse()
+    .reduce((acc, d, i) => acc + d * (i % 2 === 0 ? 3 : 1), 0);
+  return (10 - (sum % 10)) % 10 === check;
+}
+
+/** ความคมของภาพ (variance ของ Laplacian บนภาพเทาขนาดเล็ก) — ยิ่งมากยิ่งชัด */
+function sharpness(
+  ctx: CanvasRenderingContext2D,
+  w: number,
+  h: number,
+): number {
+  const { data } = ctx.getImageData(0, 0, w, h);
+  const g = new Float32Array(w * h);
+  for (let i = 0; i < w * h; i++)
+    g[i] =
+      data[i * 4] * 0.299 + data[i * 4 + 1] * 0.587 + data[i * 4 + 2] * 0.114;
+  let sum = 0;
+  let sq = 0;
+  let n = 0;
+  for (let y = 1; y < h - 1; y++)
+    for (let x = 1; x < w - 1; x++) {
+      const i = y * w + x;
+      const lap = 4 * g[i] - g[i - 1] - g[i + 1] - g[i - w] - g[i + w];
+      sum += lap;
+      sq += lap * lap;
+      n++;
+    }
+  const mean = sum / n;
+  return sq / n - mean * mean;
+}
+
+type Caps = MediaTrackCapabilities & {
+  torch?: boolean;
+  focusMode?: string[];
+  pointsOfInterest?: unknown;
+};
+type Track = MediaStreamTrack & { getCapabilities?: () => Caps };
+
+export type BarcodeCamera = {
+  error: string | null;
+  /** ไม่มีรหัสที่อ่านผ่านมาสักพัก → แสดงคำแนะนำ (ยังอ่านต่อเรื่อยๆ) */
+  stalled: boolean;
+  torch: { supported: boolean; on: boolean; toggle: () => void };
+  /** แตะจอเพื่อโฟกัส (x, y = 0..1 ของภาพ) */
+  focusAt: (x: number, y: number) => void;
+};
+
 /**
- * เปิดกล้องหลังใส่ <video> แล้วอ่านบาร์โค้ดวนไปเรื่อยๆ
- * - cooldownMs: หลังอ่านได้ 1 ครั้ง พักการอ่านเท่านี้ (= "ความเร็วการสแกน" กันยิงซ้ำรัวๆ)
- * - continuous=false: อ่านได้ครั้งเดียวแล้วหยุด
- * คืนข้อความ error (เปิดกล้องไม่ได้) หรือ null
+ * เปิดกล้องหลังใส่ <video> แล้วอ่านบาร์โค้ดวนไปเรื่อยๆ — ทำให้แม่นขึ้นด้วย:
+ * 1) ตัดเฉพาะกลางภาพ (บริเวณกรอบเล็ง) แล้วค่อยอ่าน + ทุกๆ 3 เฟรมอ่านทั้งภาพ
+ * 2) ข้ามเฟรมที่เบลอ (ความคมต่ำกว่าค่าเฉลี่ยล่าสุดมาก) → อ่านเฉพาะจังหวะที่ภาพชัด
+ * 3) ต้องอ่านได้รหัสเดิม 2 เฟรมติดกันก่อนถึงจะรับ + ตรวจเลขตรวจสอบของ EAN/UPC
+ * 4) อ่านไม่ผ่านนานเกิน 5 วิ → stalled=true (ให้หน้าจอแนะนำ/ให้พิมพ์เลขเอง) แล้วอ่านต่อ
+ * - cooldownMs: หลังรับรหัส 1 ครั้ง พักการอ่านเท่านี้ (= "ความเร็วการสแกน")
  */
 export function useBarcodeCamera(
   videoRef: RefObject<HTMLVideoElement | null>,
@@ -78,14 +134,27 @@ export function useBarcodeCamera(
     continuous = true,
     cooldownMs = 1500,
     noCameraText,
-  }: { continuous?: boolean; cooldownMs?: number; noCameraText: string },
-): string | null {
+    region = { x: 0.1, y: 0.3, w: 0.8, h: 0.4 },
+  }: {
+    continuous?: boolean;
+    cooldownMs?: number;
+    noCameraText: string;
+    /** บริเวณกรอบเล็งในภาพ (สัดส่วน 0..1) — อ่านตรงนี้ก่อน */
+    region?: { x: number; y: number; w: number; h: number };
+  },
+): BarcodeCamera {
   const [error, setError] = useState<string | null>(null);
+  const [stalled, setStalled] = useState(false);
+  const [torchSupported, setTorchSupported] = useState(false);
+  const [torchOn, setTorchOn] = useState(false);
+  const trackRef = useRef<Track | null>(null);
   const cb = useRef(onDetected);
   const cooldown = useRef(cooldownMs);
+  const area = useRef(region);
   useEffect(() => {
     cb.current = onDetected;
     cooldown.current = cooldownMs;
+    area.current = region;
   });
 
   useEffect(() => {
@@ -93,6 +162,14 @@ export function useBarcodeCamera(
     let timer: ReturnType<typeof setTimeout> | undefined;
     let stopped = false;
     let pauseUntil = 0;
+    let lastAccepted = Date.now();
+    let candidate = { code: "", at: 0 };
+    let frame = 0;
+    let sharpAvg = 0;
+    const crop = document.createElement("canvas");
+    const cropCtx = crop.getContext("2d", { willReadFrequently: true });
+    const probe = document.createElement("canvas");
+    const probeCtx = probe.getContext("2d", { willReadFrequently: true });
 
     (async () => {
       try {
@@ -100,33 +177,104 @@ export function useBarcodeCamera(
         stream = await navigator.mediaDevices.getUserMedia({
           video: {
             facingMode: { ideal: "environment" },
-            width: { ideal: 1280 },
-            height: { ideal: 720 },
+            width: { ideal: 1920 },
+            height: { ideal: 1080 },
           },
           audio: false,
         });
         if (stopped) return;
+        const track = stream.getVideoTracks()[0] as Track;
+        trackRef.current = track;
+        const caps = (track.getCapabilities?.() ?? {}) as Caps;
+        setTorchSupported(!!caps.torch);
+        if (caps.focusMode?.includes("continuous")) {
+          await track
+            .applyConstraints({
+              advanced: [
+                { focusMode: "continuous" } as MediaTrackConstraintSet,
+              ],
+            })
+            .catch(() => {});
+        }
         const video = videoRef.current!;
         video.srcObject = stream;
         await video.play();
         const detector = await createDetector();
+        lastAccepted = Date.now();
 
         const tick = async () => {
           if (stopped) return;
           try {
-            if (video.readyState >= 2 && Date.now() >= pauseUntil) {
-              const [hit] = await detector.detect(video);
-              const code = hit?.rawValue?.trim();
-              if (code && !stopped) {
-                pauseUntil = Date.now() + cooldown.current;
-                cb.current(code);
-                if (!continuous) return;
+            const now = Date.now();
+            if (
+              video.readyState >= 2 &&
+              now >= pauseUntil &&
+              cropCtx &&
+              probeCtx
+            ) {
+              frame++;
+              const vw = video.videoWidth;
+              const vh = video.videoHeight;
+              // บริเวณกรอบเล็ง
+              const sx = vw * area.current.x;
+              const sy = vh * area.current.y;
+              const sw = vw * area.current.w;
+              const sh = vh * area.current.h;
+              probe.width = 160;
+              probe.height = Math.max(40, Math.round((160 * sh) / sw));
+              probeCtx.drawImage(
+                video,
+                sx,
+                sy,
+                sw,
+                sh,
+                0,
+                0,
+                probe.width,
+                probe.height,
+              );
+              const sharp = sharpness(probeCtx, probe.width, probe.height);
+              sharpAvg = sharpAvg ? sharpAvg * 0.85 + sharp * 0.15 : sharp;
+              const blurry = sharp < sharpAvg * 0.7;
+              if (!blurry || frame % 4 === 0) {
+                crop.width = Math.min(1280, Math.round(sw));
+                crop.height = Math.round((crop.width * sh) / sw);
+                cropCtx.drawImage(
+                  video,
+                  sx,
+                  sy,
+                  sw,
+                  sh,
+                  0,
+                  0,
+                  crop.width,
+                  crop.height,
+                );
+                let hits = await detector.detect(
+                  crop as unknown as HTMLVideoElement,
+                );
+                if (!hits.length && frame % 3 === 0)
+                  hits = await detector.detect(video);
+                const code = hits
+                  .map((h) => h.rawValue?.trim())
+                  .find((c) => c && validGtin(c));
+                if (code && !stopped) {
+                  if (code === candidate.code && now - candidate.at < 1000) {
+                    candidate = { code: "", at: 0 };
+                    pauseUntil = now + cooldown.current;
+                    lastAccepted = now;
+                    setStalled(false);
+                    cb.current(code);
+                    if (!continuous) return;
+                  } else candidate = { code, at: now };
+                }
               }
+              if (now - lastAccepted > 5000) setStalled(true);
             }
           } catch {
             // เฟรมนี้อ่านไม่ได้ — ลองเฟรมถัดไป
           }
-          timer = setTimeout(tick, 100);
+          timer = setTimeout(tick, 80);
         };
         tick();
       } catch {
@@ -138,8 +286,60 @@ export function useBarcodeCamera(
       stopped = true;
       clearTimeout(timer);
       stream?.getTracks().forEach((t) => t.stop());
+      trackRef.current = null;
     };
   }, [videoRef, continuous, noCameraText]);
 
-  return error;
+  return {
+    error,
+    stalled,
+    torch: {
+      supported: torchSupported,
+      on: torchOn,
+      toggle: () => {
+        const track = trackRef.current;
+        if (!track) return;
+        const next = !torchOn;
+        track
+          .applyConstraints({
+            advanced: [{ torch: next } as MediaTrackConstraintSet],
+          })
+          .then(() => setTorchOn(next))
+          .catch(() => {});
+      },
+    },
+    focusAt: (x, y) => {
+      const track = trackRef.current;
+      if (!track) return;
+      const caps = (track.getCapabilities?.() ?? {}) as Caps;
+      const set: Record<string, unknown> = {};
+      if (caps.pointsOfInterest) set.pointsOfInterest = [{ x, y }];
+      if (caps.focusMode?.includes("single-shot"))
+        set.focusMode = "single-shot";
+      else if (caps.focusMode?.includes("continuous"))
+        set.focusMode = "continuous";
+      if (!Object.keys(set).length) return;
+      track
+        .applyConstraints({ advanced: [set as MediaTrackConstraintSet] })
+        .then(() => {
+          // โฟกัสจุดเดียวเสร็จแล้วกลับไปโฟกัสต่อเนื่อง
+          if (
+            set.focusMode === "single-shot" &&
+            caps.focusMode?.includes("continuous")
+          )
+            setTimeout(
+              () =>
+                track
+                  .applyConstraints({
+                    advanced: [
+                      { focusMode: "continuous" } as MediaTrackConstraintSet,
+                    ],
+                  })
+                  .catch(() => {}),
+              1500,
+            );
+        })
+        .catch(() => {});
+    },
+  };
 }

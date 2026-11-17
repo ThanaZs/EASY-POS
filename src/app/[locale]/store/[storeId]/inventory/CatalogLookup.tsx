@@ -1,12 +1,15 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { Check, Database, ImageOff, LoaderCircle, X } from "lucide-react";
 import { setInputValue } from "@/client/devices/scanner";
 import type { Dictionary } from "@/i18n/dictionary";
 import { lookupBarcodeAction } from "./actions";
 
-type Hit = NonNullable<Awaited<ReturnType<typeof lookupBarcodeAction>>>;
+type Result = NonNullable<Awaited<ReturnType<typeof lookupBarcodeAction>>>;
+type Hit = NonNullable<Extract<Result, { hit: unknown }>["hit"]>;
+type Existing = NonNullable<Extract<Result, { existing: unknown }>["existing"]>;
 
 /** แจ้งช่องอื่นในฟอร์ม (หมวด/รูป) ให้ใช้ข้อมูลจากคลัง */
 export const CATALOG_FILL = "ep:catalog-fill";
@@ -35,9 +38,10 @@ export function CatalogLookup({
   t: Dictionary["catalog"];
 }) {
   const [hit, setHit] = useState<Hit | null>(null);
-  const [state, setState] = useState<"idle" | "found" | "none" | "used">(
-    "idle",
-  );
+  const [existing, setExisting] = useState<Existing | null>(null);
+  const [state, setState] = useState<
+    "idle" | "found" | "none" | "used" | "exists"
+  >("idle");
   const [pending, start] = useTransition();
   const lastLooked = useRef("");
 
@@ -53,8 +57,11 @@ export function CatalogLookup({
           barcode: code,
         }).catch(() => null);
         if (code !== lastLooked.current) return;
-        setHit(res);
-        setState(res ? "found" : "none");
+        setHit(res && "hit" in res && res.hit ? res.hit : null);
+        setExisting(
+          res && "existing" in res && res.existing ? res.existing : null,
+        );
+        setState(res && "existing" in res ? "exists" : res ? "found" : "none");
       });
     }, 400); // พิมพ์เองทีละตัว → รอให้หยุดก่อน
     return () => clearTimeout(timer);
@@ -88,6 +95,24 @@ export function CatalogLookup({
       <p className="flex items-center gap-2 text-sm text-muted">
         <LoaderCircle className="size-4 animate-spin" /> {t.searching}
       </p>
+    );
+  if (state === "exists" && existing)
+    return (
+      <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-amber-400 bg-amber-50 p-3 dark:bg-amber-950/40">
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-semibold text-amber-700 dark:text-amber-300">
+            {t.exists}
+          </p>
+          <p className="truncate font-semibold">{existing.name}</p>
+        </div>
+        <Link
+          prefetch={false}
+          href={`/${locale}/store/${storeId}/inventory/${existing.id}`}
+          className="rounded-xl bg-brand px-3 py-2 text-sm font-semibold text-white transition active:scale-95"
+        >
+          {t.editExisting}
+        </Link>
+      </div>
     );
   if (state === "none")
     return <p className="text-xs text-muted">{t.notFound}</p>;

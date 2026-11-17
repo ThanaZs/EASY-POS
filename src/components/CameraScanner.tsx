@@ -3,6 +3,8 @@
 import { useRef } from "react";
 import { X } from "lucide-react";
 import { scanFeedback, useBarcodeCamera } from "@/client/camera";
+import type { Dictionary } from "@/i18n/dictionary";
+import { CameraTools, useTapFocus } from "./CameraTools";
 
 /**
  * กล้องสแกนบาร์โค้ด (เต็มจอ) สำหรับกรอกช่อง/ค้นหา
@@ -20,11 +22,11 @@ export function CameraScanner({
   onDetected: (code: string) => void;
   onClose: () => void;
   continuous?: boolean;
-  labels: { title: string; close: string; hint: string; noCamera: string };
+  labels: Dictionary["scan"];
   status?: string | null; // ข้อความผลล่าสุดจากผู้เรียก เช่น "เพิ่ม น้ำดื่ม แล้ว"
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const error = useBarcodeCamera(
+  const cam = useBarcodeCamera(
     videoRef,
     (code) => {
       scanFeedback();
@@ -33,6 +35,12 @@ export function CameraScanner({
     },
     { continuous, noCameraText: labels.noCamera },
   );
+  const error = cam.error;
+  const { onTap, ringEl } = useTapFocus(cam);
+  const manual = (code: string) => {
+    onDetected(code);
+    if (!continuous) onClose();
+  };
 
   return (
     <div
@@ -51,13 +59,15 @@ export function CameraScanner({
           <X className="size-5" />
         </button>
       </div>
-      <div className="relative flex-1 overflow-hidden">
+      <div className="relative flex-1 overflow-hidden" onClick={onTap}>
         <video
           ref={videoRef}
           className="absolute inset-0 size-full object-cover"
           playsInline
           muted
         />
+        {ringEl}
+        <CameraTools cam={cam} onManual={manual} t={labels} className="top-3" />
         {/* กรอบเล็ง */}
         <div className="pointer-events-none absolute inset-0 grid place-items-center">
           <div className="h-40 w-72 max-w-[80%] rounded-2xl border-4 border-white/80 shadow-[0_0_0_9999px_rgba(0,0,0,0.45)]" />

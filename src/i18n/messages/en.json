@@ -354,7 +354,12 @@
     "noCamera": "Cannot open the camera — allow camera access in your browser settings (requires https)",
     "button": "Scan with camera",
     "added": "✓ Added {name}",
-    "notFound": "No product with barcode {code}"
+    "notFound": "No product with barcode {code}",
+    "torch": "Toggle flashlight",
+    "typeCode": "Type the code",
+    "typePlaceholder": "Digits under the barcode",
+    "stalled": "Can't read it yet — tap the barcode to focus, move back a little, turn on the light, or tap ⌨ to type the digits (you can scan another item)",
+    "tapFocus": "Tap to focus"
   },
   "theme": {
     "light": "Switch to light mode",
@@ -509,6 +514,8 @@
     "notFound": "No info for this barcode — fill it in yourself (it will help other stores)",
     "fromCatalog": "EASY-POS catalog",
     "fromOff": "Data from Open Food Facts (CC BY-SA)",
-    "fromObf": "Data from Open Beauty Facts (CC BY-SA)"
+    "fromObf": "Data from Open Beauty Facts (CC BY-SA)",
+    "exists": "This barcode is already in your store",
+    "editExisting": "Edit this product"
   }
 }

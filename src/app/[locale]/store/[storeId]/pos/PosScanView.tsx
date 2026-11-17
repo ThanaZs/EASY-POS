@@ -11,6 +11,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { scanFeedback, useBarcodeCamera } from "@/client/camera";
+import { CameraTools, useTapFocus } from "@/components/CameraTools";
 import { fill } from "@/core/lib/format";
 import type { Dictionary } from "@/i18n/dictionary";
 
@@ -73,19 +74,24 @@ export function PosScanView({
   const [order, setOrder] = useState<string[]>([]); // คีย์ที่สแกนล่าสุดอยู่หน้า (ที่ไม่ได้สแกน เช่นแตะเลือกเอง ต่อท้าย)
   const toastTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
-  const error = useBarcodeCamera(
-    videoRef,
-    (code) => {
-      const res = onCode(code);
-      scanFeedback(res.ok);
-      const key = res.key;
-      if (key) setOrder((o) => [key, ...o.filter((k) => k !== key)]); // ที่เพิ่งสแกนขึ้นบนสุด
-      setToast(res);
-      clearTimeout(toastTimer.current);
-      toastTimer.current = setTimeout(() => setToast(null), 1800);
-    },
-    { continuous: true, cooldownMs: speed, noCameraText: t.scan.noCamera },
-  );
+  const handle = (code: string) => {
+    const res = onCode(code);
+    scanFeedback(res.ok);
+    const key = res.key;
+    if (key) setOrder((o) => [key, ...o.filter((k) => k !== key)]); // ที่เพิ่งสแกนขึ้นบนสุด
+    setToast(res);
+    clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(null), 1800);
+  };
+  // กรอบเล็งอยู่ด้านบน (ด้านล่างเป็นรายการสินค้า) → อ่านบริเวณบนของภาพก่อน
+  const cam = useBarcodeCamera(videoRef, handle, {
+    continuous: true,
+    cooldownMs: speed,
+    noCameraText: t.scan.noCamera,
+    region: { x: 0.1, y: 0.05, w: 0.8, h: 0.4 },
+  });
+  const error = cam.error;
+  const { onTap, ringEl } = useTapFocus(cam);
 
   const rank = (k: string) => {
     const i = order.indexOf(k);
@@ -150,12 +156,19 @@ export function PosScanView({
       </div>
 
       {/* กล้อง + รายการ */}
-      <div className="relative flex-1 overflow-hidden">
+      <div className="relative flex-1 overflow-hidden" onClick={onTap}>
         <video
           ref={videoRef}
           className="absolute inset-0 size-full object-cover"
           playsInline
           muted
+        />
+        {ringEl}
+        <CameraTools
+          cam={cam}
+          onManual={handle}
+          t={t.scan}
+          className="top-36"
         />
         <div className="pointer-events-none absolute inset-x-0 top-6 grid place-items-center">
           <div className="h-28 w-64 max-w-[80%] rounded-2xl border-4 border-white/80" />

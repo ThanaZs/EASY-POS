@@ -68,8 +68,23 @@ export async function lookupBarcodeAction(input: {
   barcode: string;
 }) {
   const locale = isLocale(input.locale) ? input.locale : defaultLocale;
-  await requireStoreAccess(locale, String(input.storeId), "products.create");
-  return lookupCatalog(toEnglishLayout(String(input.barcode).trim()));
+  const storeId = String(input.storeId);
+  await requireStoreAccess(locale, storeId, "products.create");
+  const code = toEnglishLayout(String(input.barcode).trim());
+  // มีสินค้าบาร์โค้ดนี้ในร้านแล้ว → ให้ไปแก้ไขตัวเดิมแทนการสร้างซ้ำ
+  const found = (
+    await (await getRepositories()).products.list(storeId, { search: code })
+  ).find((p) => p.barcode === code || p.packBarcode === code);
+  if (found)
+    return {
+      existing: {
+        id: found.id,
+        name: found.name,
+        imageUrl: null as string | null,
+      },
+    };
+  const hit = await lookupCatalog(code);
+  return hit ? { hit } : null;
 }
 
 export async function saveProductAction(form: FormData) {
