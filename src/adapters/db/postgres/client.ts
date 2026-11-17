@@ -12,6 +12,9 @@ export function getDb() {
   globalForDb.pg ??= postgres(env.DATABASE_URL, {
     prepare: false,
     max: env.DATABASE_POOL_MAX,
+    // ห้ามส่งหลายคำสั่งซ้อนใน connection เดียว (pipelining): ผ่าน pooler แบบ transaction (Supavisor) แล้วค้างถาวร
+    // (เคยทำหน้ายอดขายค้าง — query 4 ตัวพร้อมกันบน pool 2 ช่อง) → คำสั่งที่เกินจำนวน connection รอคิวฝั่งแอปแทน
+    max_pipeline: 1,
     // serverless + pooler: ปิด connection ที่ว่างก่อนฝั่ง pooler/เครือข่ายตัดทิ้งเงียบๆ (ไม่งั้น query แรกหลังว่างนานอาจค้าง/error)
     idle_timeout: 20,
     max_lifetime: 60 * 10,

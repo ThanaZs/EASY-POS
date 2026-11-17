@@ -25,6 +25,17 @@
 
 ---
 
+## 2026-11-17 — ✅ ต้นเหตุจริงของเว็บค้าง: postgres.js pipelining ผ่าน Supavisor (branch dev)
+- ทดสอบบนเว็บจริง (ผู้ใช้ล็อกอินใน browser pane): กด "ยอดขาย" → หมุนค้าง; DB เห็น select products ค้าง active+ClientRead
+- จำลองได้ 100%: query 4 ตัวพร้อมกัน (Promise.all ของหน้ายอดขาย) กับ `DATABASE_POOL_MAX=2` (ค่าบน Vercel) → ค้างทันที
+  (ในเครื่องใช้ 5 จึงไม่เคยเจอ) — query เกินจำนวน connection → postgres.js ส่งซ้อนใน connection เดียว (pipelining)
+  → pooler แบบ transaction ของ Supabase ค้างถาวร
+- แก้: `client.ts` ตั้ง `max_pipeline: 1` (คำสั่งที่เกินรอคิวฝั่งแอป) → ทดสอบ 6 query พร้อมกัน pool 1 และ 2 ผ่านทุกรอบ ✅
+- กฎ: ห้ามเอา `max_pipeline: 1` ออก; ตัวเคลียร์ connection ค้างใน /api/health ยังเก็บไว้เป็นกันพลาด
+- lint/build ✅
+
+---
+
 ## 2026-11-17 — ต้นเหตุเว็บค้าง: connection DB ค้าง "active + ClientRead" (branch dev)
 - ผู้ใช้แคป React error #412 ("Connection closed") ตอนเปิดหน้าร้าน
 - pg_stat_activity ตอนนั้น: backend ของ role postgres ค้าง state=active, wait_event=ClientRead มา ~2 นาที (query select … from sales)
