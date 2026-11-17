@@ -114,7 +114,13 @@ export type BarcodeCamera = {
   error: string | null;
   /** ไม่มีรหัสที่อ่านผ่านมาสักพัก → แสดงคำแนะนำ (ยังอ่านต่อเรื่อยๆ) */
   stalled: boolean;
-  torch: { supported: boolean; on: boolean; toggle: () => void };
+  /** supported = กล้องบอกว่ารองรับ; ไม่บอกก็ยังลองเปิดได้ (บางเครื่องไม่รายงาน) → failed = ลองแล้วเปิดไม่ได้ */
+  torch: {
+    supported: boolean;
+    on: boolean;
+    failed: boolean;
+    toggle: () => void;
+  };
   /** แตะจอเพื่อโฟกัส (x, y = 0..1 ของภาพ) */
   focusAt: (x: number, y: number) => void;
 };
@@ -147,6 +153,7 @@ export function useBarcodeCamera(
   const [stalled, setStalled] = useState(false);
   const [torchSupported, setTorchSupported] = useState(false);
   const [torchOn, setTorchOn] = useState(false);
+  const [torchFailed, setTorchFailed] = useState(false);
   const trackRef = useRef<Track | null>(null);
   const cb = useRef(onDetected);
   const cooldown = useRef(cooldownMs);
@@ -199,6 +206,13 @@ export function useBarcodeCamera(
         const video = videoRef.current!;
         video.srcObject = stream;
         await video.play();
+        // Chrome บางรุ่นรายงานว่ามีไฟฉายหลังภาพเริ่มเล่นแล้วเท่านั้น → ตรวจซ้ำ
+        const recheck = () => {
+          const c = (track.getCapabilities?.() ?? {}) as Caps;
+          if (c.torch && !stopped) setTorchSupported(true);
+        };
+        recheck();
+        setTimeout(recheck, 800);
         const detector = await createDetector();
         lastAccepted = Date.now();
 
@@ -296,6 +310,7 @@ export function useBarcodeCamera(
     torch: {
       supported: torchSupported,
       on: torchOn,
+      failed: torchFailed,
       toggle: () => {
         const track = trackRef.current;
         if (!track) return;
@@ -304,8 +319,22 @@ export function useBarcodeCamera(
           .applyConstraints({
             advanced: [{ torch: next } as MediaTrackConstraintSet],
           })
-          .then(() => setTorchOn(next))
-          .catch(() => {});
+          .then(() => {
+            // บางเบราว์เซอร์ไม่ error แต่ก็ไม่เปิดไฟ → ดูค่าจริง
+            const s = track.getSettings?.() as MediaTrackSettings & {
+              torch?: boolean;
+            };
+            if (next && s && "torch" in s && !s.torch)
+              throw new Error("no-torch");
+            if (next && s && !("torch" in s) && !torchSupported)
+              throw new Error("no-torch");
+            setTorchOn(next);
+            setTorchFailed(false);
+          })
+          .catch(() => {
+            setTorchFailed(true);
+            setTimeout(() => setTorchFailed(false), 3500);
+          });
       },
     },
     focusAt: (x, y) => {

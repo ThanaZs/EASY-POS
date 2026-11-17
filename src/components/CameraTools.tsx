@@ -62,7 +62,8 @@ export function CameraTools({
       className={`pointer-events-none absolute inset-x-3 z-10 flex flex-col items-end gap-2 ${className}`}
     >
       <div className="pointer-events-auto flex gap-2">
-        {cam.torch.supported && (
+        {/* แสดงปุ่มไฟฉายเสมอ (บางเครื่องไม่บอกว่ารองรับ แต่เปิดได้) — เปิดไม่ได้จะขึ้นข้อความแจ้ง */}
+        {!cam.error && (
           <button
             type="button"
             onClick={cam.torch.toggle}
@@ -91,6 +92,14 @@ export function CameraTools({
           <Keyboard className="size-5" />
         </button>
       </div>
+      {cam.torch.failed && (
+        <p
+          className="pointer-events-auto w-full max-w-sm rounded-xl bg-black/70 px-3 py-2 text-center text-sm text-white"
+          role="status"
+        >
+          {t.torchUnsupported}
+        </p>
+      )}
       {typing && (
         // ไม่ใช้ <form>: หน้ากล้องมักอยู่ในฟอร์มสินค้า — กด Enter แล้วจะกลายเป็นบันทึกฟอร์มสินค้าแทน
         <div className="pointer-events-auto flex w-full max-w-sm gap-2 rounded-2xl bg-card p-2 shadow-lg">
@@ -110,7 +119,11 @@ export function CameraTools({
             placeholder={t.typePlaceholder}
             className="min-w-0 flex-1 rounded-xl border border-line bg-card px-3 py-2 font-mono text-ink outline-none focus:border-brand"
           />
-          <button type="button" onClick={submit} className="rounded-xl bg-brand px-4 font-semibold text-white">
+          <button
+            type="button"
+            onClick={submit}
+            className="rounded-xl bg-brand px-4 font-semibold text-white"
+          >
             OK
           </button>
         </div>

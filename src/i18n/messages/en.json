@@ -376,7 +376,8 @@
     "typeCode": "Type the code",
     "typePlaceholder": "Digits under the barcode",
     "stalled": "Can't read it yet — tap the barcode to focus, move back a little, turn on the light, or tap ⌨ to type the digits (you can scan another item)",
-    "tapFocus": "Tap to focus"
+    "tapFocus": "Tap to focus",
+    "torchUnsupported": "This device/browser doesn't let websites turn on the flash — use the phone's flashlight shortcut instead (iPhone doesn't support it from the web yet)"
   },
   "theme": {
     "light": "Switch to light mode",
