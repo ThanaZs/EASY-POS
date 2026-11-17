@@ -1,5 +1,11 @@
 import Link from "next/link";
-import { ChevronRight, FileSpreadsheet, ImageOff, Plus } from "lucide-react";
+import {
+  ChevronRight,
+  ClipboardList,
+  FileSpreadsheet,
+  ImageOff,
+  Plus,
+} from "lucide-react";
 import { can } from "@/core/domain/permissions";
 import { fill, formatMoney } from "@/core/lib/format";
 import { toEnglishLayout } from "@/core/lib/keyboard";
@@ -53,24 +59,35 @@ export default async function InventoryPage({
       <BackLink href={`/${locale}/store/${storeId}`} label={t.store.back} />
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-xl font-bold">{t.store.modules.inventory}</h1>
-        {can(member, "products.create") && (
-          <div className="flex gap-2">
+        <div className="flex flex-wrap justify-end gap-2">
+          {can(member, "stock.history") && (
             <Link
               prefetch={false}
-              href={`${base}/import`}
+              href={`/${locale}/store/${storeId}/history`}
               className="inline-flex items-center gap-1 rounded-xl border border-line bg-card px-3 py-2 text-sm font-medium hover:border-brand"
             >
-              <FileSpreadsheet className="size-4" /> {t.import.button}
+              <ClipboardList className="size-4" /> {t.store.modules.history}
             </Link>
-            <Link
-              prefetch={false}
-              href={`${base}/new`}
-              className="inline-flex items-center gap-1 rounded-xl bg-brand px-3 py-2 text-sm font-semibold text-white hover:opacity-90"
-            >
-              <Plus className="size-4" /> {t.inventory.add}
-            </Link>
-          </div>
-        )}
+          )}
+          {can(member, "products.create") && (
+            <>
+              <Link
+                prefetch={false}
+                href={`${base}/import`}
+                className="inline-flex items-center gap-1 rounded-xl border border-line bg-card px-3 py-2 text-sm font-medium hover:border-brand"
+              >
+                <FileSpreadsheet className="size-4" /> {t.import.button}
+              </Link>
+              <Link
+                prefetch={false}
+                href={`${base}/new`}
+                className="inline-flex items-center gap-1 rounded-xl bg-brand px-3 py-2 text-sm font-semibold text-white hover:opacity-90"
+              >
+                <Plus className="size-4" /> {t.inventory.add}
+              </Link>
+            </>
+          )}
+        </div>
       </div>
 
       <ScanToSearch devices={t.devices} />

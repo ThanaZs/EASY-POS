@@ -109,7 +109,7 @@
     "modules": {
       "pos": "Point of sale",
       "inventory": "Inventory",
-      "overview": "Overview",
+      "overview": "Sales",
       "receive": "Receive stock",
       "reports": "Reports",
       "members": "Customers",
@@ -121,7 +121,14 @@
       "settings": "Store settings",
       "sales": "Bills"
     },
-    "comingSoon": "In development — see docs/ROADMAP.md"
+    "comingSoon": "In development — see docs/ROADMAP.md",
+    "tabs": {
+      "summary": "Overview",
+      "bills": "All bills",
+      "storeInfo": "Store info",
+      "staff": "Staff & invites"
+    },
+    "backInventory": "Back to inventory"
   },
   "common": {
     "language": "Language",

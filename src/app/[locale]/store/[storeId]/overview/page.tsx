@@ -8,6 +8,7 @@ import {
 import { loadLocale } from "@/i18n/page";
 import { getRepositories } from "@/server/container";
 import { requireStoreAccess } from "@/server/session";
+import { SubTabs } from "@/components/SubTabs";
 import { BackLink } from "../BackLink";
 
 // ภาพรวม: ตัดรอบวันตามทามโซนของร้าน (business_date)
@@ -48,6 +49,20 @@ export default async function OverviewPage({
     <div className="space-y-5">
       <BackLink href={`/${locale}/store/${storeId}`} label={t.store.back} />
       <h1 className="text-xl font-bold">{t.store.modules.overview}</h1>
+      <SubTabs
+        tabs={[
+          {
+            href: `/${locale}/store/${storeId}/overview`,
+            label: t.store.tabs.summary,
+            active: true,
+          },
+          {
+            href: `/${locale}/store/${storeId}/sales`,
+            label: t.store.tabs.bills,
+            active: false,
+          },
+        ]}
+      />
 
       <div className="grid gap-3 sm:grid-cols-3">
         <Kpi

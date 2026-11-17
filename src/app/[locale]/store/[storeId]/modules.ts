@@ -1,17 +1,9 @@
 import {
   BarChart3,
   Boxes,
-  CalendarClock,
   Calculator,
-  ClipboardList,
-  LayoutDashboard,
   PackagePlus,
-  ReceiptText,
   Settings,
-  Tag,
-  Users,
-  UserSquare2,
-  Wallet,
   type LucideIcon,
 } from "lucide-react";
 import type { Permission } from "@/core/domain/types";
@@ -19,19 +11,47 @@ import type { Dictionary } from "@/i18n/dictionary";
 
 export type ModuleKey = keyof Dictionary["store"]["modules"];
 
-// เมนูในร้าน — เพิ่มโมดูลใหม่: เพิ่มที่นี่ + คำแปลใน messages/*.json
-export const MODULES: Array<{ key: ModuleKey; Icon: LucideIcon; color: string; permission: Permission }> = [
-  { key: "pos", Icon: Calculator, color: "bg-slate-800", permission: "pos.sell" },
-  { key: "inventory", Icon: Boxes, color: "bg-teal-600", permission: "products.view" },
-  { key: "overview", Icon: LayoutDashboard, color: "bg-indigo-600", permission: "reports.view" },
-  { key: "receive", Icon: PackagePlus, color: "bg-violet-600", permission: "stock.receive" },
-  { key: "sales", Icon: ReceiptText, color: "bg-fuchsia-600", permission: "reports.view" },
-  { key: "reports", Icon: BarChart3, color: "bg-emerald-600", permission: "reports.view" },
-  { key: "history", Icon: ClipboardList, color: "bg-sky-600", permission: "stock.history" },
-  { key: "members", Icon: UserSquare2, color: "bg-amber-500", permission: "customers.manage" },
-  { key: "staff", Icon: Users, color: "bg-cyan-700", permission: "staff.manage" },
-  { key: "labels", Icon: Tag, color: "bg-rose-500", permission: "products.view" },
-  { key: "expiry", Icon: CalendarClock, color: "bg-orange-500", permission: "products.view" },
-  { key: "expenses", Icon: Wallet, color: "bg-yellow-700", permission: "expenses.manage" },
-  { key: "settings", Icon: Settings, color: "bg-zinc-600", permission: "store.settings" },
+// เมนูในร้าน (5 ปุ่ม) — หน้าย่อยอื่นอยู่ในแท็บ/ปุ่มของหน้านั้นๆ:
+//   คลังสินค้า → ประวัติสต็อก | ยอดขาย → ภาพรวม + บิลทั้งหมด | ตั้งค่าร้าน → ข้อมูลร้าน + พนักงาน
+// เพิ่มโมดูลใหม่: เพิ่มที่นี่ + คำแปลใน messages/*.json
+// anyOf = เห็นปุ่มถ้ามีสิทธิ์ข้อใดข้อหนึ่ง; path = หน้าที่เปิด (ตัวแรกที่มีสิทธิ์)
+export const MODULES: Array<{
+  key: ModuleKey;
+  Icon: LucideIcon;
+  color: string;
+  anyOf: Array<{ permission: Permission; path: string }>;
+}> = [
+  {
+    key: "pos",
+    Icon: Calculator,
+    color: "bg-slate-800",
+    anyOf: [{ permission: "pos.sell", path: "pos" }],
+  },
+  {
+    key: "inventory",
+    Icon: Boxes,
+    color: "bg-teal-600",
+    anyOf: [{ permission: "products.view", path: "inventory" }],
+  },
+  {
+    key: "receive",
+    Icon: PackagePlus,
+    color: "bg-violet-600",
+    anyOf: [{ permission: "stock.receive", path: "receive" }],
+  },
+  {
+    key: "overview",
+    Icon: BarChart3,
+    color: "bg-indigo-600",
+    anyOf: [{ permission: "reports.view", path: "overview" }],
+  },
+  {
+    key: "settings",
+    Icon: Settings,
+    color: "bg-zinc-600",
+    anyOf: [
+      { permission: "store.settings", path: "settings" },
+      { permission: "staff.manage", path: "staff" },
+    ],
+  },
 ];

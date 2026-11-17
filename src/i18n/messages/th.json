@@ -109,7 +109,7 @@
     "modules": {
       "pos": "ระบบขาย",
       "inventory": "คลังสินค้า",
-      "overview": "ภาพรวม",
+      "overview": "ยอดขาย",
       "receive": "รับเข้าสินค้า",
       "reports": "รายงาน",
       "members": "สมาชิก / ลูกค้า",
@@ -121,7 +121,14 @@
       "settings": "ตั้งค่าร้าน",
       "sales": "ประวัติบิล"
     },
-    "comingSoon": "กำลังพัฒนา — ดู docs/ROADMAP.md"
+    "comingSoon": "กำลังพัฒนา — ดู docs/ROADMAP.md",
+    "tabs": {
+      "summary": "ภาพรวม",
+      "bills": "บิลทั้งหมด",
+      "storeInfo": "ข้อมูลร้าน",
+      "staff": "พนักงาน & รหัสเชิญ"
+    },
+    "backInventory": "กลับคลังสินค้า"
   },
   "common": {
     "language": "ภาษา",

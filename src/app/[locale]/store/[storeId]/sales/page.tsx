@@ -4,6 +4,7 @@ import { fill, formatDateTime, formatMoney, todayIn } from "@/core/lib/format";
 import { loadLocale } from "@/i18n/page";
 import { getRepositories } from "@/server/container";
 import { requireStoreAccess } from "@/server/session";
+import { SubTabs } from "@/components/SubTabs";
 import { BackLink } from "../BackLink";
 
 // ประวัติบิลรายวัน (ตาม business_date ของร้าน)
@@ -28,7 +29,21 @@ export default async function SalesPage({
   return (
     <div className="mx-auto max-w-3xl space-y-4">
       <BackLink href={`/${locale}/store/${storeId}`} label={t.store.back} />
-      <h1 className="text-xl font-bold">{t.store.modules.sales}</h1>
+      <h1 className="text-xl font-bold">{t.store.modules.overview}</h1>
+      <SubTabs
+        tabs={[
+          {
+            href: `/${locale}/store/${storeId}/overview`,
+            label: t.store.tabs.summary,
+            active: false,
+          },
+          {
+            href: `/${locale}/store/${storeId}/sales`,
+            label: t.store.tabs.bills,
+            active: true,
+          },
+        ]}
+      />
       <form className="flex items-end gap-2">
         <label className="space-y-1">
           <span className="block text-sm text-muted">{t.sales.date}</span>
