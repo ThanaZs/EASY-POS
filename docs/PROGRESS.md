@@ -19,6 +19,23 @@
 
 ---
 
+## 2026-11-17 — รูปสินค้า (ถ่ายจากกล้องในเว็บเท่านั้น) (branch dev)
+- **กติกา (ผู้ใช้สั่ง):** ใส่รูปได้เฉพาะถ่ายจากกล้องในเว็บ (ไม่มีเลือกไฟล์) เพื่อคุมขนาด
+- `components/PhotoCapture.tsx`: กล้อง → ครอปสี่เหลี่ยมจัตุรัสกลางภาพ **600×600** → WebP (Safari ใช้ JPEG) ลดคุณภาพจน ≤150KB
+- `inventory/ProductPhotoField.tsx`: ถ่าย/ถ่ายใหม่/ลบ — ใส่รูปลง `<input type=file name=photo hidden>` ด้วย DataTransfer แล้วส่งพร้อมฟอร์ม
+- server (`inventory/actions.ts`): จำกัด 300KB + ตรวจหัวไฟล์ (JPEG/WebP) → อัปโหลด path สุ่ม `stores/{storeId}/products/{id}-{rand}.webp`
+  → `products.image_path` (migration `0003`); ลบรูปเก่าเมื่อเปลี่ยน/ลบรูป/ลบสินค้า/ลบบัญชี (ลบทั้งโฟลเดอร์ร้าน)
+  - รูปพังไม่ทำให้บันทึกสินค้าพัง → เด้งไปหน้าแก้ไขพร้อมข้อความให้ถ่ายใหม่
+- ที่เก็บไฟล์เป็น port `core/ports/storage.ts` + adapter `adapters/storage/supabase.ts` (REST, ไม่ลง SDK) → ย้ายไป R2/S3 ได้
+  - env: `SUPABASE_URL`, `SUPABASE_SECRET_KEY` (sb_secret_ ส่งทาง header apikey), `STORAGE_BUCKET=product-images`; ไม่ตั้ง = ซ่อนฟีเจอร์รูป
+  - bucket `product-images` สร้างแล้ว: public read, จำกัด 300KB, รับเฉพาะ image/webp + image/jpeg
+- แสดงรูป: การ์ดสินค้าในหน้าขาย, รูปย่อในคลังสินค้า, หน้าแก้ไข (ใช้ `<img>` ตรง ไม่ผ่าน Image Optimization ของ Vercel เพื่อไม่กินโควตา)
+- ตรวจแล้ว: bucket ทดสอบตรง (อัปโหลด/อ่าน/ปฏิเสธไฟล์ text/ลบ) ✅; ฟอร์มจริง: บันทึกสินค้า+รูป WebP 4.4KB → อยู่ใน storage + แสดงในคลัง/หน้าขาย ✅;
+  ลบสินค้า → ไฟล์ถูกลบ (list ว่าง; URL สาธารณะอาจค้าง CDN ชั่วคราว แต่ไม่มีใครอ้างถึงแล้ว) ✅; build ✅
+- ยังไม่ได้ทดสอบกล้องจริง (เบราว์เซอร์ทดสอบไม่มีกล้อง) — **ก่อน deploy ต้องใส่ `SUPABASE_URL` + `SUPABASE_SECRET_KEY` บน Vercel**
+
+---
+
 ## 2026-11-16 — แก้: สแกนแล้วสถานะไม่เปลี่ยน + เชื่อมเครื่องสแกนผ่าน Bluetooth (branch dev)
 - ผู้ใช้รายงาน: ยิงเครื่องสแกนแล้วสถานะไม่เปลี่ยน → ตัวจับเข้มเกิน/ไม่รองรับบางแบบ แก้ใน `client/devices/scanner.ts`:
   - เกณฑ์เวลา: ห่างสูงสุด 80→150ms, เฉลี่ย 45→70ms/ตัว (เครื่อง Bluetooth บางรุ่นช้ากว่าแบบสาย)
