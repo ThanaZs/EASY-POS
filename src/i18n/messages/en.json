@@ -377,7 +377,8 @@
     "typePlaceholder": "Digits under the barcode",
     "stalled": "Can't read it yet — tap the barcode to focus, move back a little, turn on the light, or tap ⌨ to type the digits (you can scan another item)",
     "tapFocus": "Tap to focus",
-    "torchUnsupported": "This device/browser won't let the website turn on the flash — try updating, use Chrome (Android) or Safari (iPhone/iPad), or use the phone's flashlight shortcut"
+    "torchUnsupported": "This device/browser won't let the website turn on the flash — try updating, use Chrome (Android) or Safari (iPhone/iPad), or use the phone's flashlight shortcut",
+    "switchCamera": "Switch camera (remembered on this device)"
   },
   "theme": {
     "light": "Switch to light mode",

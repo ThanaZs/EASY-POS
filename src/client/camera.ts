@@ -123,6 +123,10 @@ export type BarcodeCamera = {
   };
   /** แตะจอเพื่อโฟกัส (x, y = 0..1 ของภาพ) */
   focusAt: (x: number, y: number) => void;
+  /** กล้องหลังที่ใช้อยู่ (index เริ่ม 0) จากทั้งหมด total ตัว — total ≤ 1 = ไม่ต้องมีปุ่มสลับ */
+  camera: { index: number; total: number; label: string };
+  /** สลับไปกล้องหลังตัวถัดไป แล้วจำไว้ในเครื่องนี้ (ทุกหน้าที่ใช้กล้อง) */
+  switchCamera: () => void;
 };
 
 const CAM_KEY = "ep_cam_device";
@@ -132,6 +136,15 @@ const hasTorch = (st: MediaStream) => {
   const t = st.getVideoTracks()[0] as Track | undefined;
   return !!(t?.getCapabilities?.() as Caps | undefined)?.torch;
 };
+
+/** รายชื่อกล้องหลัง (ตัดกล้องหน้าออก) — ใช้หลังได้รับอนุญาตกล้องแล้ว (ก่อนนั้นชื่อเป็นค่าว่าง) */
+async function backCameras(): Promise<MediaDeviceInfo[]> {
+  const all = (await navigator.mediaDevices.enumerateDevices()).filter(
+    (d) => d.kind === "videoinput",
+  );
+  const backs = all.filter((d) => !/front|user|หน้า|facetime/i.test(d.label));
+  return backs.length ? backs : all;
+}
 
 /**
  * เปิดกล้องหลัง — มือถือหลายเลนส์ (เช่น Samsung) facingMode "environment" มักได้เลนส์มุมกว้าง/เทเล ที่ไม่มีไฟแฟลช
@@ -236,6 +249,8 @@ export function useBarcodeCamera(
   const [torchSupported, setTorchSupported] = useState(false);
   const [torchOn, setTorchOn] = useState(false);
   const [torchFailed, setTorchFailed] = useState(false);
+  const [camInfo, setCamInfo] = useState({ index: 0, total: 0, label: "" });
+  const [restart, setRestart] = useState(0); // เพิ่มค่า = เปิดกล้องใหม่ (หลังสลับกล้อง)
   const trackRef = useRef<Track | null>(null);
   const cb = useRef(onDetected);
   const cooldown = useRef(cooldownMs);
@@ -270,6 +285,21 @@ export function useBarcodeCamera(
         }
         const track = stream.getVideoTracks()[0] as Track;
         trackRef.current = track;
+        backCameras()
+          .then((list) => {
+            if (stopped) return;
+            const id = track.getSettings?.().deviceId;
+            const i = Math.max(
+              0,
+              list.findIndex((d) => d.deviceId === id),
+            );
+            setCamInfo({
+              index: i,
+              total: list.length,
+              label: list[i]?.label ?? "",
+            });
+          })
+          .catch(() => {});
         const caps = (track.getCapabilities?.() ?? {}) as Caps;
         setTorchSupported(!!caps.torch);
         if (caps.focusMode?.includes("continuous")) {
@@ -380,9 +410,28 @@ export function useBarcodeCamera(
       stream?.getTracks().forEach((t) => t.stop());
       trackRef.current = null;
     };
-  }, [videoRef, continuous, noCameraText]);
+  }, [videoRef, continuous, noCameraText, restart]);
 
   return {
+    camera: camInfo,
+    switchCamera: () => {
+      backCameras()
+        .then((list) => {
+          if (list.length < 2) return;
+          const id = trackRef.current?.getSettings?.().deviceId;
+          const i = list.findIndex((d) => d.deviceId === id);
+          const next = list[(i + 1) % list.length];
+          try {
+            localStorage.setItem(CAM_KEY, next.deviceId);
+          } catch {
+            // ignore
+          }
+          setTorchOn(false);
+          setTorchSupported(false);
+          setRestart((n) => n + 1);
+        })
+        .catch(() => {});
+    },
     error,
     stalled,
     torch: {

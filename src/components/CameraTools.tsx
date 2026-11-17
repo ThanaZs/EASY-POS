@@ -1,7 +1,12 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Flashlight, FlashlightOff, Keyboard } from "lucide-react";
+import {
+  Flashlight,
+  FlashlightOff,
+  Keyboard,
+  SwitchCamera,
+} from "lucide-react";
 import type { BarcodeCamera } from "@/client/camera";
 import type { Dictionary } from "@/i18n/dictionary";
 
@@ -62,6 +67,19 @@ export function CameraTools({
       className={`pointer-events-none absolute inset-x-3 z-10 flex flex-col items-end gap-2 ${className}`}
     >
       <div className="pointer-events-auto flex gap-2">
+        {/* สลับกล้องหลัง (มือถือหลายเลนส์) — เลือกแล้วจำไว้ในเครื่องนี้ */}
+        {!cam.error && cam.camera.total > 1 && (
+          <button
+            type="button"
+            onClick={cam.switchCamera}
+            aria-label={t.switchCamera}
+            title={t.switchCamera}
+            className="flex h-11 items-center gap-1 rounded-full bg-black/55 px-3 text-sm font-semibold text-white shadow-lg transition active:scale-90"
+          >
+            <SwitchCamera className="size-5" /> {cam.camera.index + 1}/
+            {cam.camera.total}
+          </button>
+        )}
         {/* แสดงปุ่มไฟฉายเสมอ (บางเครื่องไม่บอกว่ารองรับ แต่เปิดได้) — เปิดไม่ได้จะขึ้นข้อความแจ้ง */}
         {!cam.error && (
           <button
