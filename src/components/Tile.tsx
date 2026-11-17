@@ -24,7 +24,9 @@ function TileBody({ label, Icon, color, badge }: TileProps) {
       >
         <Icon className="size-7 sm:size-8" strokeWidth={1.8} />
       </span>
-      <span className="text-sm font-medium transition-colors group-hover:text-brand-ink sm:text-base">{label}</span>
+      <span className="text-sm font-medium transition-colors group-hover:text-brand-ink sm:text-base">
+        {label}
+      </span>
     </>
   );
 }
@@ -32,7 +34,7 @@ function TileBody({ label, Icon, color, badge }: TileProps) {
 // การ์ดเมนู — รองรับทั้งมือถือ (2 คอลัมน์) และคอม (3-4 คอลัมน์) ผ่าน grid ของหน้าที่เรียกใช้
 export function Tile({ href, ...props }: TileProps & { href: string }) {
   return (
-    <Link href={href} className={tileClass}>
+    <Link prefetch={false} href={href} className={tileClass}>
       <TileBody {...props} />
     </Link>
   );

@@ -3,7 +3,18 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useRef, useState, useTransition } from "react";
-import { ArrowLeft, Camera, LoaderCircle, Minus, Plus, Printer, Search, ShoppingCart, Trash2, X } from "lucide-react";
+import {
+  ArrowLeft,
+  Camera,
+  LoaderCircle,
+  Minus,
+  Plus,
+  Printer,
+  Search,
+  ShoppingCart,
+  Trash2,
+  X,
+} from "lucide-react";
 import { calcSaleTotals } from "@/core/domain/sale";
 import { CameraScanner } from "@/components/CameraScanner";
 import { PrinterStatus } from "@/components/devices/PrinterStatus";
@@ -58,7 +69,12 @@ type Props = {
   allowNegativeStock: boolean;
   receiptFooter: string;
   products: PosProduct[];
-  t: { pos: Dictionary["pos"]; store: { back: string }; scan: Dictionary["scan"]; devices: Dictionary["devices"] };
+  t: {
+    pos: Dictionary["pos"];
+    store: { back: string };
+    scan: Dictionary["scan"];
+    devices: Dictionary["devices"];
+  };
 };
 
 const METHODS: PaymentMethod[] = ["cash", "qr", "card", "transfer"];
@@ -84,15 +100,32 @@ export function PosClient(props: Props) {
   const [scanOpen, setScanOpen] = useState(false);
   const [scanStatus, setScanStatus] = useState<string | null>(null);
 
-  const byId = useMemo(() => new Map(products.map((p) => [p.id, p])), [products]);
+  const byId = useMemo(
+    () => new Map(products.map((p) => [p.id, p])),
+    [products],
+  );
   const categories = useMemo(
-    () => [...new Set(products.map((p) => p.category).filter((c): c is string => Boolean(c)))].sort(),
+    () =>
+      [
+        ...new Set(
+          products
+            .map((p) => p.category)
+            .filter((c): c is string => Boolean(c)),
+        ),
+      ].sort(),
     [products],
   );
   const subcategories = useMemo(
     () =>
       category
-        ? [...new Set(products.filter((p) => p.category === category).map((p) => p.subcategory).filter((c): c is string => Boolean(c)))].sort()
+        ? [
+            ...new Set(
+              products
+                .filter((p) => p.category === category)
+                .map((p) => p.subcategory)
+                .filter((c): c is string => Boolean(c)),
+            ),
+          ].sort()
         : [],
     [products, category],
   );
@@ -112,33 +145,57 @@ export function PosClient(props: Props) {
     );
   }, [products, search, category, subcategory]);
 
-  const mult = (p: PosProduct, unit: Unit) => (unit === "pack" ? (p.packSize ?? 1) : 1);
+  const mult = (p: PosProduct, unit: Unit) =>
+    unit === "pack" ? (p.packSize ?? 1) : 1;
   const lines = [...cart.entries()]
     .map(([key, qty]) => {
       const { id, unit } = parseKey(key);
       const p = byId.get(id);
       if (!p) return null;
-      const unitPriceMinor = unit === "pack" ? (p.packPriceMinor ?? p.priceMinor * (p.packSize ?? 1)) : p.priceMinor;
-      const label = unit === "pack" ? `${p.name} (${p.packUnit} ×${p.packSize})` : p.name;
+      const unitPriceMinor =
+        unit === "pack"
+          ? (p.packPriceMinor ?? p.priceMinor * (p.packSize ?? 1))
+          : p.priceMinor;
+      const label =
+        unit === "pack" ? `${p.name} (${p.packUnit} ×${p.packSize})` : p.name;
       return { key, p, unit, qty, unitPriceMinor, label };
     })
     .filter((l): l is NonNullable<typeof l> => l !== null);
   const itemCount = lines.reduce((s, l) => s + l.qty, 0);
-  const discountMinor = props.canDiscount ? Math.max(0, parseMoney(discountText, currency) ?? 0) : 0;
+  const discountMinor = props.canDiscount
+    ? Math.max(0, parseMoney(discountText, currency) ?? 0)
+    : 0;
   const totals = calcSaleTotals(
-    lines.map((l) => ({ productId: l.p.id, name: l.label, qty: l.qty, unitPriceMinor: l.unitPriceMinor, costMinor: 0, discountMinor: 0 })),
-    { billDiscountMinor: discountMinor, taxRateBp: props.taxRateBp, taxIncluded: props.taxIncluded },
+    lines.map((l) => ({
+      productId: l.p.id,
+      name: l.label,
+      qty: l.qty,
+      unitPriceMinor: l.unitPriceMinor,
+      costMinor: 0,
+      discountMinor: 0,
+    })),
+    {
+      billDiscountMinor: discountMinor,
+      taxRateBp: props.taxRateBp,
+      taxIncluded: props.taxIncluded,
+    },
   );
   const receivedMinor = parseMoney(receivedText, currency);
-  const changeMinor = receivedMinor === null ? -1 : receivedMinor - totals.totalMinor;
-  const canConfirm = lines.length > 0 && (method !== "cash" || receivedText === "" || changeMinor >= 0);
+  const changeMinor =
+    receivedMinor === null ? -1 : receivedMinor - totals.totalMinor;
+  const canConfirm =
+    lines.length > 0 &&
+    (method !== "cash" || receivedText === "" || changeMinor >= 0);
 
   const limited = (p: PosProduct) => p.trackStock && !props.allowNegativeStock;
   /** จำนวนชิ้นของสินค้านี้ในตะกร้า (รวมที่ขายยกลัง) */
   const baseInCart = (c: Map<string, number>, p: PosProduct, except?: Unit) =>
     (except === "base" ? 0 : (c.get(keyOf(p.id, "base")) ?? 0)) +
-    (except === "pack" ? 0 : (c.get(keyOf(p.id, "pack")) ?? 0) * (p.packSize ?? 1));
-  const remaining = (p: PosProduct) => (limited(p) ? p.stockQty - baseInCart(cart, p) : Infinity);
+    (except === "pack"
+      ? 0
+      : (c.get(keyOf(p.id, "pack")) ?? 0) * (p.packSize ?? 1));
+  const remaining = (p: PosProduct) =>
+    limited(p) ? p.stockQty - baseInCart(cart, p) : Infinity;
 
   function setQty(key: string, qty: number) {
     const { id, unit } = parseKey(key);
@@ -146,7 +203,9 @@ export function PosClient(props: Props) {
     if (!p) return;
     setCart((prev) => {
       const next = new Map(prev);
-      const max = limited(p) ? Math.floor((p.stockQty - baseInCart(prev, p, unit)) / mult(p, unit)) : Infinity;
+      const max = limited(p)
+        ? Math.floor((p.stockQty - baseInCart(prev, p, unit)) / mult(p, unit))
+        : Infinity;
       const q = Math.min(max, Math.max(0, qty));
       if (q <= 0) next.delete(key);
       else next.set(key, q);
@@ -158,7 +217,8 @@ export function PosClient(props: Props) {
   function add(p: PosProduct, unit: Unit = "base") {
     if (unit === "pack" && !p.packSize) return;
     setCart((prev) => {
-      if (limited(p) && p.stockQty - baseInCart(prev, p) < mult(p, unit)) return prev;
+      if (limited(p) && p.stockQty - baseInCart(prev, p) < mult(p, unit))
+        return prev;
       const key = keyOf(p.id, unit);
       return new Map(prev).set(key, (prev.get(key) ?? 0) + 1);
     });
@@ -171,14 +231,24 @@ export function PosClient(props: Props) {
     if (!code) return;
     const q = code.toLowerCase();
     const en = toEnglishLayout(code); // ยิงตอนคีย์บอร์ดเป็นภาษาไทย
-    const packHit = products.find((p) => p.packBarcode && (p.packBarcode === code || p.packBarcode === en));
+    const packHit = products.find(
+      (p) => p.packBarcode && (p.packBarcode === code || p.packBarcode === en),
+    );
     if (packHit) {
       add(packHit, "pack");
       setSearch("");
       return;
     }
-    const exact = products.find((p) => p.barcode === code || p.sku === code || p.barcode === en || p.sku === en);
-    const matches = exact ? [exact] : products.filter((p) => p.name.toLowerCase().includes(q));
+    const exact = products.find(
+      (p) =>
+        p.barcode === code ||
+        p.sku === code ||
+        p.barcode === en ||
+        p.sku === en,
+    );
+    const matches = exact
+      ? [exact]
+      : products.filter((p) => p.name.toLowerCase().includes(q));
     const target = matches.length === 1 ? matches[0] : null;
     if (target) {
       add(target);
@@ -193,7 +263,11 @@ export function PosClient(props: Props) {
     if (pack) {
       if (remaining(pack) >= (pack.packSize ?? 1)) {
         add(pack, "pack");
-        setScanStatus(fill(t.scan.added, { name: `${pack.name} (${pack.packUnit} ×${pack.packSize})` }));
+        setScanStatus(
+          fill(t.scan.added, {
+            name: `${pack.name} (${pack.packUnit} ×${pack.packSize})`,
+          }),
+        );
       } else setScanStatus(`${pack.name}: ${t.pos.outOfStock}`);
       return;
     }
@@ -238,7 +312,10 @@ export function PosClient(props: Props) {
     const steps = [20, 100, 500, 1000].map((v) => v * unit);
     const out = new Set<number>([total]);
     for (const s of steps) out.add(Math.ceil(total / s) * s);
-    return [...out].filter((v) => v >= total).sort((a, b) => a - b).slice(0, 4);
+    return [...out]
+      .filter((v) => v >= total)
+      .sort((a, b) => a - b)
+      .slice(0, 4);
   }
 
   function confirm() {
@@ -247,13 +324,20 @@ export function PosClient(props: Props) {
       const res = await checkoutAction({
         locale,
         storeId: props.storeId,
-        lines: lines.map((l) => ({ productId: l.p.id, qty: l.qty, unit: l.unit })),
+        lines: lines.map((l) => ({
+          productId: l.p.id,
+          qty: l.qty,
+          unit: l.unit,
+        })),
         discountMinor,
         method,
-        paidMinor: method === "cash" && receivedText !== "" ? receivedMinor : null,
+        paidMinor:
+          method === "cash" && receivedText !== "" ? receivedMinor : null,
       });
       if (!res.ok) {
-        setError(fill(t.pos.errors[res.reason], { name: res.productName ?? "" }));
+        setError(
+          fill(t.pos.errors[res.reason], { name: res.productName ?? "" }),
+        );
         return;
       }
       setReceipt(res.receipt);
@@ -277,22 +361,32 @@ export function PosClient(props: Props) {
     <div className="flex h-full flex-col">
       <div className="flex items-center justify-between border-b border-line p-3">
         <h2 className="font-semibold">
-          {t.pos.cart} {itemCount > 0 && <span className="text-muted">({itemCount})</span>}
+          {t.pos.cart}{" "}
+          {itemCount > 0 && <span className="text-muted">({itemCount})</span>}
         </h2>
         <div className="flex items-center gap-2">
           {lines.length > 0 && (
-            <button onClick={() => setCart(new Map())} className="text-sm text-rose-600 hover:underline">
+            <button
+              onClick={() => setCart(new Map())}
+              className="text-sm text-rose-600 hover:underline"
+            >
               {t.pos.clear}
             </button>
           )}
-          <button onClick={() => setCartOpen(false)} className="lg:hidden" aria-label={t.pos.cancel}>
+          <button
+            onClick={() => setCartOpen(false)}
+            className="lg:hidden"
+            aria-label={t.pos.cancel}
+          >
             <X className="size-5" />
           </button>
         </div>
       </div>
       <div className="flex-1 overflow-y-auto">
         {lines.length === 0 ? (
-          <p className="p-6 text-center text-sm text-muted">{t.pos.emptyCart}</p>
+          <p className="p-6 text-center text-sm text-muted">
+            {t.pos.emptyCart}
+          </p>
         ) : (
           <ul className="divide-y divide-line">
             {lines.map(({ key, p, unit, qty, unitPriceMinor, label }) => (
@@ -301,25 +395,49 @@ export function PosClient(props: Props) {
                   <p className="truncate text-sm font-medium">{label}</p>
                   <p className="text-xs text-muted tabular-nums">
                     {money(unitPriceMinor)}
-                    {unit === "pack" && <span className="ml-1 rounded bg-brand-soft px-1 text-brand-ink">{p.packUnit}</span>}
+                    {unit === "pack" && (
+                      <span className="ml-1 rounded bg-brand-soft px-1 text-brand-ink">
+                        {p.packUnit}
+                      </span>
+                    )}
                   </p>
                 </div>
                 <div className="flex items-center rounded-lg border border-line">
-                  <button className="p-1.5" onClick={() => setQty(key, qty - 1)} aria-label="-">
-                    {qty === 1 ? <Trash2 className="size-4 text-rose-600" /> : <Minus className="size-4" />}
+                  <button
+                    className="p-1.5"
+                    onClick={() => setQty(key, qty - 1)}
+                    aria-label="-"
+                  >
+                    {qty === 1 ? (
+                      <Trash2 className="size-4 text-rose-600" />
+                    ) : (
+                      <Minus className="size-4" />
+                    )}
                   </button>
                   <input
                     value={qty}
-                    onChange={(e) => setQty(key, Number.parseInt(e.target.value || "0", 10) || 0)}
+                    onChange={(e) =>
+                      setQty(
+                        key,
+                        Number.parseInt(e.target.value || "0", 10) || 0,
+                      )
+                    }
                     inputMode="numeric"
                     className="w-10 bg-transparent text-center text-sm tabular-nums outline-none"
                     aria-label={p.name}
                   />
-                  <button className="p-1.5 disabled:opacity-30" onClick={() => setQty(key, qty + 1)} disabled={remaining(p) < mult(p, unit)} aria-label="+">
+                  <button
+                    className="p-1.5 disabled:opacity-30"
+                    onClick={() => setQty(key, qty + 1)}
+                    disabled={remaining(p) < mult(p, unit)}
+                    aria-label="+"
+                  >
                     <Plus className="size-4" />
                   </button>
                 </div>
-                <p className="w-20 text-right text-sm font-semibold tabular-nums">{money(unitPriceMinor * qty)}</p>
+                <p className="w-20 text-right text-sm font-semibold tabular-nums">
+                  {money(unitPriceMinor * qty)}
+                </p>
               </li>
             ))}
           </ul>
@@ -339,11 +457,23 @@ export function PosClient(props: Props) {
           </label>
         )}
         <Row label={t.pos.subtotal} value={money(totals.subtotalMinor)} />
-        {totals.discountMinor > 0 && <Row label={t.pos.discount} value={`-${money(totals.discountMinor)}`} />}
-        {props.taxRateBp > 0 && <Row label={`${t.pos.tax} ${props.taxRateBp / 100}%`} value={money(totals.taxMinor)} />}
+        {totals.discountMinor > 0 && (
+          <Row
+            label={t.pos.discount}
+            value={`-${money(totals.discountMinor)}`}
+          />
+        )}
+        {props.taxRateBp > 0 && (
+          <Row
+            label={`${t.pos.tax} ${props.taxRateBp / 100}%`}
+            value={money(totals.taxMinor)}
+          />
+        )}
         <div className="flex items-baseline justify-between pt-1">
           <span className="font-semibold">{t.pos.total}</span>
-          <span className="text-2xl font-bold tabular-nums text-brand-ink">{money(totals.totalMinor)}</span>
+          <span className="text-2xl font-bold tabular-nums text-brand-ink">
+            {money(totals.totalMinor)}
+          </span>
         </div>
         <button
           disabled={lines.length === 0}
@@ -363,6 +493,7 @@ export function PosClient(props: Props) {
     <>
       <div className="print:hidden">
         <Link
+          prefetch={false}
           href={`/${locale}/store/${props.storeId}`}
           className="mb-3 inline-flex items-center gap-1 text-sm text-muted hover:text-ink"
         >
@@ -375,18 +506,21 @@ export function PosClient(props: Props) {
               <PrinterStatus t={t.devices} storeName={props.storeName} />
             </div>
             <div className="flex gap-2">
-            <label className="relative block flex-1">
-              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted" />
-              <input
-                ref={searchRef}
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), onSearchEnter(e.currentTarget.value))}
-                placeholder={t.pos.search}
-                autoComplete="off"
-                className="w-full rounded-xl border border-line bg-card py-2.5 pl-9 pr-3 outline-none focus:border-brand"
-              />
-            </label>
+              <label className="relative block flex-1">
+                <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted" />
+                <input
+                  ref={searchRef}
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  onKeyDown={(e) =>
+                    e.key === "Enter" &&
+                    (e.preventDefault(), onSearchEnter(e.currentTarget.value))
+                  }
+                  placeholder={t.pos.search}
+                  autoComplete="off"
+                  className="w-full rounded-xl border border-line bg-card py-2.5 pl-9 pr-3 outline-none focus:border-brand"
+                />
+              </label>
               <button
                 onClick={() => {
                   setScanStatus(null);
@@ -400,7 +534,10 @@ export function PosClient(props: Props) {
               </button>
             </div>
             {scanStatus && !scanOpen && (
-              <p className="rounded-lg bg-brand-soft px-3 py-1.5 text-sm text-brand-ink" role="status">
+              <p
+                className="rounded-lg bg-brand-soft px-3 py-1.5 text-sm text-brand-ink"
+                role="status"
+              >
                 {scanStatus}
               </p>
             )}
@@ -414,7 +551,9 @@ export function PosClient(props: Props) {
                       setSubcategory(null);
                     }}
                     className={`shrink-0 rounded-full border px-3 py-1 text-sm ${
-                      category === c ? "border-brand bg-brand text-white" : "border-line bg-card"
+                      category === c
+                        ? "border-brand bg-brand text-white"
+                        : "border-line bg-card"
                     }`}
                   >
                     {c ?? t.pos.all}
@@ -429,7 +568,9 @@ export function PosClient(props: Props) {
                     key={c ?? "*"}
                     onClick={() => setSubcategory(c)}
                     className={`shrink-0 rounded-full border px-3 py-0.5 text-xs ${
-                      subcategory === c ? "border-brand bg-brand-soft font-semibold text-brand-ink" : "border-line bg-card text-muted"
+                      subcategory === c
+                        ? "border-brand bg-brand-soft font-semibold text-brand-ink"
+                        : "border-line bg-card text-muted"
                     }`}
                   >
                     {c ?? t.pos.all}
@@ -438,7 +579,9 @@ export function PosClient(props: Props) {
               </div>
             )}
             {products.length === 0 ? (
-              <p className="rounded-2xl border border-dashed border-line bg-card p-8 text-center text-muted">{t.pos.noProducts}</p>
+              <p className="rounded-2xl border border-dashed border-line bg-card p-8 text-center text-muted">
+                {t.pos.noProducts}
+              </p>
             ) : (
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-4">
                 {visible.map((p) => {
@@ -447,53 +590,65 @@ export function PosClient(props: Props) {
                   const packLeft = !!p.packSize && left >= p.packSize;
                   return (
                     <div key={p.id} className="flex flex-col">
-                    <button
-                      onClick={() => add(p)}
-                      disabled={left <= 0}
-                      className={`relative flex min-h-24 flex-1 flex-col justify-between border bg-card p-3 text-left shadow-sm pressable disabled:opacity-40 ${
-                        p.packSize ? "rounded-t-xl" : "rounded-xl"
-                      } ${inCart ? "border-brand ring-2 ring-brand-soft" : "border-line"}`}
-                    >
-                      {inCart > 0 && (
-                        <span
-                          key={inCart}
-                          className="animate-pop absolute right-2 top-2 grid size-6 place-items-center rounded-full bg-brand text-xs font-bold text-white"
-                        >
-                          {inCart}
-                        </span>
-                      )}
-                      {p.imageUrl && (
-                        // eslint-disable-next-line @next/next/no-img-element -- รูปจาก storage (ไม่ใช้ Image Optimization เพื่อไม่กินโควตา)
-                        <img
-                          src={p.imageUrl}
-                          alt=""
-                          loading="lazy"
-                          decoding="async"
-                          className="-mx-3 -mt-3 mb-2 aspect-square w-[calc(100%+1.5rem)] max-w-none rounded-t-xl object-cover"
-                        />
-                      )}
-                      <span className="line-clamp-2 pr-6 text-sm font-medium">{p.name}</span>
-                      <span className="mt-2 flex items-end justify-between gap-1">
-                        <span className="font-bold tabular-nums">{money(p.priceMinor)}</span>
-                        {p.trackStock && (
-                          <span className={`text-xs tabular-nums ${p.stockQty - inCart <= 0 ? "text-rose-600" : "text-muted"}`}>
-                            {left <= 0 ? t.pos.outOfStock : p.stockQty - inCart}
+                      <button
+                        onClick={() => add(p)}
+                        disabled={left <= 0}
+                        className={`relative flex min-h-24 flex-1 flex-col justify-between border bg-card p-3 text-left shadow-sm pressable disabled:opacity-40 ${
+                          p.packSize ? "rounded-t-xl" : "rounded-xl"
+                        } ${inCart ? "border-brand ring-2 ring-brand-soft" : "border-line"}`}
+                      >
+                        {inCart > 0 && (
+                          <span
+                            key={inCart}
+                            className="animate-pop absolute right-2 top-2 grid size-6 place-items-center rounded-full bg-brand text-xs font-bold text-white"
+                          >
+                            {inCart}
                           </span>
                         )}
-                      </span>
-                    </button>
-                    {p.packSize && (
-                      <button
-                        onClick={() => add(p, "pack")}
-                        disabled={!packLeft}
-                        className="flex items-center justify-between gap-1 rounded-b-xl border border-t-0 border-line bg-brand-soft px-3 py-1.5 text-xs font-semibold text-brand-ink hover:brightness-95 disabled:opacity-40"
-                      >
-                        <span>
-                          +1 {p.packUnit} ×{p.packSize}
+                        {p.imageUrl && (
+                          // eslint-disable-next-line @next/next/no-img-element -- รูปจาก storage (ไม่ใช้ Image Optimization เพื่อไม่กินโควตา)
+                          <img
+                            src={p.imageUrl}
+                            alt=""
+                            loading="lazy"
+                            decoding="async"
+                            className="-mx-3 -mt-3 mb-2 aspect-square w-[calc(100%+1.5rem)] max-w-none rounded-t-xl object-cover"
+                          />
+                        )}
+                        <span className="line-clamp-2 pr-6 text-sm font-medium">
+                          {p.name}
                         </span>
-                        <span className="tabular-nums">{money(p.packPriceMinor ?? p.priceMinor * p.packSize)}</span>
+                        <span className="mt-2 flex items-end justify-between gap-1">
+                          <span className="font-bold tabular-nums">
+                            {money(p.priceMinor)}
+                          </span>
+                          {p.trackStock && (
+                            <span
+                              className={`text-xs tabular-nums ${p.stockQty - inCart <= 0 ? "text-rose-600" : "text-muted"}`}
+                            >
+                              {left <= 0
+                                ? t.pos.outOfStock
+                                : p.stockQty - inCart}
+                            </span>
+                          )}
+                        </span>
                       </button>
-                    )}
+                      {p.packSize && (
+                        <button
+                          onClick={() => add(p, "pack")}
+                          disabled={!packLeft}
+                          className="flex items-center justify-between gap-1 rounded-b-xl border border-t-0 border-line bg-brand-soft px-3 py-1.5 text-xs font-semibold text-brand-ink hover:brightness-95 disabled:opacity-40"
+                        >
+                          <span>
+                            +1 {p.packUnit} ×{p.packSize}
+                          </span>
+                          <span className="tabular-nums">
+                            {money(
+                              p.packPriceMinor ?? p.priceMinor * p.packSize,
+                            )}
+                          </span>
+                        </button>
+                      )}
                     </div>
                   );
                 })}
@@ -514,9 +669,15 @@ export function PosClient(props: Props) {
           <span className="flex items-center gap-2 font-semibold">
             <ShoppingCart className="size-5" /> {t.pos.cartShort} ({itemCount})
           </span>
-          <span className="text-lg font-bold tabular-nums">{money(totals.totalMinor)}</span>
+          <span className="text-lg font-bold tabular-nums">
+            {money(totals.totalMinor)}
+          </span>
         </button>
-        {cartOpen && <div className="fixed inset-0 z-30 bg-card lg:hidden">{cartPanel}</div>}
+        {cartOpen && (
+          <div className="fixed inset-0 z-30 bg-card lg:hidden">
+            {cartPanel}
+          </div>
+        )}
       </div>
 
       {scanOpen && (
@@ -525,16 +686,26 @@ export function PosClient(props: Props) {
           onDetected={onCameraCode}
           onClose={() => setScanOpen(false)}
           labels={t.scan}
-          status={scanStatus ? `${scanStatus} · ${t.pos.cartShort} ${itemCount} · ${money(totals.totalMinor)}` : null}
+          status={
+            scanStatus
+              ? `${scanStatus} · ${t.pos.cartShort} ${itemCount} · ${money(totals.totalMinor)}`
+              : null
+          }
         />
       )}
 
       {payOpen && (
-        <div className="fixed inset-0 z-40 grid place-items-end bg-black/40 sm:place-items-center print:hidden" role="dialog" aria-modal>
+        <div
+          className="fixed inset-0 z-40 grid place-items-end bg-black/40 sm:place-items-center print:hidden"
+          role="dialog"
+          aria-modal
+        >
           <div className="w-full max-w-md space-y-4 rounded-t-2xl bg-card p-5 shadow-xl sm:rounded-2xl">
             <div className="flex items-baseline justify-between">
               <h2 className="text-lg font-semibold">{t.pos.pay}</h2>
-              <span className="text-2xl font-bold tabular-nums text-brand-ink">{money(totals.totalMinor)}</span>
+              <span className="text-2xl font-bold tabular-nums text-brand-ink">
+                {money(totals.totalMinor)}
+              </span>
             </div>
             <div className="grid grid-cols-2 gap-2">
               {METHODS.map((m) => (
@@ -542,7 +713,9 @@ export function PosClient(props: Props) {
                   key={m}
                   onClick={() => setMethod(m)}
                   className={`rounded-xl border px-3 py-2.5 text-sm font-medium ${
-                    method === m ? "border-brand bg-brand-soft text-brand-ink" : "border-line"
+                    method === m
+                      ? "border-brand bg-brand-soft text-brand-ink"
+                      : "border-line"
                   }`}
                 >
                   {t.pos.methods[m]}
@@ -566,7 +739,16 @@ export function PosClient(props: Props) {
                   {quickAmounts(totals.totalMinor).map((v) => (
                     <button
                       key={v}
-                      onClick={() => setReceivedText(String(v / (currency === "JPY" || currency === "VND" ? 1 : 100)))}
+                      onClick={() =>
+                        setReceivedText(
+                          String(
+                            v /
+                              (currency === "JPY" || currency === "VND"
+                                ? 1
+                                : 100),
+                          ),
+                        )
+                      }
                       className="rounded-lg border border-line px-3 py-1.5 text-sm tabular-nums hover:border-brand"
                     >
                       {v === totals.totalMinor ? t.pos.exact : money(v)}
@@ -576,16 +758,25 @@ export function PosClient(props: Props) {
                 {receivedText !== "" && (
                   <div className="flex items-baseline justify-between">
                     <span className="text-muted">{t.pos.change}</span>
-                    <span className={`text-xl font-bold tabular-nums ${changeMinor < 0 ? "text-rose-600" : ""}`}>
+                    <span
+                      className={`text-xl font-bold tabular-nums ${changeMinor < 0 ? "text-rose-600" : ""}`}
+                    >
                       {changeMinor < 0 ? "—" : money(changeMinor)}
                     </span>
                   </div>
                 )}
               </div>
             )}
-            {error && <p className="rounded-xl bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:bg-rose-950 dark:text-rose-200">{error}</p>}
+            {error && (
+              <p className="rounded-xl bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:bg-rose-950 dark:text-rose-200">
+                {error}
+              </p>
+            )}
             <div className="grid grid-cols-2 gap-2">
-              <button onClick={() => setPayOpen(false)} className="rounded-xl border border-line px-4 py-3 font-medium">
+              <button
+                onClick={() => setPayOpen(false)}
+                className="rounded-xl border border-line px-4 py-3 font-medium"
+              >
                 {t.pos.cancel}
               </button>
               <button
@@ -604,7 +795,9 @@ export function PosClient(props: Props) {
       {receipt && (
         <div className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-black/40 p-4 print:static print:block print:bg-transparent print:p-0">
           <div className="w-full max-w-xs rounded-2xl bg-white p-5 font-mono text-sm text-neutral-900 shadow-xl print:max-w-none print:rounded-none print:p-0 print:shadow-none">
-            <p className="text-center text-xs font-sans font-semibold text-emerald-600 print:hidden">✓ {t.pos.success}</p>
+            <p className="text-center text-xs font-sans font-semibold text-emerald-600 print:hidden">
+              ✓ {t.pos.success}
+            </p>
             <Receipt
               r={receipt}
               t={t.pos}
@@ -622,7 +815,11 @@ export function PosClient(props: Props) {
               >
                 <Printer className="size-4" /> {t.pos.print}
               </button>
-              <button onClick={newSale} autoFocus className="rounded-xl bg-brand px-3 py-2.5 font-semibold text-white">
+              <button
+                onClick={newSale}
+                autoFocus
+                className="rounded-xl bg-brand px-3 py-2.5 font-semibold text-white"
+              >
                 {t.pos.newSale}
               </button>
             </div>

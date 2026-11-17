@@ -9,7 +9,10 @@ import { forgotPasswordAction, loginAction } from "../actions";
 import { GoogleButton } from "../GoogleButton";
 import { readPendingEmail } from "../pending";
 
-export default async function LoginPage({ params, searchParams }: PageProps<"/[locale]/login">) {
+export default async function LoginPage({
+  params,
+  searchParams,
+}: PageProps<"/[locale]/login">) {
   const { locale, t } = await loadLocale(params);
   if (await getSessionUser()) redirect(`/${locale}/hub`);
   const sp = await searchParams;
@@ -18,14 +21,31 @@ export default async function LoginPage({ params, searchParams }: PageProps<"/[l
 
   return (
     <Card>
-      {googleEnabled() && <GoogleButton locale={locale} label={t.auth.google} or={t.auth.or} />}
+      {googleEnabled() && (
+        <GoogleButton locale={locale} label={t.auth.google} or={t.auth.or} />
+      )}
       <form action={loginAction} className="space-y-4">
         <input type="hidden" name="locale" value={locale} />
         {sp.reset === "1" && <Alert kind="success">{t.auth.resetDone}</Alert>}
-        {sp.deleted === "1" && <Alert kind="success">{t.account.deleted}</Alert>}
+        {sp.deleted === "1" && (
+          <Alert kind="success">{t.account.deleted}</Alert>
+        )}
         {error && <Alert>{error}</Alert>}
-        <Field label={t.auth.email} name="email" type="email" autoComplete="email" defaultValue={lastEmail} required />
-        <Field label={t.auth.password} name="password" type="password" autoComplete="current-password" required />
+        <Field
+          label={t.auth.email}
+          name="email"
+          type="email"
+          autoComplete="email"
+          defaultValue={lastEmail}
+          required
+        />
+        <Field
+          label={t.auth.password}
+          name="password"
+          type="password"
+          autoComplete="current-password"
+          required
+        />
         <PrimaryButton type="submit">{t.auth.login}</PrimaryButton>
       </form>
       {/* รหัสผ่านผิด → แสดงปุ่มลืมรหัสผ่าน ส่ง OTP ไปที่อีเมลที่เพิ่งพิมพ์ */}
@@ -43,7 +63,11 @@ export default async function LoginPage({ params, searchParams }: PageProps<"/[l
       )}
       <div className="mt-4 flex justify-between text-sm">
         <span className="text-muted">{t.auth.noAccount}</span>
-        <Link href={`/${locale}/register`} className="font-semibold text-brand-ink">
+        <Link
+          prefetch={false}
+          href={`/${locale}/register`}
+          className="font-semibold text-brand-ink"
+        >
           {t.auth.register}
         </Link>
       </div>

@@ -31,6 +31,7 @@ export default async function MyStoresPage({
           {stores.map(({ store, member }) => (
             <li key={store.id}>
               <Link
+                prefetch={false}
                 href={`/${locale}/store/${store.id}`}
                 className="flex items-center gap-4 rounded-2xl border border-line bg-card p-4 shadow-sm pressable"
               >

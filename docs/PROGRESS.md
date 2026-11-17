@@ -25,6 +25,17 @@
 
 ---
 
+## 2026-11-17 — แก้หน้าภาพรวมหมุนค้าง/เว็บล่ม: ปิด prefetch ของลิงก์ (branch dev)
+- อาการ (เว็บจริง): กดภาพรวมแล้วหมุนค้าง แล้วเว็บล่ม; ในโหมด dev ไม่เป็น
+- สาเหตุ (ยืนยันด้วย `next build` + `next start` ในเครื่อง): `<Link>` prefetch ทุกลิงก์ที่เห็นบนจอ — หน้าภาพรวมมีลิงก์สินค้าใกล้หมด 20 + บิล + เมนู
+  → ยิง RSC ~50 request พร้อมกัน แต่ละอันรัน layout/requireStoreAccess + query DB → pool (max 5) / pooler อิ่ม → ค้าง;
+  `LiveRefresh` (router.refresh) ทำให้ prefetch ซ้ำอีกรอบ
+- แก้: `prefetch={false}` ทุก `<Link>` (โหลดตอนกดจริงเท่านั้น; loading.tsx ยังขึ้นทันที) → เหลือ 1–2 request ต่อการกด
+- ทดสอบ: ผู้ใช้ทดลอง + สินค้า 86 รายการ บน prod build ในเครื่อง ✅ (ลบผู้ใช้ทดลองแล้ว); lint/typecheck/build ✅
+- กฎ: ลิงก์ใหม่ทุกอันต้องใส่ `prefetch={false}` (หน้าเราเป็น dynamic ทั้งหมด prefetch = render เต็มหน้า)
+
+---
+
 ## 2026-11-17 — ลบรหัสเชิญที่ยังไม่ได้ใช้ (branch dev)
 - หน้าพนักงาน → รายการรหัสเชิญ: ไอคอนถังขยะท้ายแถว (เฉพาะรหัสที่ใช้ไป 0 ครั้ง; ผู้จัดการลบรหัสระดับผู้จัดการไม่ได้) → ป๊อปอัพยืนยัน → ลบ
 - `StoreRepo.deleteUnusedInvite` (ลบเฉพาะ used_count = 0 ในร้านนั้น), `deleteInviteAction`, `components/ConfirmSubmit.tsx` (ปุ่ม+ป๊อปอัพยืนยันใช้ซ้ำได้)

@@ -3,14 +3,28 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { CheckCircle2, Download, FileSpreadsheet, LoaderCircle, Upload } from "lucide-react";
+import {
+  CheckCircle2,
+  Download,
+  FileSpreadsheet,
+  LoaderCircle,
+  Upload,
+} from "lucide-react";
 import { readSheetFile, type Sheet } from "@/client/sheet";
 import { fill } from "@/core/lib/format";
 import type { Dictionary } from "@/i18n/dictionary";
 import { importProductsAction, type RawImportRow } from "./actions";
 
 type Field = keyof RawImportRow;
-const FIELDS: Field[] = ["barcode", "name", "price", "cost", "stock", "category", "subcategory"];
+const FIELDS: Field[] = [
+  "barcode",
+  "name",
+  "price",
+  "cost",
+  "stock",
+  "category",
+  "subcategory",
+];
 
 // ชื่อหัวคอลัมน์ที่รู้จัก (ไทย/อังกฤษ) — จับคู่อัตโนมัติ
 const SYNONYMS: Record<Field, string[]> = {
@@ -18,15 +32,31 @@ const SYNONYMS: Record<Field, string[]> = {
   name: ["ชื่อสินค้า", "ชื่อ", "สินค้า", "name", "product", "product name", "item"],
   price: ["ราคาขาย", "ราคา", "price", "sell price", "selling price"],
   cost: ["ราคาทุน", "ต้นทุน", "ทุน", "cost", "cost price"],
-  stock: ["จำนวนคงเหลือ", "คงเหลือ", "จำนวน", "สต็อก", "stock", "qty", "quantity", "on hand"],
+  stock: [
+    "จำนวนคงเหลือ",
+    "คงเหลือ",
+    "จำนวน",
+    "สต็อก",
+    "stock",
+    "qty",
+    "quantity",
+    "on hand",
+  ],
   category: ["หมวดหลัก", "หมวดหมู่", "หมวด", "category", "group"],
-  subcategory: ["หมวดย่อย", "หมวดหมู่ย่อย", "subcategory", "sub category", "sub-category"],
+  subcategory: [
+    "หมวดย่อย",
+    "หมวดหมู่ย่อย",
+    "subcategory",
+    "sub category",
+    "sub-category",
+  ],
 };
 const norm = (s: string) => s.trim().toLowerCase().replace(/\s+/g, " ");
 
 function autoMap(header: string[]): Record<Field, number> {
   const m = {} as Record<Field, number>;
-  for (const f of FIELDS) m[f] = header.findIndex((h) => SYNONYMS[f].includes(norm(h)));
+  for (const f of FIELDS)
+    m[f] = header.findIndex((h) => SYNONYMS[f].includes(norm(h)));
   return m;
 }
 
@@ -47,11 +77,20 @@ export function ImportClient({
   const [map, setMap] = useState<Record<Field, number> | null>(null);
   const [updateStock, setUpdateStock] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
-  const [result, setResult] = useState<{ created: number; updated: number; skipped: number } | null>(null);
+  const [progress, setProgress] = useState<{
+    done: number;
+    total: number;
+  } | null>(null);
+  const [result, setResult] = useState<{
+    created: number;
+    updated: number;
+    skipped: number;
+  } | null>(null);
 
   const header = sheet?.[0] ?? [];
-  const body = (sheet ?? []).slice(1).filter((r) => r.some((c) => String(c).trim() !== ""));
+  const body = (sheet ?? [])
+    .slice(1)
+    .filter((r) => r.some((c) => String(c).trim() !== ""));
   const rows: RawImportRow[] = map
     ? body.map((r) => {
         const o: RawImportRow = {};
@@ -84,11 +123,19 @@ export function ImportClient({
     setProgress({ done: 0, total: rows.length });
     try {
       for (let i = 0; i < rows.length; i += CHUNK) {
-        const res = await importProductsAction({ locale, storeId, rows: rows.slice(i, i + CHUNK), updateStock });
+        const res = await importProductsAction({
+          locale,
+          storeId,
+          rows: rows.slice(i, i + CHUNK),
+          updateStock,
+        });
         total.created += res.created;
         total.updated += res.updated;
         total.skipped += res.skipped;
-        setProgress({ done: Math.min(rows.length, i + CHUNK), total: rows.length });
+        setProgress({
+          done: Math.min(rows.length, i + CHUNK),
+          total: rows.length,
+        });
       }
       setResult(total);
       router.refresh();
@@ -102,7 +149,9 @@ export function ImportClient({
   function downloadTemplate() {
     const head = "บาร์โค้ด,ชื่อสินค้า,ราคาขาย,ราคาทุน,จำนวนคงเหลือ,หมวดหลัก,หมวดย่อย\n";
     const ex = "8851234567890,น้ำดื่ม 600ml,10,6,48,เครื่องดื่ม,น้ำเปล่า\n";
-    const blob = new Blob(["﻿" + head + ex], { type: "text/csv;charset=utf-8" });
+    const blob = new Blob(["﻿" + head + ex], {
+      type: "text/csv;charset=utf-8",
+    });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
     a.download = "easy-pos-import-template.csv";
@@ -117,10 +166,22 @@ export function ImportClient({
         <h2 className="text-lg font-bold">{t.done}</h2>
         <p className="text-sm">{fill(t.summary, result)}</p>
         <div className="grid gap-2 sm:grid-cols-2">
-          <Link href={`/${locale}/store/${storeId}/inventory`} className="rounded-xl bg-brand px-4 py-2.5 font-semibold text-white">
+          <Link
+            prefetch={false}
+            href={`/${locale}/store/${storeId}/inventory`}
+            className="rounded-xl bg-brand px-4 py-2.5 font-semibold text-white"
+          >
             {t.goInventory}
           </Link>
-          <button onClick={() => (setResult(null), setSheet(null), setMap(null), setFileName(""))} className="rounded-xl border border-line px-4 py-2.5">
+          <button
+            onClick={() => (
+              setResult(null),
+              setSheet(null),
+              setMap(null),
+              setFileName("")
+            )}
+            className="rounded-xl border border-line px-4 py-2.5"
+          >
             {t.again}
           </button>
         </div>
@@ -134,12 +195,24 @@ export function ImportClient({
         <FileSpreadsheet className="size-10 text-brand-ink" />
         <span className="font-semibold">{fileName || t.choose}</span>
         <span className="text-xs text-muted">{t.formats}</span>
-        <input type="file" accept=".xlsx,.csv" className="sr-only" onChange={(e) => void onFile(e.target.files?.[0])} />
+        <input
+          type="file"
+          accept=".xlsx,.csv"
+          className="sr-only"
+          onChange={(e) => void onFile(e.target.files?.[0])}
+        />
       </label>
-      <button onClick={downloadTemplate} className="inline-flex items-center gap-1 text-sm text-brand-ink hover:underline">
+      <button
+        onClick={downloadTemplate}
+        className="inline-flex items-center gap-1 text-sm text-brand-ink hover:underline"
+      >
         <Download className="size-4" /> {t.template}
       </button>
-      {error && <p className="rounded-xl bg-rose-50 p-3 text-sm text-rose-700 dark:bg-rose-950 dark:text-rose-200">{error}</p>}
+      {error && (
+        <p className="rounded-xl bg-rose-50 p-3 text-sm text-rose-700 dark:bg-rose-950 dark:text-rose-200">
+          {error}
+        </p>
+      )}
 
       {map && sheet && (
         <>
@@ -148,14 +221,19 @@ export function ImportClient({
             <p className="text-xs text-muted">{t.mappingHint}</p>
             <div className="grid gap-2 sm:grid-cols-2">
               {FIELDS.map((f) => (
-                <label key={f} className="flex items-center justify-between gap-2 text-sm">
+                <label
+                  key={f}
+                  className="flex items-center justify-between gap-2 text-sm"
+                >
                   <span>
                     {t.fields[f]}
                     {f === "name" && <span className="text-rose-600"> *</span>}
                   </span>
                   <select
                     value={map[f]}
-                    onChange={(e) => setMap({ ...map, [f]: Number(e.target.value) })}
+                    onChange={(e) =>
+                      setMap({ ...map, [f]: Number(e.target.value) })
+                    }
                     className="w-44 rounded-lg border border-line bg-card px-2 py-1"
                   >
                     <option value={-1}>{t.notUsed}</option>
@@ -171,7 +249,9 @@ export function ImportClient({
           </section>
 
           <section className="space-y-2">
-            <h2 className="font-semibold">{fill(t.preview, { n: rows.length })}</h2>
+            <h2 className="font-semibold">
+              {fill(t.preview, { n: rows.length })}
+            </h2>
             <div className="overflow-x-auto rounded-2xl border border-line bg-card">
               <table className="w-full min-w-[640px] text-sm">
                 <thead className="bg-surface text-left text-xs text-muted">
@@ -187,7 +267,10 @@ export function ImportClient({
                   {rows.slice(0, 15).map((r, i) => (
                     <tr key={i}>
                       {FIELDS.filter((f) => map[f] >= 0).map((f) => (
-                        <td key={f} className={`px-3 py-1.5 ${f === "barcode" ? "font-mono text-xs" : ""}`}>
+                        <td
+                          key={f}
+                          className={`px-3 py-1.5 ${f === "barcode" ? "font-mono text-xs" : ""}`}
+                        >
                           {r[f]}
                         </td>
                       ))}
@@ -196,11 +279,20 @@ export function ImportClient({
                 </tbody>
               </table>
             </div>
-            {rows.length > 15 && <p className="text-xs text-muted">{fill(t.more, { n: rows.length - 15 })}</p>}
+            {rows.length > 15 && (
+              <p className="text-xs text-muted">
+                {fill(t.more, { n: rows.length - 15 })}
+              </p>
+            )}
           </section>
 
           <label className="flex items-start gap-2 rounded-2xl border border-line bg-card p-4 text-sm">
-            <input type="checkbox" checked={updateStock} onChange={(e) => setUpdateStock(e.target.checked)} className="mt-0.5 size-4" />
+            <input
+              type="checkbox"
+              checked={updateStock}
+              onChange={(e) => setUpdateStock(e.target.checked)}
+              className="mt-0.5 size-4"
+            />
             <span>
               <b>{t.updateStock}</b>
               <br />
@@ -214,10 +306,18 @@ export function ImportClient({
             onClick={() => void runImport()}
             className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand px-4 py-3 text-lg font-semibold text-white disabled:opacity-50"
           >
-            {progress ? <LoaderCircle className="size-5 animate-spin" /> : <Upload className="size-5" />}
-            {progress ? fill(t.importing, progress) : fill(t.importBtn, { n: rows.length })}
+            {progress ? (
+              <LoaderCircle className="size-5 animate-spin" />
+            ) : (
+              <Upload className="size-5" />
+            )}
+            {progress
+              ? fill(t.importing, progress)
+              : fill(t.importBtn, { n: rows.length })}
           </button>
-          {map.name < 0 && <p className="text-sm text-rose-600">{t.needName}</p>}
+          {map.name < 0 && (
+            <p className="text-sm text-rose-600">{t.needName}</p>
+          )}
         </>
       )}
     </div>

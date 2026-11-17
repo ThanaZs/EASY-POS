@@ -1,12 +1,19 @@
 import Link from "next/link";
-import { addDays, formatDateTime, formatMoney, todayIn } from "@/core/lib/format";
+import {
+  addDays,
+  formatDateTime,
+  formatMoney,
+  todayIn,
+} from "@/core/lib/format";
 import { loadLocale } from "@/i18n/page";
 import { getRepositories } from "@/server/container";
 import { requireStoreAccess } from "@/server/session";
 import { BackLink } from "../BackLink";
 
 // ภาพรวม: ตัดรอบวันตามทามโซนของร้าน (business_date)
-export default async function OverviewPage({ params }: PageProps<"/[locale]/store/[storeId]/overview">) {
+export default async function OverviewPage({
+  params,
+}: PageProps<"/[locale]/store/[storeId]/overview">) {
   const { locale, t } = await loadLocale(params);
   const { storeId } = await params;
   const { store } = await requireStoreAccess(locale, storeId, "reports.view");
@@ -32,7 +39,10 @@ export default async function OverviewPage({ params }: PageProps<"/[locale]/stor
   const maxWeek = Math.max(1, ...week.map((w) => w.total));
   const money = (m: number) => formatMoney(m, store.currency, locale);
   const dayLabel = (day: string) =>
-    new Intl.DateTimeFormat(locale, { weekday: "short", timeZone: "UTC" }).format(new Date(`${day}T00:00:00Z`));
+    new Intl.DateTimeFormat(locale, {
+      weekday: "short",
+      timeZone: "UTC",
+    }).format(new Date(`${day}T00:00:00Z`));
 
   return (
     <div className="space-y-5">
@@ -40,16 +50,33 @@ export default async function OverviewPage({ params }: PageProps<"/[locale]/stor
       <h1 className="text-xl font-bold">{t.store.modules.overview}</h1>
 
       <div className="grid gap-3 sm:grid-cols-3">
-        <Kpi label={t.overview.today} value={money(todayRow?.totalMinor ?? 0)} sub={`${todayRow?.count ?? 0} ${t.overview.bills}`} highlight />
-        <Kpi label={`${t.overview.profit} · ${t.overview.today}`} value={money((todayRow?.totalMinor ?? 0) - (todayRow?.costMinor ?? 0))} />
-        <Kpi label={t.overview.month} value={money(monthTotal)} sub={`${month.reduce((s, d) => s + d.count, 0)} ${t.overview.bills}`} />
+        <Kpi
+          label={t.overview.today}
+          value={money(todayRow?.totalMinor ?? 0)}
+          sub={`${todayRow?.count ?? 0} ${t.overview.bills}`}
+          highlight
+        />
+        <Kpi
+          label={`${t.overview.profit} · ${t.overview.today}`}
+          value={money(
+            (todayRow?.totalMinor ?? 0) - (todayRow?.costMinor ?? 0),
+          )}
+        />
+        <Kpi
+          label={t.overview.month}
+          value={money(monthTotal)}
+          sub={`${month.reduce((s, d) => s + d.count, 0)} ${t.overview.bills}`}
+        />
       </div>
 
       <section className="rounded-2xl border border-line bg-card p-4">
         <h2 className="mb-3 font-semibold">{t.overview.last7}</h2>
         <div className="flex h-40 items-end gap-2">
           {week.map((w) => (
-            <div key={w.day} className="flex h-full flex-1 flex-col items-center justify-end gap-1">
+            <div
+              key={w.day}
+              className="flex h-full flex-1 flex-col items-center justify-end gap-1"
+            >
               <div
                 className={`w-full rounded-t-md ${w.day === today ? "bg-brand" : "bg-brand-soft"}`}
                 style={{ height: `${Math.max(2, (w.total / maxWeek) * 100)}%` }}
@@ -65,28 +92,38 @@ export default async function OverviewPage({ params }: PageProps<"/[locale]/stor
         <section className="space-y-2">
           <div className="flex items-baseline justify-between">
             <h2 className="font-semibold">{t.overview.recent}</h2>
-            <Link href={`/${locale}/store/${storeId}/sales`} className="text-sm font-medium text-brand-ink">
+            <Link
+              prefetch={false}
+              href={`/${locale}/store/${storeId}/sales`}
+              className="text-sm font-medium text-brand-ink"
+            >
               {t.sales.viewAll}
             </Link>
           </div>
           {recent.length === 0 ? (
-            <p className="rounded-2xl border border-dashed border-line bg-card p-6 text-center text-muted">{t.overview.noSales}</p>
+            <p className="rounded-2xl border border-dashed border-line bg-card p-6 text-center text-muted">
+              {t.overview.noSales}
+            </p>
           ) : (
             <ul className="divide-y divide-line overflow-hidden rounded-2xl border border-line bg-card">
               {recent.map((s) => (
                 <li key={s.id}>
                   <Link
+                    prefetch={false}
                     href={`/${locale}/store/${storeId}/sales/${s.id}`}
                     className={`flex items-center justify-between gap-3 p-3 row-hover ${s.status !== "completed" ? "opacity-50" : ""}`}
                   >
                     <div>
                       <p className="font-mono text-sm">{s.receiptNo}</p>
                       <p className="text-xs text-muted">
-                        {formatDateTime(s.createdAt, locale, store.timeZone)} · {t.pos.methods[s.paymentMethod]}
+                        {formatDateTime(s.createdAt, locale, store.timeZone)} ·{" "}
+                        {t.pos.methods[s.paymentMethod]}
                         {s.status !== "completed" ? ` · ${t.sales.voided}` : ""}
                       </p>
                     </div>
-                    <span className={`font-semibold tabular-nums ${s.status !== "completed" ? "line-through" : ""}`}>
+                    <span
+                      className={`font-semibold tabular-nums ${s.status !== "completed" ? "line-through" : ""}`}
+                    >
                       {money(s.totalMinor)}
                     </span>
                   </Link>
@@ -98,14 +135,22 @@ export default async function OverviewPage({ params }: PageProps<"/[locale]/stor
         <section className="space-y-2">
           <h2 className="font-semibold">{t.overview.lowStock}</h2>
           {low.length === 0 ? (
-            <p className="rounded-2xl border border-dashed border-line bg-card p-6 text-center text-muted">{t.overview.none}</p>
+            <p className="rounded-2xl border border-dashed border-line bg-card p-6 text-center text-muted">
+              {t.overview.none}
+            </p>
           ) : (
             <ul className="divide-y divide-line overflow-hidden rounded-2xl border border-line bg-card">
               {low.slice(0, 20).map((p) => (
                 <li key={p.id}>
-                  <Link href={`/${locale}/store/${storeId}/inventory/${p.id}`} className="flex justify-between gap-3 p-3 row-hover">
+                  <Link
+                    prefetch={false}
+                    href={`/${locale}/store/${storeId}/inventory/${p.id}`}
+                    className="flex justify-between gap-3 p-3 row-hover"
+                  >
                     <span className="truncate">{p.name}</span>
-                    <span className={`font-semibold tabular-nums ${p.stockQty <= 0 ? "text-rose-600" : "text-amber-600"}`}>
+                    <span
+                      className={`font-semibold tabular-nums ${p.stockQty <= 0 ? "text-rose-600" : "text-amber-600"}`}
+                    >
                       {p.stockQty} {p.unit}
                     </span>
                   </Link>
@@ -119,12 +164,30 @@ export default async function OverviewPage({ params }: PageProps<"/[locale]/stor
   );
 }
 
-function Kpi({ label, value, sub, highlight }: { label: string; value: string; sub?: string; highlight?: boolean }) {
+function Kpi({
+  label,
+  value,
+  sub,
+  highlight,
+}: {
+  label: string;
+  value: string;
+  sub?: string;
+  highlight?: boolean;
+}) {
   return (
-    <div className={`rounded-2xl border p-4 ${highlight ? "border-brand bg-brand text-white" : "border-line bg-card"}`}>
-      <p className={`text-sm ${highlight ? "text-white/80" : "text-muted"}`}>{label}</p>
+    <div
+      className={`rounded-2xl border p-4 ${highlight ? "border-brand bg-brand text-white" : "border-line bg-card"}`}
+    >
+      <p className={`text-sm ${highlight ? "text-white/80" : "text-muted"}`}>
+        {label}
+      </p>
       <p className="mt-1 text-2xl font-bold tabular-nums">{value}</p>
-      {sub && <p className={`text-sm ${highlight ? "text-white/80" : "text-muted"}`}>{sub}</p>}
+      {sub && (
+        <p className={`text-sm ${highlight ? "text-white/80" : "text-muted"}`}>
+          {sub}
+        </p>
+      )}
     </div>
   );
 }

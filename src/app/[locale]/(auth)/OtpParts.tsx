@@ -49,10 +49,22 @@ export function OtpInput({ label }: { label: string }) {
 }
 
 /** ส่งรหัสอีกครั้ง + กลับไปใช้อีเมลอื่น */
-export function OtpFooter({ locale, purpose, t }: { locale: Locale; purpose: "verify" | "reset"; t: Dictionary["auth"] }) {
+export function OtpFooter({
+  locale,
+  purpose,
+  t,
+}: {
+  locale: Locale;
+  purpose: "verify" | "reset";
+  t: Dictionary["auth"];
+}) {
   return (
     <div className="mt-4 flex items-center justify-between text-sm">
-      <Link href={`/${locale}/login`} className="text-muted hover:text-ink">
+      <Link
+        prefetch={false}
+        href={`/${locale}/login`}
+        className="text-muted hover:text-ink"
+      >
         {t.useOtherEmail}
       </Link>
       <form action={resendOtpAction}>

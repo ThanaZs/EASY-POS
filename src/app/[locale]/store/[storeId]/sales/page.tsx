@@ -7,13 +7,21 @@ import { requireStoreAccess } from "@/server/session";
 import { BackLink } from "../BackLink";
 
 // ประวัติบิลรายวัน (ตาม business_date ของร้าน)
-export default async function SalesPage({ params, searchParams }: PageProps<"/[locale]/store/[storeId]/sales">) {
+export default async function SalesPage({
+  params,
+  searchParams,
+}: PageProps<"/[locale]/store/[storeId]/sales">) {
   const { locale, t } = await loadLocale(params);
   const { storeId } = await params;
   const { store } = await requireStoreAccess(locale, storeId, "reports.view");
   const d = (await searchParams).date;
-  const day = typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d) ? d : todayIn(store.timeZone);
-  const bills = await (await getRepositories()).sales.list(storeId, { businessDate: day, limit: 500 });
+  const day =
+    typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d)
+      ? d
+      : todayIn(store.timeZone);
+  const bills = await (
+    await getRepositories()
+  ).sales.list(storeId, { businessDate: day, limit: 500 });
   const done = bills.filter((b) => b.status === "completed");
   const money = (m: number) => formatMoney(m, store.currency, locale);
 
@@ -24,23 +32,35 @@ export default async function SalesPage({ params, searchParams }: PageProps<"/[l
       <form className="flex items-end gap-2">
         <label className="space-y-1">
           <span className="block text-sm text-muted">{t.sales.date}</span>
-          <input type="date" name="date" defaultValue={day} className="rounded-xl border border-line bg-card px-3 py-2" />
+          <input
+            type="date"
+            name="date"
+            defaultValue={day}
+            className="rounded-xl border border-line bg-card px-3 py-2"
+          />
         </label>
-        <button className="rounded-xl border border-line bg-card px-4 py-2 text-sm font-medium hover:bg-surface">OK</button>
+        <button className="rounded-xl border border-line bg-card px-4 py-2 text-sm font-medium hover:bg-surface">
+          OK
+        </button>
       </form>
       <div className="flex items-baseline justify-between rounded-2xl border border-line bg-card p-4">
         <span className="text-muted">
           {t.sales.total} · {fill(t.sales.count, { n: done.length })}
         </span>
-        <span className="text-xl font-bold tabular-nums">{money(done.reduce((s, b) => s + b.totalMinor, 0))}</span>
+        <span className="text-xl font-bold tabular-nums">
+          {money(done.reduce((s, b) => s + b.totalMinor, 0))}
+        </span>
       </div>
       {bills.length === 0 ? (
-        <p className="rounded-2xl border border-dashed border-line bg-card p-8 text-center text-muted">{t.sales.empty}</p>
+        <p className="rounded-2xl border border-dashed border-line bg-card p-8 text-center text-muted">
+          {t.sales.empty}
+        </p>
       ) : (
         <ul className="divide-y divide-line overflow-hidden rounded-2xl border border-line bg-card">
           {bills.map((b) => (
             <li key={b.id}>
               <Link
+                prefetch={false}
                 href={`/${locale}/store/${storeId}/sales/${b.id}`}
                 className={`flex items-center gap-3 p-3 row-hover ${b.status !== "completed" ? "opacity-60" : ""}`}
               >
@@ -54,10 +74,13 @@ export default async function SalesPage({ params, searchParams }: PageProps<"/[l
                     )}
                   </p>
                   <p className="text-xs text-muted">
-                    {formatDateTime(b.createdAt, locale, store.timeZone)} · {t.pos.methods[b.paymentMethod]}
+                    {formatDateTime(b.createdAt, locale, store.timeZone)} ·{" "}
+                    {t.pos.methods[b.paymentMethod]}
                   </p>
                 </div>
-                <span className={`font-semibold tabular-nums ${b.status !== "completed" ? "line-through" : ""}`}>
+                <span
+                  className={`font-semibold tabular-nums ${b.status !== "completed" ? "line-through" : ""}`}
+                >
                   {money(b.totalMinor)}
                 </span>
                 <ChevronRight className="size-4 text-muted" />
