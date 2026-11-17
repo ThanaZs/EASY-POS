@@ -35,6 +35,7 @@ export default async function PosPage({
     packSize: p.packSize,
     packPriceMinor: p.packSize ? packPrice(p) : null,
     packBarcode: p.packBarcode,
+    pinned: p.pinned,
   }));
 
   return (

@@ -113,6 +113,7 @@ export function productRepo(): ProductRepo {
         );
       else if (q.subcategory)
         conds.push(eq(products.subcategory, q.subcategory));
+      if (q.pinnedOnly) conds.push(eq(products.pinned, true));
       if (q.lowStockOnly) {
         conds.push(
           eq(products.trackStock, true),
@@ -123,7 +124,7 @@ export function productRepo(): ProductRepo {
         .select()
         .from(products)
         .where(and(...conds))
-        .orderBy(asc(products.name))
+        .orderBy(desc(products.pinned), asc(products.name)) // ปักหมุดขึ้นก่อน (ในหมวดที่กรองก็เช่นกัน)
         .limit(1000);
       return rows.map(toProduct);
     },
@@ -327,6 +328,14 @@ export function productRepo(): ProductRepo {
         })
         .where(and(eq(products.storeId, storeId), eq(products.id, id)));
       return old?.imagePath ?? null;
+    },
+    async setPinned(storeId, id, pinned) {
+      const [r] = await db
+        .update(products)
+        .set({ pinned, updatedAt: sql`now()` })
+        .where(and(eq(products.storeId, storeId), eq(products.id, id)))
+        .returning();
+      return r ? toProduct(r) : null;
     },
     async setImage(storeId, id, path) {
       const [old] = await db

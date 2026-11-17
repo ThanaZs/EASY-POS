@@ -2,7 +2,7 @@
 
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
-import { Camera, LoaderCircle, Search, X } from "lucide-react";
+import { Camera, LoaderCircle, Pin, Search, X } from "lucide-react";
 import { CameraScanner } from "@/components/CameraScanner";
 import type { Dictionary } from "@/i18n/dictionary";
 import { useBarcodeScanner } from "@/client/devices/scanner";
@@ -15,6 +15,7 @@ type Labels = {
   search: string;
   allCategories: string;
   lowOnly: string;
+  pinOnly: string;
   allSub: string;
   noSub: string;
 };
@@ -29,6 +30,7 @@ export function InventoryFilters({
   cat,
   sub,
   low,
+  pin,
   tree,
   labels,
   scan,
@@ -37,6 +39,7 @@ export function InventoryFilters({
   cat: string;
   sub: string;
   low: boolean;
+  pin: boolean;
   tree: CategoryNode[];
   labels: Labels;
   scan: Dictionary["scan"];
@@ -46,10 +49,11 @@ export function InventoryFilters({
   const [text, setText] = useState(q);
   const [pending, startTransition] = useTransition();
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
-  const state = useRef({ q, cat, sub, low });
+  const state = useRef({ q, cat, sub, low, pin });
   const [selCat, setSelCat] = useState(cat);
   const [selSub, setSelSub] = useState(sub);
   const [selLow, setSelLow] = useState(low);
+  const [selPin, setSelPin] = useState(pin);
   const [camera, setCamera] = useState(false);
 
   // ยิงบาร์โค้ด (จะโฟกัสช่องค้นหาอยู่หรือไม่ก็ได้) → แทนที่คำค้นด้วยรหัสใหม่ + ล้างตัวกรองอื่นให้เจอสินค้าแน่ๆ
@@ -60,14 +64,21 @@ export function InventoryFilters({
     setSelCat("");
     setSelSub("");
     setSelLow(false);
-    apply({ q: code, cat: "", sub: "", low: false });
+    setSelPin(false);
+    apply({ q: code, cat: "", sub: "", low: false, pin: false });
   };
   useBarcodeScanner(onScanned);
   const node = tree.find((n) => n.category === selCat);
   const showSubs = !!node && node.subcategories.length > 0;
 
   function apply(
-    next: Partial<{ q: string; cat: string; sub: string; low: boolean }>,
+    next: Partial<{
+      q: string;
+      cat: string;
+      sub: string;
+      low: boolean;
+      pin: boolean;
+    }>,
   ) {
     state.current = { ...state.current, ...next };
     const p = new URLSearchParams();
@@ -75,6 +86,7 @@ export function InventoryFilters({
     if (state.current.cat) p.set("cat", state.current.cat);
     if (state.current.cat && state.current.sub) p.set("sub", state.current.sub);
     if (state.current.low) p.set("low", "1");
+    if (state.current.pin) p.set("pin", "1");
     const qs = p.toString();
     startTransition(() =>
       router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false }),
@@ -177,6 +189,22 @@ export function InventoryFilters({
             </option>
           ))}
         </select>
+        <button
+          type="button"
+          aria-pressed={selPin}
+          onClick={() => {
+            setSelPin(!selPin);
+            apply({ pin: !selPin });
+          }}
+          className={`flex items-center gap-1.5 rounded-xl border px-3 py-2 text-sm transition active:scale-95 ${
+            selPin
+              ? "border-brand bg-brand-soft font-semibold text-brand-ink"
+              : "border-line bg-card"
+          }`}
+        >
+          <Pin className={`size-4 ${selPin ? "fill-current" : ""}`} />{" "}
+          {labels.pinOnly}
+        </button>
         <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-line bg-card px-3 py-2 text-sm">
           <input
             type="checkbox"

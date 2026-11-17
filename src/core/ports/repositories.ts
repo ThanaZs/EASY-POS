@@ -85,7 +85,7 @@ export interface ProductRepo {
   /** subcategory: null = เฉพาะที่ไม่มีหมวดย่อย */
   list(
     storeId: ID,
-    q?: { search?: string; category?: string; subcategory?: string | null; lowStockOnly?: boolean },
+    q?: { search?: string; category?: string; subcategory?: string | null; lowStockOnly?: boolean; pinnedOnly?: boolean },
   ): Promise<Product[]>;
   findById(storeId: ID, id: ID): Promise<Product | null>;
   categories(storeId: ID): Promise<string[]>;
@@ -100,6 +100,8 @@ export interface ProductRepo {
   deactivate(storeId: ID, id: ID): Promise<string | null>;
   /** ตั้ง/ลบรูป — คืน path รูปเดิม (ให้ลบไฟล์) */
   setImage(storeId: ID, id: ID, path: string | null): Promise<string | null>;
+  /** ปักหมุด/เลิกปักหมุด — คืนสินค้า (null = ไม่พบ) */
+  setPinned(storeId: ID, id: ID, pinned: boolean): Promise<Product | null>;
 }
 
 export interface StockRepo {

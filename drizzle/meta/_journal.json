@@ -57,6 +57,13 @@
       "when": 1794916119274,
       "tag": "0007_audit_index",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1794923922254,
+      "tag": "0008_product_pinned",
+      "breakpoints": true
     }
   ]
 }

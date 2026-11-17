@@ -52,6 +52,7 @@ export type PosProduct = {
   packSize: number | null;
   packPriceMinor: number | null; // ราคาต่อแพ็ก (คำนวณแล้ว)
   packBarcode: string | null;
+  pinned: boolean; // ปักหมุด (มาเรียงก่อนจากฝั่ง server แล้ว)
 };
 
 type Unit = "base" | "pack";

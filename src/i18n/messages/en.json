@@ -209,7 +209,10 @@
     "allSub": "All",
     "noSub": "No subcategory",
     "currentStock": "Quantity in stock",
-    "currentStockHint": "Set to the counted amount — recorded as an adjustment in stock history"
+    "currentStockHint": "Set to the counted amount — recorded as an adjustment in stock history",
+    "pin": "Pin (show first)",
+    "unpin": "Unpin",
+    "pinOnly": "Pinned"
   },
   "stock": {
     "product": "Product",
@@ -547,7 +550,9 @@
       "invite.create": "Created invite",
       "invite.delete": "Deleted invite",
       "member.remove": "Removed staff",
-      "member.leave": "Left store"
+      "member.leave": "Left store",
+      "product.pin": "Pinned product",
+      "product.unpin": "Unpinned product"
     },
     "fields": {
       "name": "Name",
@@ -572,7 +577,8 @@
       "taxRateBp": "Tax",
       "taxIncluded": "Prices include tax",
       "receiptFooter": "Receipt footer",
-      "allowNegativeStock": "Allow negative stock"
+      "allowNegativeStock": "Allow negative stock",
+      "pinned": "Pinned"
     }
   }
 }

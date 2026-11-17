@@ -1,5 +1,6 @@
 "use server";
 
+import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
 import { randomCode } from "@/core/lib/code";
 import { defaultLocale, isLocale } from "@/i18n/config";
@@ -277,4 +278,24 @@ export async function deleteProductAction(form: FormData) {
     });
   if (oldImage) await (await getStorage())?.remove([oldImage]).catch(() => {});
   redirect(`/${locale}/store/${storeId}/inventory`);
+}
+
+/** ปักหมุด/เลิกปักหมุดสินค้า (ปุ่มในรายการคลังสินค้า) */
+export async function togglePinAction(form: FormData) {
+  const { locale, storeId } = storeCtx(form);
+  const { user } = await requireStoreAccess(locale, storeId, "products.edit");
+  const productId = str(form, "productId");
+  const pinned = str(form, "pinned") === "1";
+  const p = await (
+    await getRepositories()
+  ).products.setPinned(storeId, productId, pinned);
+  if (p)
+    await audit(storeId, user, pinned ? "product.pin" : "product.unpin", {
+      entityType: "product",
+      entityId: p.id,
+      entityName: p.name,
+      changes: { pinned: [!pinned, pinned] },
+    });
+  // อยู่หน้าเดิม (ตัวกรองเดิม) แค่ให้รายการโหลดใหม่ → ปักหมุดขึ้นบนสุดทันที
+  refresh();
 }
