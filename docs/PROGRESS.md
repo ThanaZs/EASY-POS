@@ -25,6 +25,19 @@
 
 ---
 
+## 2026-11-17 — ต้นเหตุเว็บค้าง: connection DB ค้าง "active + ClientRead" (branch dev)
+- ผู้ใช้แคป React error #412 ("Connection closed") ตอนเปิดหน้าร้าน
+- pg_stat_activity ตอนนั้น: backend ของ role postgres ค้าง state=active, wait_event=ClientRead มา ~2 นาที (query select … from sales)
+  = client (ฟังก์ชัน Vercel) ส่งคำสั่ง SQL ไม่ครบแล้วหายไป (น่าจะ request ถูกตัด/ฟังก์ชันถูกพัก) → pooler ยึด connection ไว้ → request อื่นค้างตาม
+  statement_timeout ไม่ช่วย (ไม่ได้อยู่ระหว่าง execute)
+- แก้: `/api/health?db=1` เคลียร์ connection ของ role เราที่ค้าง active+ClientRead > 30 วิ หรือ idle in transaction > 60 วิ
+  (CTE materialized กรองก่อนสั่ง pg_terminate_backend — ไม่แตะ role อื่น) → ตอบ `stuckCleared`
+- `ErrorScreen`: retry ครอบ "Connection closed"/#412 ด้วย และเรียก `/api/health?db=1` ก่อน retry (เคลียร์ของค้างก่อนโหลดใหม่)
+- ทดสอบ: เรียกในเครื่อง → stuckCleared=1 (เคลียร์ตัวที่ค้างอยู่จริงบน Supabase) ✅; lint/build ✅
+- **แนะนำ**: ตั้ง cron-job.org ให้เรียก `/api/health?db=1` ทุก 1–2 นาที (เคลียร์ของค้างอัตโนมัติ + กันเครื่องเย็น)
+
+---
+
 ## 2026-11-17 — หน้ายอดขายค้าง (เว็บจริง) — สืบสวน (branch dev)
 - query ของหน้ายอดขายกับข้อมูลร้านจริงเร็วทุกตัว (< 0.3 วิ), /api/health?db=1 ปกติ
 - จำลองบน prod build ในเครื่อง: ครั้งแรก request ค้าง ~2 นาทีแล้ว 500 — `select ... from store_members` โดน

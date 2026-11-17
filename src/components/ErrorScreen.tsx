@@ -34,7 +34,8 @@ export function ErrorScreen({ error, retry }: { error: unknown; retry: () => voi
     console.error(error);
     // เน็ตหลุดชั่วคราว (เช่น iPad/มือถือเพิ่งปลุกจากพักหน้าจอ — Safari แจ้ง "Load failed") → รอเน็ตมาแล้วลองใหม่เอง
     // + error ฝั่ง server (มี digest เช่นฐานข้อมูลช้าชั่วคราว) → ลองใหม่เองด้วย (จำกัด 3 ครั้ง/นาที)
-    if (digest || /Load failed|Failed to fetch|NetworkError|network connection/i.test(msg)) {
+    // + "Connection closed" (React #412: server ตัดการส่งหน้ากลางคัน มักเพราะ DB ค้าง)
+    if (digest || /Load failed|Failed to fetch|NetworkError|network connection|Connection closed|error #412/i.test(msg)) {
       let done = false;
       const again = () => {
         if (done || !navigator.onLine) return;
@@ -43,7 +44,10 @@ export function ErrorScreen({ error, retry }: { error: unknown; retry: () => voi
         if (autoRetries.length >= 3) return;
         autoRetries.push(now);
         done = true;
-        retry();
+        // ให้ server เคลียร์ connection ฐานข้อมูลที่ค้างก่อน แล้วค่อยลองใหม่
+        fetch("/api/health?db=1", { cache: "no-store" })
+          .catch(() => {})
+          .finally(() => retry());
       };
       const timer = setTimeout(again, 1500);
       window.addEventListener("online", again);
