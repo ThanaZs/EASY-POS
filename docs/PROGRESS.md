@@ -31,8 +31,9 @@
   "canceling statement due to statement timeout" (ค่าเริ่มต้น Supabase role = 2min) → ฐานข้อมูล/pooler ค้างเป็นช่วงๆ ไม่ใช่โค้ดหน้า; ลองซ้ำหลายรอบไม่เกิดอีก
 - pooler แบบ transaction (Supavisor) **ไม่รับ** statement_timeout จาก connection (ทดสอบแล้ว)
 - ทำแล้ว: `ErrorScreen` ลองใหม่เองเมื่อเป็น error ฝั่ง server (มี digest) ด้วย (≤3 ครั้ง/นาที)
-- **รออนุมัติผู้ใช้**: ตั้ง timeout ที่ role ของ DB (ยังไม่ได้รัน — อยู่ใน git stash บนเครื่องนี้ ถ้าไม่มีให้สร้างใหม่ด้วย `npx drizzle-kit generate --custom --name=db_timeouts`):
-  `ALTER ROLE CURRENT_USER SET statement_timeout='20s'; ... lock_timeout='10s'; ... idle_in_transaction_session_timeout='30s';`
+- ผู้ใช้อนุมัติแล้ว → migration `0006_db_timeouts` (migrate Supabase แล้ว): role postgres
+  statement_timeout=20s, lock_timeout=10s, idle_in_transaction_session_timeout=30s (ตรวจ pg_roles.rolconfig แล้ว)
+  หมายเหตุ: connection เดิมใน pooler ยังเป็นค่าเก่า (2min) จนกว่าจะถูกรีไซเคิล — งานหนัก (backfill) ให้ SET statement_timeout เองในเซสชัน
   ผล: ค้างสูงสุด ~20 วิแล้วหน้า error ลองใหม่เอง แทนการหมุน 2 นาที
 
 ---

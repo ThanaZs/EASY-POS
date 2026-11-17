@@ -43,6 +43,13 @@
       "when": 1794907913727,
       "tag": "0005_sloppy_the_anarchist",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1794909000888,
+      "tag": "0006_db_timeouts",
+      "breakpoints": true
     }
   ]
 }
