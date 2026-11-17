@@ -146,15 +146,39 @@ export function VirtualKeyboard({
     };
   }, []);
 
+  // iPhone/iPad ที่ต่อคีย์บอร์ดจริง: iOS แสดงแถบ ˄ ˅ ✓ ลอยอยู่ล่างจอ (เว็บย้าย/ซ่อนไม่ได้)
+  // → ยกคีย์บอร์ดของเราขึ้นเหนือแถบนั้น: ใช้ส่วนที่ visualViewport ถูกบังจริง ถ้าวัดไม่ได้ (แถบลอยทับ) เผื่อไว้ 64px บน iOS
+  const [lift, setLift] = useState(0);
+  useEffect(() => {
+    if (!target) return;
+    const vv = window.visualViewport;
+    const ios =
+      /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+      (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
+    const update = () => {
+      const covered = vv
+        ? Math.max(0, window.innerHeight - (vv.offsetTop + vv.height))
+        : 0;
+      setLift(covered >= 40 ? covered : ios ? 64 : 0);
+    };
+    update();
+    vv?.addEventListener("resize", update);
+    vv?.addEventListener("scroll", update);
+    return () => {
+      vv?.removeEventListener("resize", update);
+      vv?.removeEventListener("scroll", update);
+    };
+  }, [target]);
+
   // ดันเนื้อหาขึ้นไม่ให้คีย์บอร์ดบังช่อง
   useEffect(() => {
     if (!target) return;
-    const h = panel.current?.offsetHeight ?? 0;
+    const h = (panel.current?.offsetHeight ?? 0) + lift;
     document.body.style.paddingBottom = `${h}px`;
     return () => {
       document.body.style.paddingBottom = "";
     };
-  }, [target, mode]);
+  }, [target, mode, lift]);
 
   function insert(text: string) {
     const el = target;
@@ -247,6 +271,7 @@ export function VirtualKeyboard({
   return (
     <div
       ref={panel}
+      style={{ bottom: lift }}
       className="fixed inset-x-0 bottom-0 z-[80] space-y-1.5 border-t border-line bg-surface p-1.5 pb-[max(0.375rem,env(safe-area-inset-bottom))] shadow-[0_-8px_24px_rgba(0,0,0,0.12)]"
       onPointerDown={keep}
     >
