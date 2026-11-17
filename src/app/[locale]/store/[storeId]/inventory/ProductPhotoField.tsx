@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Camera, ImageOff, Trash2 } from "lucide-react";
 import { PhotoCapture } from "@/components/PhotoCapture";
 import type { Dictionary } from "@/i18n/dictionary";
+import { CATALOG_FILL, type CatalogFillDetail } from "./CatalogLookup";
 
 /**
  * รูปสินค้าในฟอร์ม: ถ่ายจากกล้องในเว็บเท่านั้น (ไม่มีปุ่มเลือกไฟล์)
@@ -22,7 +23,26 @@ export function ProductPhotoField({
   const [open, setOpen] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
   const [removed, setRemoved] = useState(false);
-  useEffect(() => () => void (preview && URL.revokeObjectURL(preview)), [preview]);
+  // รูปจากคลังข้อมูล (ใช้เมื่อไม่ได้ถ่ายเอง) — server โหลดมาเก็บตอนบันทึก
+  const [catalog, setCatalog] = useState<{ url: string; ref: string } | null>(
+    null,
+  );
+  useEffect(() => {
+    const onFill = (e: Event) => {
+      const { imageUrl, imageRef } = (e as CustomEvent<CatalogFillDetail>)
+        .detail;
+      if (imageUrl && imageRef) {
+        setCatalog({ url: imageUrl, ref: imageRef });
+        setRemoved(false);
+      }
+    };
+    window.addEventListener(CATALOG_FILL, onFill);
+    return () => window.removeEventListener(CATALOG_FILL, onFill);
+  }, []);
+  useEffect(
+    () => () => void (preview && URL.revokeObjectURL(preview)),
+    [preview],
+  );
 
   function useShot(blob: Blob) {
     const ext = blob.type === "image/webp" ? "webp" : "jpg";
@@ -38,10 +58,11 @@ export function ProductPhotoField({
   function remove() {
     if (fileRef.current) fileRef.current.value = "";
     setPreview(null);
+    setCatalog(null);
     setRemoved(true);
   }
 
-  const shown = preview ?? (removed ? null : currentUrl);
+  const shown = preview ?? (removed ? null : (catalog?.url ?? currentUrl));
 
   return (
     <div className="space-y-2 sm:col-span-2">
@@ -64,20 +85,41 @@ export function ProductPhotoField({
             <Camera className="size-4" /> {shown ? t.change : t.take}
           </button>
           {shown && (
-            <button type="button" onClick={remove} className="flex items-center gap-2 text-sm text-rose-600 hover:underline">
+            <button
+              type="button"
+              onClick={remove}
+              className="flex items-center gap-2 text-sm text-rose-600 hover:underline"
+            >
               <Trash2 className="size-4" /> {t.remove}
             </button>
           )}
           <p className="text-xs text-muted">{t.hint}</p>
         </div>
       </div>
-      <input ref={fileRef} type="file" name="photo" accept="image/webp,image/jpeg" hidden tabIndex={-1} />
+      <input
+        ref={fileRef}
+        type="file"
+        name="photo"
+        accept="image/webp,image/jpeg"
+        hidden
+        tabIndex={-1}
+      />
       {removed && <input type="hidden" name="removePhoto" value="1" />}
+      {catalog && !preview && (
+        <input type="hidden" name="catalogImage" value={catalog.ref} />
+      )}
       {open && (
         <PhotoCapture
           onDone={useShot}
           onClose={() => setOpen(false)}
-          labels={{ title: t.title, capture: t.capture, retake: t.retake, use: t.use, close: t.close, noCamera }}
+          labels={{
+            title: t.title,
+            capture: t.capture,
+            retake: t.retake,
+            use: t.use,
+            close: t.close,
+            noCamera,
+          }}
         />
       )}
     </div>

@@ -499,5 +499,16 @@
     "cancel": "Cancel",
     "deleted": "Store deleted",
     "left": "You left the store"
+  },
+  "catalog": {
+    "searching": "Looking up this product…",
+    "found": "Product info found",
+    "use": "Use this",
+    "dismiss": "Dismiss",
+    "used": "Filled in — review it, then add a price",
+    "notFound": "No info for this barcode — fill it in yourself (it will help other stores)",
+    "fromCatalog": "EASY-POS catalog",
+    "fromOff": "Data from Open Food Facts (CC BY-SA)",
+    "fromObf": "Data from Open Beauty Facts (CC BY-SA)"
   }
 }

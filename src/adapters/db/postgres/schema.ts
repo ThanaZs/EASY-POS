@@ -234,3 +234,20 @@ export const auditLogs = pgTable("audit_logs", {
   details: jsonb("details").notNull().default({}),
   createdAt: createdAt(),
 });
+
+// ===== คลังข้อมูลสินค้ากลาง (ใช้ร่วมทุกร้าน) =====
+// บาร์โค้ด → ชื่อ/หมวด/หน่วย/รูป สำหรับกรอกให้อัตโนมัติตอนเพิ่มสินค้า
+// เก็บเฉพาะข้อมูลทั่วไปของสินค้า — ไม่มีราคา/ต้นทุน/สต็อก/ร้านไหนเพิ่ม (ไม่ผูก store_id โดยตั้งใจ)
+export const catalogItems = pgTable("catalog_items", {
+  barcode: text("barcode").primaryKey(),
+  name: text("name").notNull(),
+  brand: text("brand"),
+  category: text("category"),
+  subcategory: text("subcategory"),
+  unit: text("unit"),
+  imagePath: text("image_path"), // รูปใน storage ของเรา (catalog/...)
+  imageUrl: text("image_url"), // รูปต้นทางภายนอก (Open Food Facts) — ยังไม่ได้คัดลอกมา
+  source: text("source").notNull(), // "store" | "off" | "obf"
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+});

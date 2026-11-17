@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Camera } from "lucide-react";
 import { toEnglishLayout, useBarcodeScanner } from "@/client/devices/scanner";
 import { CameraScanner } from "@/components/CameraScanner";
 import { ScannerStatus } from "@/components/devices/ScannerStatus";
 import { fill } from "@/core/lib/format";
 import type { Dictionary } from "@/i18n/dictionary";
+import { CatalogLookup } from "./CatalogLookup";
 
 /**
  * ช่องบาร์โค้ด:
@@ -18,12 +19,16 @@ export function BarcodeField({
   defaultValue,
   scan,
   devices,
+  lookup,
 }: {
   label: string;
   defaultValue: string;
   scan: Dictionary["scan"];
   devices: Dictionary["devices"];
+  /** หน้าเพิ่มสินค้าใหม่: ค้นคลังข้อมูลเมื่อได้บาร์โค้ด */
+  lookup?: { locale: string; storeId: string; t: Dictionary["catalog"] };
 }) {
+  const inputRef = useRef<HTMLInputElement>(null);
   const [value, setValue] = useState(defaultValue);
   const [open, setOpen] = useState(false);
   const [flash, setFlash] = useState("");
@@ -44,6 +49,7 @@ export function BarcodeField({
       </div>
       <span className="flex gap-2">
         <input
+          ref={inputRef}
           id="barcode"
           name="barcode"
           value={value}
@@ -57,7 +63,9 @@ export function BarcodeField({
           inputMode="text"
           lang="en"
           className={`w-full rounded-xl border bg-card px-3 py-2.5 font-mono outline-none transition focus:border-brand focus:ring-2 focus:ring-brand-soft ${
-            flash ? "border-emerald-500 ring-2 ring-emerald-200 dark:ring-emerald-900" : "border-line"
+            flash
+              ? "border-emerald-500 ring-2 ring-emerald-200 dark:ring-emerald-900"
+              : "border-line"
           }`}
         />
         <button
@@ -71,11 +79,23 @@ export function BarcodeField({
         </button>
       </span>
       {flash && (
-        <p className="text-xs text-emerald-700 dark:text-emerald-300" role="status">
+        <p
+          className="text-xs text-emerald-700 dark:text-emerald-300"
+          role="status"
+        >
           {flash}
         </p>
       )}
-      {open && <CameraScanner onDetected={fillCode} onClose={() => setOpen(false)} labels={scan} />}
+      {lookup && (
+        <CatalogLookup barcode={value} anchor={inputRef} {...lookup} />
+      )}
+      {open && (
+        <CameraScanner
+          onDetected={fillCode}
+          onClose={() => setOpen(false)}
+          labels={scan}
+        />
+      )}
     </div>
   );
 }

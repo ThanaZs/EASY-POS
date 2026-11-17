@@ -32,7 +32,8 @@ export function ProductForm({
   photoUrl: string | null;
 }) {
   const msg = pickMessage(t.inventory.errors, error);
-  const money = (v?: number | null) => (v === undefined || v === null ? "" : minorToInput(v, store.currency));
+  const money = (v?: number | null) =>
+    v === undefined || v === null ? "" : minorToInput(v, store.currency);
   const inv = t.inventory;
   return (
     <Card>
@@ -46,11 +47,31 @@ export function ProductForm({
           </div>
         )}
         {/* บาร์โค้ดอยู่บนสุด: ยิงเครื่องสแกนได้ทันทีที่เปิดฟอร์ม */}
-        <BarcodeField label={inv.barcode} defaultValue={product?.barcode ?? ""} scan={t.scan} devices={t.devices} />
+        <BarcodeField
+          label={inv.barcode}
+          defaultValue={product?.barcode ?? ""}
+          scan={t.scan}
+          devices={t.devices}
+          lookup={
+            product ? undefined : { locale, storeId: store.id, t: t.catalog }
+          }
+        />
         <div className="sm:col-span-2">
-          <Field label={inv.name} name="name" defaultValue={product?.name} maxLength={120} required />
+          <Field
+            label={inv.name}
+            name="name"
+            defaultValue={product?.name}
+            maxLength={120}
+            required
+          />
         </div>
-        {photoEnabled && <ProductPhotoField currentUrl={photoUrl} t={t.photo} noCamera={t.scan.noCamera} />}
+        {photoEnabled && (
+          <ProductPhotoField
+            currentUrl={photoUrl}
+            t={t.photo}
+            noCamera={t.scan.noCamera}
+          />
+        )}
         <Field
           label={`${inv.price} (${store.currency})`}
           name="price"
@@ -78,8 +99,19 @@ export function ProductForm({
             newPlaceholder: inv.newCategoryPlaceholder,
           }}
         />
-        <Field label={inv.unit} name="unit" defaultValue={product?.unit ?? "ชิ้น"} maxLength={20} />
-        <Field label={inv.sku} name="sku" defaultValue={product?.sku ?? ""} maxLength={60} autoComplete="off" />
+        <Field
+          label={inv.unit}
+          name="unit"
+          defaultValue={product?.unit ?? "ชิ้น"}
+          maxLength={20}
+        />
+        <Field
+          label={inv.sku}
+          name="sku"
+          defaultValue={product?.sku ?? ""}
+          maxLength={60}
+          autoComplete="off"
+        />
         <PackFields
           baseUnit={product?.unit ?? "ชิ้น"}
           currency={store.currency}
@@ -100,7 +132,14 @@ export function ProductForm({
           }}
         />
         {!product && (
-          <Field label={inv.initialStock} name="initialQty" type="number" min={0} defaultValue={0} inputMode="numeric" />
+          <Field
+            label={inv.initialStock}
+            name="initialQty"
+            type="number"
+            min={0}
+            defaultValue={0}
+            inputMode="numeric"
+          />
         )}
         <Field
           label={inv.lowThreshold}
@@ -114,10 +153,19 @@ export function ProductForm({
           label={inv.expiresAt}
           name="expiresAt"
           type="date"
-          defaultValue={product?.expiresAt ? product.expiresAt.toISOString().slice(0, 10) : ""}
+          defaultValue={
+            product?.expiresAt
+              ? product.expiresAt.toISOString().slice(0, 10)
+              : ""
+          }
         />
         <label className="flex items-center gap-2 text-sm sm:col-span-2">
-          <input type="checkbox" name="trackStock" defaultChecked={product?.trackStock ?? true} className="size-4" />
+          <input
+            type="checkbox"
+            name="trackStock"
+            defaultChecked={product?.trackStock ?? true}
+            className="size-4"
+          />
           {inv.trackStock}
         </label>
         <div className="sm:col-span-2">

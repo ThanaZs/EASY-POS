@@ -1,5 +1,5 @@
 import "server-only";
-import { and, asc, desc, eq, ne, sql } from "drizzle-orm";
+import { and, asc, desc, eq, isNull, ne, sql } from "drizzle-orm";
 import type {
   Store,
   StoreInvite,
@@ -9,13 +9,22 @@ import type {
 import { inviteState } from "@/core/domain/invite";
 import { normalizeCode, randomCode } from "@/core/lib/code";
 import type {
+  CatalogItem,
+  CatalogRepo,
   Repositories,
   StoreRepo,
   UserRepo,
 } from "@/core/ports/repositories";
 import { getDb } from "./client";
 import { productRepo, saleRepo, stockRepo } from "./inventory";
-import { accounts, storeInvites, storeMembers, stores, users } from "./schema";
+import {
+  accounts,
+  catalogItems,
+  storeInvites,
+  storeMembers,
+  stores,
+  users,
+} from "./schema";
 
 // ===== แปลงแถว DB → domain =====
 type UserRow = typeof users.$inferSelect;
@@ -312,8 +321,73 @@ function storeRepo(): StoreRepo {
   };
 }
 
+function catalogRepo(): CatalogRepo {
+  const db = getDb();
+  const toItem = (r: typeof catalogItems.$inferSelect): CatalogItem => ({
+    barcode: r.barcode,
+    name: r.name,
+    brand: r.brand,
+    category: r.category,
+    subcategory: r.subcategory,
+    unit: r.unit,
+    imagePath: r.imagePath,
+    imageUrl: r.imageUrl,
+    source: r.source as CatalogItem["source"],
+  });
+  return {
+    async get(barcode) {
+      const [r] = await db
+        .select()
+        .from(catalogItems)
+        .where(eq(catalogItems.barcode, barcode))
+        .limit(1);
+      return r ? toItem(r) : null;
+    },
+    async contribute(items) {
+      const rows = items
+        .filter((i) => i.barcode && i.name)
+        .map((i) => ({ ...i, source: "store" }));
+      if (!rows.length) return;
+      for (let k = 0; k < rows.length; k += 500) {
+        await db
+          .insert(catalogItems)
+          .values(rows.slice(k, k + 500))
+          .onConflictDoUpdate({
+            target: catalogItems.barcode,
+            set: {
+              name: sql`excluded.name`,
+              category: sql`excluded.category`,
+              subcategory: sql`excluded.subcategory`,
+              unit: sql`excluded.unit`,
+              source: sql`'store'`,
+              updatedAt: sql`now()`,
+            },
+            setWhere: sql`${catalogItems.source} <> 'store'`, // ข้อมูลจากร้านอื่นที่มีอยู่แล้ว → ไม่ทับ
+          });
+      }
+    },
+    async saveExternal(item) {
+      await db.insert(catalogItems).values(item).onConflictDoNothing();
+    },
+    async setImageIfMissing(barcode, imagePath) {
+      const rows = await db
+        .update(catalogItems)
+        .set({ imagePath, updatedAt: sql`now()` })
+        .where(
+          and(
+            eq(catalogItems.barcode, barcode),
+            isNull(catalogItems.imagePath),
+          ),
+        )
+        .returning({ b: catalogItems.barcode });
+      return rows.length > 0;
+    },
+  };
+}
+
 export function createPostgresRepositories(): Repositories {
   return {
+    catalog: catalogRepo(),
     users: userRepo(),
     stores: storeRepo(),
     products: productRepo(),

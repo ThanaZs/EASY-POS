@@ -1,11 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { CATALOG_FILL, type CatalogFillDetail } from "./CatalogLookup";
 import type { CategoryNode } from "@/core/ports/repositories";
 
 const NEW = "__new__";
 
-type Labels = { category: string; subcategory: string; none: string; addNew: string; newPlaceholder: string };
+type Labels = {
+  category: string;
+  subcategory: string;
+  none: string;
+  addNew: string;
+  newPlaceholder: string;
+};
 
 /**
  * เลือกหมวดหลัก/หมวดย่อยจากที่เคยใช้ (dropdown) หรือ "+ เพิ่มหมวดใหม่" แล้วพิมพ์
@@ -24,13 +31,40 @@ export function CategoryPicker({
 }) {
   const known = tree.map((n) => n.category);
   const [cat, setCat] = useState(defaultCategory ?? "");
-  const [catNew, setCatNew] = useState(!!defaultCategory && !known.includes(defaultCategory));
-  const subsOf = (c: string) => tree.find((n) => n.category === c)?.subcategories ?? [];
+  const [catNew, setCatNew] = useState(
+    !!defaultCategory && !known.includes(defaultCategory),
+  );
+  const subsOf = (c: string) =>
+    tree.find((n) => n.category === c)?.subcategories ?? [];
   const [sub, setSub] = useState(defaultSubcategory ?? "");
-  const [subNew, setSubNew] = useState(!!defaultSubcategory && !subsOf(defaultCategory ?? "").includes(defaultSubcategory));
+  const [subNew, setSubNew] = useState(
+    !!defaultSubcategory &&
+      !subsOf(defaultCategory ?? "").includes(defaultSubcategory),
+  );
   const subs = subsOf(cat);
 
-  const selectCls = "w-full rounded-xl border border-line bg-card px-3 py-2.5 outline-none focus:border-brand";
+  // กด "ใช้ข้อมูลนี้" จากคลังข้อมูล → ตั้งหมวดให้ (ถ้าคลังมีหมวด)
+  useEffect(() => {
+    const onFill = (e: Event) => {
+      const { category, subcategory } = (e as CustomEvent<CatalogFillDetail>)
+        .detail;
+      if (!category) return;
+      setCat(category);
+      setCatNew(!tree.some((n) => n.category === category));
+      setSub(subcategory ?? "");
+      setSubNew(
+        !!subcategory &&
+          !(
+            tree.find((n) => n.category === category)?.subcategories ?? []
+          ).includes(subcategory),
+      );
+    };
+    window.addEventListener(CATALOG_FILL, onFill);
+    return () => window.removeEventListener(CATALOG_FILL, onFill);
+  }, [tree]);
+
+  const selectCls =
+    "w-full rounded-xl border border-line bg-card px-3 py-2.5 outline-none focus:border-brand";
   const inputCls =
     "mt-2 w-full rounded-xl border border-brand bg-card px-3 py-2.5 outline-none focus:ring-2 focus:ring-brand-soft";
 
@@ -101,7 +135,11 @@ export function CategoryPicker({
             className={inputCls}
           />
         )}
-        <input type="hidden" name="subcategory" value={cat.trim() ? sub.trim() : ""} />
+        <input
+          type="hidden"
+          name="subcategory"
+          value={cat.trim() ? sub.trim() : ""}
+        />
       </label>
     </>
   );

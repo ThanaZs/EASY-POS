@@ -18,7 +18,16 @@ export type RawImportRow = {
   subcategory?: string;
 };
 
-const EMPTY = new Set(["", "nan", "none", "null", "-", "n/a", "#n/a", "undefined"]);
+const EMPTY = new Set([
+  "",
+  "nan",
+  "none",
+  "null",
+  "-",
+  "n/a",
+  "#n/a",
+  "undefined",
+]);
 const clean = (v: unknown, max: number) => {
   const s = String(v ?? "").trim();
   return EMPTY.has(s.toLowerCase()) ? null : s.slice(0, max);
@@ -29,7 +38,8 @@ function cleanBarcode(v: unknown): string | null {
   let s = clean(v, 64);
   if (!s) return null;
   if (/^\d+\.0+$/.test(s)) s = s.replace(/\.0+$/, "");
-  else if (/^\d(\.\d+)?e\+?\d+$/i.test(s)) s = BigInt(Math.round(Number(s))).toString();
+  else if (/^\d(\.\d+)?e\+?\d+$/i.test(s))
+    s = BigInt(Math.round(Number(s))).toString();
   return toEnglishLayout(s);
 }
 
@@ -45,7 +55,9 @@ function cleanQty(v: unknown): number | null {
   const s = clean(v, 32);
   if (!s) return null;
   const n = Math.round(Number(s.replace(/[,\s]/g, "")));
-  return Number.isFinite(n) ? Math.max(-1_000_000, Math.min(1_000_000, n)) : null;
+  return Number.isFinite(n)
+    ? Math.max(-1_000_000, Math.min(1_000_000, n))
+    : null;
 }
 
 /** นำเข้าทีละก้อน (client แบ่งส่ง ≤ 300 แถว) */
@@ -56,19 +68,42 @@ export async function importProductsAction(input: {
   updateStock: boolean;
 }): Promise<ImportResult & { ok: true }> {
   const locale = isLocale(input.locale) ? input.locale : "th";
-  const { store, user } = await requireStoreAccess(locale, input.storeId, "products.create");
-  const rows: ImportRow[] = (Array.isArray(input.rows) ? input.rows : []).slice(0, 300).map((r) => {
-    const category = clean(r.category, 60);
-    return {
-      barcode: cleanBarcode(r.barcode),
-      name: clean(r.name, 120) ?? "",
-      priceMinor: cleanMoney(r.price, store.currency),
-      costMinor: cleanMoney(r.cost, store.currency),
-      stockQty: cleanQty(r.stock),
-      category,
-      subcategory: category ? clean(r.subcategory, 60) : null,
-    };
+  const { store, user } = await requireStoreAccess(
+    locale,
+    input.storeId,
+    "products.create",
+  );
+  const rows: ImportRow[] = (Array.isArray(input.rows) ? input.rows : [])
+    .slice(0, 300)
+    .map((r) => {
+      const category = clean(r.category, 60);
+      return {
+        barcode: cleanBarcode(r.barcode),
+        name: clean(r.name, 120) ?? "",
+        priceMinor: cleanMoney(r.price, store.currency),
+        costMinor: cleanMoney(r.cost, store.currency),
+        stockQty: cleanQty(r.stock),
+        category,
+        subcategory: category ? clean(r.subcategory, 60) : null,
+      };
+    });
+  const repos = await getRepositories();
+  const res = await repos.products.importRows(store.id, rows, user.id, {
+    updateStock: !!input.updateStock,
   });
-  const res = await (await getRepositories()).products.importRows(store.id, rows, user.id, { updateStock: !!input.updateStock });
+  // เติมคลังข้อมูลกลาง (ชื่อ/หมวด — ไม่มีราคา/สต็อก) — พลาดได้ ไม่กระทบการนำเข้า
+  await repos.catalog
+    .contribute(
+      rows
+        .filter((r) => r.barcode && r.name)
+        .map((r) => ({
+          barcode: r.barcode!,
+          name: r.name,
+          category: r.category,
+          subcategory: r.subcategory,
+          unit: "ชิ้น",
+        })),
+    )
+    .catch((e) => console.error("catalog contribute failed", e));
   return { ok: true, ...res };
 }

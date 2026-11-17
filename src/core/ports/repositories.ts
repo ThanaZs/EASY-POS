@@ -146,7 +146,34 @@ export interface SaleRepo {
   dailyTotals(storeId: ID, from: string, to: string): Promise<DailySales[]>;
 }
 
+/** คลังข้อมูลสินค้ากลาง (ทุกร้านใช้ร่วม) — ไม่มีราคา/สต็อก */
+export type CatalogItem = {
+  barcode: string;
+  name: string;
+  brand: string | null;
+  category: string | null;
+  subcategory: string | null;
+  unit: string | null;
+  imagePath: string | null;
+  imageUrl: string | null;
+  source: "store" | "off" | "obf";
+};
+
+export interface CatalogRepo {
+  get(barcode: string): Promise<CatalogItem | null>;
+  /**
+   * เพิ่ม/อัปเดตจากร้าน: ยังไม่มี → เพิ่ม; มีจากแหล่งภายนอก → แทนด้วยข้อมูลร้าน; มีจากร้านแล้ว → คงชื่อเดิม
+   * รูป: เติมเฉพาะเมื่อยังไม่มีรูปในคลัง
+   */
+  contribute(items: Array<Pick<CatalogItem, "barcode" | "name" | "category" | "subcategory" | "unit">>): Promise<void>;
+  /** เก็บผลจากแหล่งภายนอก (ไม่ทับข้อมูลที่มีอยู่) */
+  saveExternal(item: CatalogItem): Promise<void>;
+  /** ใส่รูปให้รายการที่ยังไม่มีรูป — คืน true ถ้าใส่ */
+  setImageIfMissing(barcode: string, imagePath: string): Promise<boolean>;
+}
+
 export interface Repositories {
+  catalog: CatalogRepo;
   users: UserRepo;
   stores: StoreRepo;
   products: ProductRepo;
