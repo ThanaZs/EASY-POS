@@ -241,7 +241,16 @@
     "unit": "Unit",
     "unitBase": "Unit (retail)",
     "unitPack": "Case / pack",
-    "noPack": "This product has no case/pack set up — set it on the product page or receive by unit"
+    "noPack": "This product has no case/pack set up — set it on the product page or receive by unit",
+    "barcode": "Barcode",
+    "barcodeHint": "Scan, or type and press Enter",
+    "searchProduct": "Search name / SKU",
+    "change": "Change",
+    "all": "All",
+    "noSub": "No subcategory",
+    "noMatch": "No products found",
+    "mustPick": "Pick a product first (scan a barcode or tap one in the list)",
+    "inStock": "In stock {n} {unit}"
   },
   "pos": {
     "search": "Scan / search products",
