@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Camera } from "lucide-react";
-import { useBarcodeScanner } from "@/client/devices/scanner";
+import { toEnglishLayout, useBarcodeScanner } from "@/client/devices/scanner";
 import { CameraScanner } from "@/components/CameraScanner";
 import { ScannerStatus } from "@/components/devices/ScannerStatus";
 import { fill } from "@/core/lib/format";
@@ -48,11 +48,14 @@ export function BarcodeField({
           name="barcode"
           value={value}
           onChange={(e) => {
-            setValue(e.target.value);
+            // คีย์บอร์ดค้างภาษาไทยตอนยิง/พิมพ์ → แปลง "ๅ/-ภ" กลับเป็น "1234" ทันที
+            setValue(toEnglishLayout(e.target.value));
             setFlash("");
           }}
           maxLength={60}
           autoComplete="off"
+          inputMode="text"
+          lang="en"
           className={`w-full rounded-xl border bg-card px-3 py-2.5 font-mono outline-none transition focus:border-brand focus:ring-2 focus:ring-brand-soft ${
             flash ? "border-emerald-500 ring-2 ring-emerald-200 dark:ring-emerald-900" : "border-line"
           }`}

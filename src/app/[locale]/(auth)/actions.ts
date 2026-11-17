@@ -76,7 +76,7 @@ export async function loginAction(form: FormData) {
   }
   if (!code) {
     await clearPendingEmail();
-    redirect(`/${locale}/hub`);
+    redirect(`/${locale}/hub?welcome=1`);
   }
   await setPendingEmail(email);
   // รหัสผ่านถูกแต่ยังไม่ยืนยันอีเมล → ส่ง OTP แล้วไปหน้ายืนยัน
@@ -125,7 +125,7 @@ export async function verifyEmailAction(form: FormData) {
   }
   if (code) redirect(`/${locale}/verify?error=${mapError(code)}`);
   await clearPendingEmail();
-  redirect(`/${locale}/hub`);
+  redirect(`/${locale}/hub?welcome=1`);
 }
 
 export async function resendOtpAction(form: FormData) {
@@ -182,7 +182,7 @@ export async function resetPasswordAction(form: FormData) {
 export async function googleAction(form: FormData) {
   const locale = localeOf(form);
   const res = await getAuth().api.signInSocial({
-    body: { provider: "google", callbackURL: `/${locale}/hub`, errorCallbackURL: `/${locale}/login?error=failed` },
+    body: { provider: "google", callbackURL: `/${locale}/hub?welcome=1`, errorCallbackURL: `/${locale}/login?error=failed` },
     headers: await headers(),
   });
   if (!res.url) redirect(`/${locale}/login?error=failed`);

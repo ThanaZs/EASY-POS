@@ -335,12 +335,7 @@
     "scanNotFound": "No product with barcode {code}",
     "scanFilled": "✓ Barcode {code} filled in",
     "scanSelected": "✓ Selected {name}",
-    "scannerConnectBt": "Connect via Bluetooth",
-    "scannerBtHint": "A window will open to pick your scanner — turn on the scanner and Bluetooth first",
-    "scannerHidHint": "This scanner works as a keyboard (HID) and can't be connected from the web — pair it in the device's Bluetooth settings, then scan once",
-    "scannerBtFailed": "Connection failed — turn the scanner off and on, then try again",
-    "scannerOr": "Or, if your scanner works as a keyboard (USB / paired in Bluetooth settings):",
-    "scannerVia": "via"
+    "scannerReset": "Status resets to “Not detected” whenever you close or leave the page — scan once to reconnect"
   },
   "photo": {
     "title": "Product photo",
@@ -352,5 +347,45 @@
     "use": "Use this photo",
     "close": "Close",
     "hint": "Taken with the in-app camera only — cropped to 600×600 and compressed automatically"
+  },
+  "install": {
+    "title": "Install EASY-POS on this device",
+    "subtitle": "Opens fast, full screen, with an icon on your home screen — no app store needed",
+    "installNow": "Install now",
+    "later": "Later",
+    "installed": "Installed ✓ Open it from your home screen icon",
+    "yourDevice": "Your device",
+    "howTitle": "How to install",
+    "tabs": {
+      "ios": "iPhone / iPad",
+      "android": "Android",
+      "samsung": "Samsung Internet",
+      "desktop": "Computer"
+    },
+    "steps": {
+      "ios": [
+        "Open this site in Safari (or Chrome on iOS 16.4+)",
+        "Tap the Share button (square with an up arrow)",
+        "Scroll down and tap “Add to Home Screen”",
+        "Tap “Add” in the top-right corner"
+      ],
+      "android": [
+        "Open this site in Chrome",
+        "Tap ⋮ in the top-right corner",
+        "Tap “Install app” or “Add to Home screen”",
+        "Tap “Install”"
+      ],
+      "samsung": [
+        "Tap ☰ in the bottom-right corner",
+        "Tap “Add page to”",
+        "Choose “Home screen” and tap “Add”"
+      ],
+      "desktop": [
+        "Open in Chrome or Edge",
+        "Click the install icon (monitor with arrow) at the right of the address bar",
+        "Or click ⋮ → “Install EASY-POS” / “Apps → Install this site as an app”",
+        "Click “Install”"
+      ]
+    }
   }
 }

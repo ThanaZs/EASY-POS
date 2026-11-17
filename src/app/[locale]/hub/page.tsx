@@ -1,4 +1,6 @@
 import { LogOut, PlusSquare, Store, UserCog, UserPlus } from "lucide-react";
+import { Suspense } from "react";
+import { InstallPrompt } from "@/components/InstallPrompt";
 import { Tile, TileButton } from "@/components/Tile";
 import { loadLocale } from "@/i18n/page";
 import { requireUser } from "@/server/session";
@@ -17,6 +19,9 @@ export default async function HubPage({ params }: PageProps<"/[locale]/hub">) {
   ];
   return (
     <>
+      <Suspense>
+        <InstallPrompt t={t.install} />
+      </Suspense>
       <h1 className="mb-5 text-xl font-bold">{t.hub.title}</h1>
       <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-5">
         {items.map((i) => (

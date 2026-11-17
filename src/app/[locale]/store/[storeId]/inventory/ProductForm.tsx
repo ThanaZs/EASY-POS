@@ -41,8 +41,10 @@ export function ProductForm({
             <Alert>{msg}</Alert>
           </div>
         )}
+        {/* บาร์โค้ดอยู่บนสุด: ยิงเครื่องสแกนได้ทันทีที่เปิดฟอร์ม */}
+        <BarcodeField label={t.inventory.barcode} defaultValue={product?.barcode ?? ""} scan={t.scan} devices={t.devices} />
         <div className="sm:col-span-2">
-          <Field label={t.inventory.name} name="name" defaultValue={product?.name} maxLength={120} required autoFocus={!product} />
+          <Field label={t.inventory.name} name="name" defaultValue={product?.name} maxLength={120} required />
         </div>
         {photoEnabled && <ProductPhotoField currentUrl={photoUrl} t={t.photo} noCamera={t.scan.noCamera} />}
         <Field
@@ -60,7 +62,6 @@ export function ProductForm({
           defaultValue={money(product?.costMinor)}
           placeholder="0"
         />
-        <BarcodeField label={t.inventory.barcode} defaultValue={product?.barcode ?? ""} scan={t.scan} devices={t.devices} />
         <Field label={t.inventory.sku} name="sku" defaultValue={product?.sku ?? ""} maxLength={60} autoComplete="off" />
         <Field
           label={t.inventory.category}

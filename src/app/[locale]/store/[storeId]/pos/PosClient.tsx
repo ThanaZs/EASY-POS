@@ -9,7 +9,7 @@ import { CameraScanner } from "@/components/CameraScanner";
 import { PrinterStatus } from "@/components/devices/PrinterStatus";
 import { ScannerStatus } from "@/components/devices/ScannerStatus";
 import { getAutoPrint, printSlip } from "@/client/devices/printer";
-import { useBarcodeScanner } from "@/client/devices/scanner";
+import { toEnglishLayout, useBarcodeScanner } from "@/client/devices/scanner";
 import { receiptToSlip } from "@/client/devices/slip";
 import type { PaymentMethod } from "@/core/domain/types";
 import { fill, formatMoney, parseMoney } from "@/core/lib/format";
@@ -79,7 +79,11 @@ export function PosClient(props: Props) {
     return products.filter(
       (p) =>
         (!category || p.category === category) &&
-        (!q || p.name.toLowerCase().includes(q) || p.barcode === search.trim() || p.sku?.toLowerCase().includes(q)),
+        (!q ||
+          p.name.toLowerCase().includes(q) ||
+          p.barcode === search.trim() ||
+          p.barcode === toEnglishLayout(search.trim()) ||
+          p.sku?.toLowerCase().includes(q)),
     );
   }, [products, search, category]);
 
@@ -127,7 +131,8 @@ export function PosClient(props: Props) {
     const code = raw.trim();
     if (!code) return;
     const q = code.toLowerCase();
-    const exact = products.find((p) => p.barcode === code || p.sku === code);
+    const en = toEnglishLayout(code); // ยิงตอนคีย์บอร์ดเป็นภาษาไทย
+    const exact = products.find((p) => p.barcode === code || p.sku === code || p.barcode === en || p.sku === en);
     const matches = exact ? [exact] : products.filter((p) => p.name.toLowerCase().includes(q));
     const target = matches.length === 1 ? matches[0] : null;
     if (target) {

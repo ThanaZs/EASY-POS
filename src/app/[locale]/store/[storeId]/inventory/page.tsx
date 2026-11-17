@@ -1,11 +1,13 @@
 import Link from "next/link";
-import { ChevronRight, ImageOff, Plus, Search } from "lucide-react";
+import { ChevronRight, ImageOff, Plus } from "lucide-react";
 import { can } from "@/core/domain/permissions";
 import { fill, formatMoney } from "@/core/lib/format";
+import { toEnglishLayout } from "@/core/lib/keyboard";
 import { loadLocale } from "@/i18n/page";
 import { getRepositories, getStorage } from "@/server/container";
 import { requireStoreAccess } from "@/server/session";
 import { BackLink } from "../BackLink";
+import { InventoryFilters } from "./InventoryFilters";
 import { ScanToSearch } from "./ScanToSearch";
 import { StockBadge } from "./StockBadge";
 
@@ -19,11 +21,15 @@ export default async function InventoryPage({ params, searchParams }: PageProps<
   const low = sp.low === "1";
 
   const repos = await getRepositories();
-  const [items, categories, storage] = await Promise.all([
-    repos.products.list(storeId, { search: q, category: cat || undefined, lowStockOnly: low }),
+  const filter = { category: cat || undefined, lowStockOnly: low };
+  const [found, categories, storage] = await Promise.all([
+    repos.products.list(storeId, { ...filter, search: q }),
     repos.products.categories(storeId),
     getStorage(),
   ]);
+  // พิมพ์/ยิงตอนคีย์บอร์ดค้างภาษาไทย ("ๅ/-ภ") แล้วไม่เจอ → ลองแปลงเป็นแป้นอังกฤษ ("1234")
+  const en = toEnglishLayout(q);
+  const items = found.length === 0 && en !== q ? await repos.products.list(storeId, { ...filter, search: en }) : found;
   const base = `/${locale}/store/${storeId}/inventory`;
   const canEdit = can(member, "products.edit");
 
@@ -43,31 +49,13 @@ export default async function InventoryPage({ params, searchParams }: PageProps<
       </div>
 
       <ScanToSearch devices={t.devices} />
-      <form className="flex flex-wrap gap-2" role="search">
-        <label className="relative min-w-48 flex-1">
-          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted" />
-          <input
-            name="q"
-            defaultValue={q}
-            placeholder={t.inventory.search}
-            className="w-full rounded-xl border border-line bg-card py-2 pl-9 pr-3 outline-none focus:border-brand"
-          />
-        </label>
-        <select name="cat" defaultValue={cat} className="rounded-xl border border-line bg-card px-3 py-2">
-          <option value="">{t.inventory.allCategories}</option>
-          {categories.map((c) => (
-            <option key={c} value={c}>
-              {c}
-            </option>
-          ))}
-        </select>
-        <label className="flex items-center gap-2 rounded-xl border border-line bg-card px-3 py-2 text-sm">
-          <input type="checkbox" name="low" value="1" defaultChecked={low} /> {t.inventory.lowOnly}
-        </label>
-        <button className="rounded-xl border border-line bg-card px-4 py-2 text-sm font-medium hover:bg-surface">
-          <Search className="size-4" aria-label={t.inventory.search} />
-        </button>
-      </form>
+      <InventoryFilters
+        q={q}
+        cat={cat}
+        low={low}
+        categories={categories}
+        labels={{ search: t.inventory.search, allCategories: t.inventory.allCategories, lowOnly: t.inventory.lowOnly }}
+      />
 
       <p className="text-sm text-muted">{fill(t.inventory.count, { n: items.length })}</p>
       {items.length === 0 ? (

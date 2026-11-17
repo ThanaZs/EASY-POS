@@ -7,7 +7,7 @@ import { emailOTP } from "better-auth/plugins/email-otp";
 import { getDb } from "@/adapters/db/postgres/client";
 import * as schema from "@/adapters/db/postgres/schema";
 import { defaultLocale, defaultTimeZone } from "@/i18n/config";
-import { appUrl, buildId, env, trustedOrigins } from "./env";
+import { appUrl, env, trustedOrigins } from "./env";
 import { sendOtpMail } from "./mail";
 
 /** สมัครด้วยอีเมล+รหัสผ่านได้เฉพาะ Gmail (Google ยืนยันตัวตนเจ้าของอีเมลแล้ว) */
@@ -46,8 +46,8 @@ function createAuth() {
     verification: { modelName: "verifications" },
     advanced: {
       database: { generateId: "uuid" }, // ให้ Postgres สร้าง uuid เอง
-      // ชื่อ cookie ผูกกับเวอร์ชันที่ deploy → deploy ใหม่ = cookie เดิมใช้ไม่ได้ = ทุกคนต้องล็อกอินใหม่ (ได้เวอร์ชันล่าสุดเสมอ)
-      cookiePrefix: `ep-${buildId.replace(/[^a-zA-Z0-9]/g, "").slice(-10)}`,
+      // ชื่อ cookie คงที่ → deploy ใหม่ไม่ต้องล็อกอินใหม่ (หน้าเว็บโหลดเวอร์ชันล่าสุดเองผ่าน deploymentId)
+      cookiePrefix: "ep",
     },
     emailAndPassword: {
       enabled: true,
