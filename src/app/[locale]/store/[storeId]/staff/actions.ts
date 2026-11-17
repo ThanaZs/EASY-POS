@@ -37,6 +37,16 @@ export async function createInviteAction(form: FormData) {
   redirect(`/${locale}/store/${storeId}/staff`);
 }
 
+/** ลบรหัสเชิญที่ยังไม่มีใครใช้ (กดสร้างผิด) — ผู้จัดการลบรหัสระดับผู้จัดการไม่ได้ */
+export async function deleteInviteAction(form: FormData) {
+  const { locale, storeId } = ctx(form);
+  const { member } = await requireStoreAccess(locale, storeId, "staff.manage");
+  const repos = await getRepositories();
+  const inv = (await repos.stores.listInvites(storeId)).find((i) => i.id === str(form, "inviteId"));
+  if (inv && (member.role === "owner" || inv.role !== "manager")) await repos.stores.deleteUnusedInvite(storeId, inv.id);
+  redirect(`/${locale}/store/${storeId}/staff`);
+}
+
 export async function removeMemberAction(form: FormData) {
   const { locale, storeId } = ctx(form);
   const { user, member } = await requireStoreAccess(locale, storeId, "staff.manage");

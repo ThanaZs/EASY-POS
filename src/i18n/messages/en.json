@@ -145,7 +145,11 @@
     "expires": "Expires",
     "noInvites": "No invite codes yet",
     "remove": "Remove",
-    "inviteHint": "Send this code to your staff, then they open Join a store"
+    "inviteHint": "Send this code to your staff, then they open Join a store",
+    "deleteInvite": "Delete invite code",
+    "deleteInviteTitle": "Delete invite code {code}?",
+    "deleteInviteWarn": "This code can no longer be used to join (only unused codes can be deleted)",
+    "deleteInviteConfirm": "Delete code"
   },
   "inventory": {
     "add": "Add product",

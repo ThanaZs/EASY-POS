@@ -52,6 +52,8 @@ export interface StoreRepo {
     input: Pick<StoreInvite, "storeId" | "role" | "maxUses" | "expiresAt" | "createdBy">,
   ): Promise<StoreInvite>;
   listInvites(storeId: ID): Promise<StoreInvite[]>;
+  /** ลบรหัสเชิญที่ยังไม่มีใครใช้ — คืน false ถ้าใช้ไปแล้ว/ไม่พบ */
+  deleteUnusedInvite(storeId: ID, inviteId: ID): Promise<boolean>;
   updateSettings(storeId: ID, patch: StoreSettings): Promise<Store>;
   /** ต้องทำใน transaction: ตรวจรหัสเชิญ (หมดอายุ/ใช้ครบ) + เพิ่มสมาชิก + นับการใช้ */
   redeemInvite(code: string, userId: ID): Promise<RedeemInviteResult>;

@@ -152,13 +152,11 @@ function storeRepo(): StoreRepo {
             .insert(stores)
             .values({ ...input, code })
             .returning();
-          await tx
-            .insert(storeMembers)
-            .values({
-              storeId: store.id,
-              userId: input.ownerId,
-              role: "owner",
-            });
+          await tx.insert(storeMembers).values({
+            storeId: store.id,
+            userId: input.ownerId,
+            role: "owner",
+          });
           return toStore(store);
         }),
       );
@@ -263,6 +261,19 @@ function storeRepo(): StoreRepo {
         .where(eq(storeInvites.storeId, storeId))
         .orderBy(desc(storeInvites.createdAt));
       return rows.map(toInvite);
+    },
+    async deleteUnusedInvite(storeId, inviteId) {
+      const rows = await db
+        .delete(storeInvites)
+        .where(
+          and(
+            eq(storeInvites.storeId, storeId),
+            eq(storeInvites.id, inviteId),
+            eq(storeInvites.usedCount, 0),
+          ),
+        )
+        .returning({ id: storeInvites.id });
+      return rows.length > 0;
     },
     async redeemInvite(rawCode, userId) {
       const code = normalizeCode(rawCode);
