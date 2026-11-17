@@ -105,6 +105,7 @@ export interface Product {
   expiresAt: Date | null;
   imagePath: string | null; // รูปสินค้าใน storage
   isActive: boolean;
+  note: string; // หมายเหตุ (ภายในร้าน)
   pinned: boolean; // ปักหมุด: แสดงก่อน (ทั้งในคลังและหน้าขาย, ในหมวดที่เลือกก็ขึ้นก่อน)
   createdAt: Date;
   updatedAt: Date;

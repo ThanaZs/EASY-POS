@@ -135,6 +135,7 @@ export const products = pgTable(
     expiresAt: timestamp("expires_at", { withTimezone: true }),
     imagePath: text("image_path"), // path ใน storage (ไม่ใช่ URL — ย้ายผู้ให้บริการได้)
     isActive: boolean("is_active").notNull().default(true),
+    note: text("note").notNull().default(""), // หมายเหตุสินค้า (ใช้ภายในร้าน)
     pinned: boolean("pinned").notNull().default(false), // ปักหมุด: แสดงก่อนในคลัง/หน้าขาย
     createdAt: createdAt(),
     updatedAt: updatedAt(),

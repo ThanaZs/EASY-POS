@@ -171,6 +171,14 @@ export function ProductForm({
               : ""
           }
         />
+        <Field
+          label={inv.note}
+          name="note"
+          defaultValue={product?.note ?? ""}
+          maxLength={500}
+          placeholder={inv.notePlaceholder}
+          autoComplete="off"
+        />
         <label className="flex items-center gap-2 text-sm sm:col-span-2">
           <input
             type="checkbox"

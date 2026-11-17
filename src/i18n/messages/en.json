@@ -212,7 +212,9 @@
     "currentStockHint": "Set to the counted amount — recorded as an adjustment in stock history",
     "pin": "Pin (show first)",
     "unpin": "Unpin",
-    "pinOnly": "Pinned"
+    "pinOnly": "Pinned",
+    "note": "Note",
+    "notePlaceholder": "e.g. shelf 2, ordered from supplier A"
   },
   "stock": {
     "product": "Product",
@@ -578,7 +580,8 @@
       "taxIncluded": "Prices include tax",
       "receiptFooter": "Receipt footer",
       "allowNegativeStock": "Allow negative stock",
-      "pinned": "Pinned"
+      "pinned": "Pinned",
+      "note": "Note"
     }
   }
 }

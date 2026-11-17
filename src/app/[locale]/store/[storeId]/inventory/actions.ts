@@ -36,6 +36,7 @@ const PRODUCT_FIELDS = [
   "lowStockThreshold",
   "trackStock",
   "expiresAt",
+  "note",
 ] as const satisfies ReadonlyArray<keyof ProductInput>;
 
 type Image = { bytes: Uint8Array; type: string; ext: string };
@@ -163,6 +164,7 @@ export async function saveProductAction(form: FormData) {
       store.lowStockThreshold,
     ),
     trackStock: form.get("trackStock") === "on",
+    note: str(form, "note").slice(0, 500),
     expiresAt: /^\d{4}-\d{2}-\d{2}$/.test(expires)
       ? new Date(`${expires}T00:00:00Z`)
       : null,

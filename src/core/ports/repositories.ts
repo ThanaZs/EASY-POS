@@ -76,6 +76,7 @@ export type ProductInput = Pick<
   | "lowStockThreshold"
   | "trackStock"
   | "expiresAt"
+  | "note"
 >;
 
 /** hasNoSub = มีสินค้าในหมวดนี้ที่ไม่ได้ใส่หมวดย่อย */
