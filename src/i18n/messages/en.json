@@ -442,5 +442,24 @@
       "category": "Category",
       "subcategory": "Subcategory"
     }
+  },
+  "danger": {
+    "zone": "Danger zone",
+    "deleteHint": "Permanently delete this store and all its data (owner only)",
+    "deleteStore": "Delete store",
+    "deleteTitle": "Delete {name} permanently?",
+    "deleteWarn": "This cannot be undone",
+    "deleteData": "All products, product photos, bills, stock history and invite codes of this store",
+    "deleteStaff": "All staff will lose access to this store",
+    "typeName": "Type the store name to confirm:",
+    "deleteConfirm": "Delete forever",
+    "mismatch": "The store name doesn't match, try again",
+    "leave": "Leave this store",
+    "leaveTitle": "Leave {name}?",
+    "leaveWarn": "You'll lose access until the owner sends you a new invite code — the store's data is kept",
+    "leaveConfirm": "Leave store",
+    "cancel": "Cancel",
+    "deleted": "Store deleted",
+    "left": "You left the store"
   }
 }

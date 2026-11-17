@@ -1,9 +1,18 @@
 import "server-only";
 import { and, asc, desc, eq, ne, sql } from "drizzle-orm";
-import type { Store, StoreInvite, StoreMember, User } from "@/core/domain/types";
+import type {
+  Store,
+  StoreInvite,
+  StoreMember,
+  User,
+} from "@/core/domain/types";
 import { inviteState } from "@/core/domain/invite";
 import { normalizeCode, randomCode } from "@/core/lib/code";
-import type { Repositories, StoreRepo, UserRepo } from "@/core/ports/repositories";
+import type {
+  Repositories,
+  StoreRepo,
+  UserRepo,
+} from "@/core/ports/repositories";
 import { getDb } from "./client";
 import { productRepo, saleRepo, stockRepo } from "./inventory";
 import { accounts, storeInvites, storeMembers, stores, users } from "./schema";
@@ -69,7 +78,10 @@ function isUniqueViolation(e: unknown): boolean {
 }
 
 /** ลองใหม่เมื่อรหัสสุ่มชนกัน (โอกาสน้อยมาก) */
-async function withUniqueCode<T>(fn: (code: string) => Promise<T>, length = 6): Promise<T> {
+async function withUniqueCode<T>(
+  fn: (code: string) => Promise<T>,
+  length = 6,
+): Promise<T> {
   for (let i = 0; i < 5; i++) {
     try {
       return await fn(randomCode(length));
@@ -84,11 +96,19 @@ function userRepo(): UserRepo {
   const db = getDb();
   return {
     async findById(id) {
-      const [r] = await db.select().from(users).where(eq(users.id, id)).limit(1);
+      const [r] = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, id))
+        .limit(1);
       return r ? toUser(r) : null;
     },
     async findByEmail(email) {
-      const [r] = await db.select().from(users).where(eq(users.email, email.toLowerCase())).limit(1);
+      const [r] = await db
+        .select()
+        .from(users)
+        .where(eq(users.email, email.toLowerCase()))
+        .limit(1);
       return r ? toUser(r) : null;
     },
     async updateProfile(id, patch) {
@@ -103,14 +123,19 @@ function userRepo(): UserRepo {
       const rows = await db
         .select({ id: accounts.id })
         .from(accounts)
-        .where(and(eq(accounts.userId, id), eq(accounts.providerId, "credential")))
+        .where(
+          and(eq(accounts.userId, id), eq(accounts.providerId, "credential")),
+        )
         .limit(1);
       return rows.length > 0;
     },
     async deleteAccount(id) {
       await db.transaction(async (tx) => {
         await tx.delete(stores).where(eq(stores.ownerId, id)); // cascade: สินค้า, บิล, สต็อก, สมาชิก, รหัสเชิญ
-        await tx.update(storeInvites).set({ createdBy: null }).where(eq(storeInvites.createdBy, id));
+        await tx
+          .update(storeInvites)
+          .set({ createdBy: null })
+          .where(eq(storeInvites.createdBy, id));
         await tx.delete(users).where(eq(users.id, id)); // cascade: sessions, accounts, store_members
       });
     },
@@ -123,18 +148,35 @@ function storeRepo(): StoreRepo {
     createWithOwner(input) {
       return withUniqueCode((code) =>
         db.transaction(async (tx) => {
-          const [store] = await tx.insert(stores).values({ ...input, code }).returning();
-          await tx.insert(storeMembers).values({ storeId: store.id, userId: input.ownerId, role: "owner" });
+          const [store] = await tx
+            .insert(stores)
+            .values({ ...input, code })
+            .returning();
+          await tx
+            .insert(storeMembers)
+            .values({
+              storeId: store.id,
+              userId: input.ownerId,
+              role: "owner",
+            });
           return toStore(store);
         }),
       );
     },
     async findById(id) {
-      const [r] = await db.select().from(stores).where(eq(stores.id, id)).limit(1);
+      const [r] = await db
+        .select()
+        .from(stores)
+        .where(eq(stores.id, id))
+        .limit(1);
       return r ? toStore(r) : null;
     },
     async findByCode(code) {
-      const [r] = await db.select().from(stores).where(eq(stores.code, normalizeCode(code))).limit(1);
+      const [r] = await db
+        .select()
+        .from(stores)
+        .where(eq(stores.code, normalizeCode(code)))
+        .limit(1);
       return r ? toStore(r) : null;
     },
     async listForUser(userId) {
@@ -144,19 +186,34 @@ function storeRepo(): StoreRepo {
         .innerJoin(stores, eq(stores.id, storeMembers.storeId))
         .where(eq(storeMembers.userId, userId))
         .orderBy(asc(stores.name));
-      return rows.map((r) => ({ store: toStore(r.store), member: toMember(r.member) }));
+      return rows.map((r) => ({
+        store: toStore(r.store),
+        member: toMember(r.member),
+      }));
     },
     async getMember(storeId, userId) {
       const [r] = await db
         .select()
         .from(storeMembers)
-        .where(and(eq(storeMembers.storeId, storeId), eq(storeMembers.userId, userId)))
+        .where(
+          and(
+            eq(storeMembers.storeId, storeId),
+            eq(storeMembers.userId, userId),
+          ),
+        )
         .limit(1);
       return r ? toMember(r) : null;
     },
     async listMembers(storeId) {
       const rows = await db
-        .select({ member: storeMembers, user: { id: users.id, email: users.email, displayName: users.displayName } })
+        .select({
+          member: storeMembers,
+          user: {
+            id: users.id,
+            email: users.email,
+            displayName: users.displayName,
+          },
+        })
         .from(storeMembers)
         .innerJoin(users, eq(users.id, storeMembers.userId))
         .where(eq(storeMembers.storeId, storeId))
@@ -167,15 +224,35 @@ function storeRepo(): StoreRepo {
       // ลบเจ้าของร้านไม่ได้
       await db
         .delete(storeMembers)
-        .where(and(eq(storeMembers.storeId, storeId), eq(storeMembers.userId, userId), ne(storeMembers.role, "owner")));
+        .where(
+          and(
+            eq(storeMembers.storeId, storeId),
+            eq(storeMembers.userId, userId),
+            ne(storeMembers.role, "owner"),
+          ),
+        );
+    },
+    async deleteStore(storeId, ownerId) {
+      const rows = await db
+        .delete(stores)
+        .where(and(eq(stores.id, storeId), eq(stores.ownerId, ownerId)))
+        .returning({ id: stores.id });
+      return rows.length > 0;
     },
     async updateSettings(storeId, patch) {
-      const [r] = await db.update(stores).set(patch).where(eq(stores.id, storeId)).returning();
+      const [r] = await db
+        .update(stores)
+        .set(patch)
+        .where(eq(stores.id, storeId))
+        .returning();
       return toStore(r);
     },
     createInvite(input) {
       return withUniqueCode(async (code) => {
-        const [r] = await db.insert(storeInvites).values({ ...input, code }).returning();
+        const [r] = await db
+          .insert(storeInvites)
+          .values({ ...input, code })
+          .returning();
         return toInvite(r);
       }, 8);
     },
@@ -191,17 +268,28 @@ function storeRepo(): StoreRepo {
       const code = normalizeCode(rawCode);
       return db.transaction(async (tx) => {
         // FOR UPDATE: กันสองคนใช้รหัสสุดท้ายพร้อมกัน
-        const [inv] = await tx.select().from(storeInvites).where(eq(storeInvites.code, code)).for("update").limit(1);
+        const [inv] = await tx
+          .select()
+          .from(storeInvites)
+          .where(eq(storeInvites.code, code))
+          .for("update")
+          .limit(1);
         if (!inv) return { ok: false, reason: "not_found" } as const;
         const state = inviteState(inv);
         if (state !== "active") return { ok: false, reason: state } as const;
 
         const inserted = await tx
           .insert(storeMembers)
-          .values({ storeId: inv.storeId, userId, role: inv.role, permissions: inv.permissions })
+          .values({
+            storeId: inv.storeId,
+            userId,
+            role: inv.role,
+            permissions: inv.permissions,
+          })
           .onConflictDoNothing()
           .returning({ id: storeMembers.id });
-        if (inserted.length === 0) return { ok: false, reason: "already_member" } as const;
+        if (inserted.length === 0)
+          return { ok: false, reason: "already_member" } as const;
 
         await tx
           .update(storeInvites)

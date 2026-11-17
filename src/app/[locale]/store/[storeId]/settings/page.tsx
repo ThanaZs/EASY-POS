@@ -4,14 +4,24 @@ import { Select, timeZoneOptions } from "@/components/Select";
 import { loadLocale } from "@/i18n/page";
 import { requireStoreAccess } from "@/server/session";
 import { BackLink } from "../BackLink";
+import { StoreDangerDialog } from "../StoreDangerDialog";
 import { saveSettingsAction } from "./actions";
 
-export default async function SettingsPage({ params, searchParams }: PageProps<"/[locale]/store/[storeId]/settings">) {
+export default async function SettingsPage({
+  params,
+  searchParams,
+}: PageProps<"/[locale]/store/[storeId]/settings">) {
   const { locale, t } = await loadLocale(params);
   const { storeId } = await params;
-  const { store } = await requireStoreAccess(locale, storeId, "store.settings");
+  const { store, member } = await requireStoreAccess(
+    locale,
+    storeId,
+    "store.settings",
+  );
+  const sp = await searchParams;
   const s = t.settings;
-  const section = "space-y-4 border-t border-line pt-4 first:border-0 first:pt-0";
+  const section =
+    "space-y-4 border-t border-line pt-4 first:border-0 first:pt-0";
 
   return (
     <div className="mx-auto max-w-xl space-y-4">
@@ -21,14 +31,26 @@ export default async function SettingsPage({ params, searchParams }: PageProps<"
         <form action={saveSettingsAction} className="space-y-4">
           <input type="hidden" name="locale" value={locale} />
           <input type="hidden" name="storeId" value={storeId} />
-          {(await searchParams).saved === "1" && <Alert kind="success">{s.saved}</Alert>}
+          {sp.saved === "1" && <Alert kind="success">{s.saved}</Alert>}
 
           <fieldset className={section}>
             <legend className="mb-2 font-semibold">{s.general}</legend>
-            <Field label={s.storeName} name="name" defaultValue={store.name} maxLength={80} required />
-            <Select label={s.timezone} name="timeZone" options={timeZoneOptions()} defaultValue={store.timeZone} />
+            <Field
+              label={s.storeName}
+              name="name"
+              defaultValue={store.name}
+              maxLength={80}
+              required
+            />
+            <Select
+              label={s.timezone}
+              name="timeZone"
+              options={timeZoneOptions()}
+              defaultValue={store.timeZone}
+            />
             <p className="text-sm text-muted">
-              {s.currency}: <b className="text-ink">{store.currency}</b> — {s.currencyFixed}
+              {s.currency}: <b className="text-ink">{store.currency}</b> —{" "}
+              {s.currencyFixed}
             </p>
           </fieldset>
 
@@ -43,7 +65,12 @@ export default async function SettingsPage({ params, searchParams }: PageProps<"
             />
             <p className="text-xs text-muted">{s.taxHint}</p>
             <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" name="taxIncluded" defaultChecked={store.taxIncluded} className="size-4" />
+              <input
+                type="checkbox"
+                name="taxIncluded"
+                defaultChecked={store.taxIncluded}
+                className="size-4"
+              />
               {s.taxIncluded}
             </label>
           </fieldset>
@@ -59,7 +86,12 @@ export default async function SettingsPage({ params, searchParams }: PageProps<"
               inputMode="numeric"
             />
             <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" name="allowNegativeStock" defaultChecked={store.allowNegativeStock} className="size-4" />
+              <input
+                type="checkbox"
+                name="allowNegativeStock"
+                defaultChecked={store.allowNegativeStock}
+                className="size-4"
+              />
               {s.allowNegative}
             </label>
           </fieldset>
@@ -82,6 +114,22 @@ export default async function SettingsPage({ params, searchParams }: PageProps<"
           <PrimaryButton type="submit">{s.save}</PrimaryButton>
         </form>
       </Card>
+      {member.role === "owner" && (
+        <section className="space-y-3 rounded-2xl border border-rose-200 bg-card p-4 dark:border-rose-900">
+          <div>
+            <h2 className="font-semibold text-rose-600">{t.danger.zone}</h2>
+            <p className="text-sm text-muted">{t.danger.deleteHint}</p>
+          </div>
+          <StoreDangerDialog
+            mode="delete"
+            locale={locale}
+            storeId={storeId}
+            storeName={store.name}
+            t={t.danger}
+            mismatch={sp.del === "mismatch"}
+          />
+        </section>
+      )}
     </div>
   );
 }

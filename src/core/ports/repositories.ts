@@ -46,6 +46,8 @@ export interface StoreRepo {
   getMember(storeId: ID, userId: ID): Promise<StoreMember | null>;
   listMembers(storeId: ID): Promise<MemberWithUser[]>;
   removeMember(storeId: ID, userId: ID): Promise<void>;
+  /** ลบร้านถาวร (เฉพาะเจ้าของ) — cascade: สินค้า, บิล, สต็อก, สมาชิก, รหัสเชิญ; คืน false ถ้าไม่ใช่เจ้าของ/ไม่พบ */
+  deleteStore(storeId: ID, ownerId: ID): Promise<boolean>;
   createInvite(
     input: Pick<StoreInvite, "storeId" | "role" | "maxUses" | "expiresAt" | "createdBy">,
   ): Promise<StoreInvite>;
