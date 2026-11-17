@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { Check, ScanBarcode, X } from "lucide-react";
-import { isScannerConnected, useBarcodeScanner, useScannerState } from "@/client/devices/scanner";
+import { isScannerConnected, useBarcodeScanner, useKeyLog, useScannerState } from "@/client/devices/scanner";
 import type { Dictionary } from "@/i18n/dictionary";
 import { DeviceChip } from "./DeviceChip";
 
@@ -10,6 +10,19 @@ import { DeviceChip } from "./DeviceChip";
 function TestCatcher({ onCode }: { onCode: (c: string) => void }) {
   useBarcodeScanner(onCode);
   return null;
+}
+
+/** แสดงปุ่มที่เครื่องได้รับล่าสุด — ใช้ดูว่าเครื่องสแกนส่งอะไรมา (ช่วยแก้ปัญหาเฉพาะเครื่อง) */
+function KeyLogView({ label }: { label: string }) {
+  const log = useKeyLog();
+  return (
+    <details className="text-xs text-muted">
+      <summary className="cursor-pointer">{label} ({log.length})</summary>
+      <code className="mt-1 block break-all rounded-lg bg-surface p-2 font-mono">
+        {log.length ? log.map((k) => `${k.src === "input" ? "i:" : ""}${k.key}${k.code ? `/${k.code}` : ""}+${k.dt}`).join("  ") : "—"}
+      </code>
+    </details>
+  );
 }
 
 /** ปุ่มสถานะเครื่องสแกน (แบบคีย์บอร์ด USB / Bluetooth ที่จับคู่ในตั้งค่าเครื่อง) + หน้าต่างวิธีเชื่อม/ทดสอบ */
@@ -70,6 +83,14 @@ export function ScannerStatus({ t }: { t: Dictionary["devices"] }) {
               <p className="animate-pulse text-muted">{t.scannerWaiting}</p>
             )}
           </div>
+          <input
+            autoFocus
+            inputMode="none"
+            autoComplete="off"
+            placeholder={t.scannerTapHere}
+            className="w-full rounded-xl border border-line bg-surface px-3 py-2 text-center text-sm"
+          />
+          {open && <KeyLogView label={t.scannerDebug} />}
           <p className="text-xs text-muted">✓ {t.scannerLang}</p>
           <p className="text-xs text-muted">{t.scannerReset}</p>
         </div>

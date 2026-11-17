@@ -96,10 +96,40 @@ export function setInputValue(el: HTMLInputElement | HTMLTextAreaElement, value:
 }
 
 // ---------- 1) แบบคีย์บอร์ด ----------
+// iPad/iPhone: Bluetooth ส่งปุ่มช้ากว่าและเป็นจังหวะไม่สม่ำเสมอ → ผ่อนเกณฑ์ให้
+const IOS =
+  typeof navigator !== "undefined" &&
+  (/iPad|iPhone|iPod/.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1));
 const MIN_LEN = 4; // สั้นสุดที่ถือว่าเป็นบาร์โค้ด
-const MAX_GAP_MS = 200; // ห่างกว่านี้ = เริ่มนับใหม่
-const MAX_AVG_MS = 100; // เฉลี่ยเร็วกว่านี้ = เครื่องสแกน (เครื่อง Bluetooth บางรุ่นช้ากว่าแบบสาย; คนพิมพ์ ~150ms+)
-const NO_SUFFIX_IDLE_MS = 180; // เครื่องที่ไม่ส่ง Enter ต่อท้าย: หยุดพิมพ์เท่านี้ = จบรหัส
+const MAX_GAP_MS = IOS ? 350 : 200; // ห่างกว่านี้ = เริ่มนับใหม่
+const MAX_AVG_MS = IOS ? 140 : 100; // เฉลี่ยเร็วกว่านี้ = เครื่องสแกน (คนพิมพ์ ~150ms+)
+const NO_SUFFIX_IDLE_MS = IOS ? 400 : 180; // เครื่องที่ไม่ส่ง Enter ต่อท้าย: หยุดพิมพ์เท่านี้ = จบรหัส
+
+// ---------- บันทึกปุ่มที่เข้ามา (ดูในหน้าต่างทดสอบ ใช้หาสาเหตุเมื่อเครื่องไหนอ่านไม่ได้) ----------
+export type KeyLog = { key: string; code: string; dt: number; src: "key" | "input" };
+let keyLog: KeyLog[] = [];
+let logLast = 0;
+const logListeners = new Set<() => void>();
+function logKey(key: string, code: string, src: KeyLog["src"]) {
+  if (!logListeners.size) return;
+  const now = performance.now();
+  keyLog = [...keyLog.slice(-11), { key, code, dt: logLast ? Math.round(now - logLast) : 0, src }];
+  logLast = now;
+  logListeners.forEach((l) => l());
+}
+export function useKeyLog(): KeyLog[] {
+  return useSyncExternalStore(
+    (cb) => {
+      install();
+      logListeners.add(cb);
+      keyLog = [];
+      logLast = 0;
+      return () => logListeners.delete(cb);
+    },
+    () => keyLog,
+    () => keyLog,
+  );
+}
 const NO_SUFFIX_MIN_LEN = 6; // ...และต้องยาวพอ (กันคนพิมพ์เร็วๆ สั้นๆ)
 
 let installed = false;
@@ -122,6 +152,18 @@ function install() {
     const gaps = times.slice(1).map((t, i) => t - times[i]);
     return gaps.length ? gaps.reduce((a, b) => a + b, 0) / gaps.length : Infinity;
   };
+  let lastKeyCharAt = -Infinity; // keydown ล่าสุดที่อ่านตัวอักษรได้ (กันนับซ้ำกับ input event)
+  const push = (ch: KeyChar, now: number) => {
+    if (times.length && now - times[times.length - 1] > MAX_GAP_MS) reset();
+    if (!chars.length) {
+      const a = document.activeElement;
+      snapshot = a instanceof HTMLInputElement || a instanceof HTMLTextAreaElement ? { el: a, value: a.value } : null;
+    }
+    chars.push(ch);
+    times.push(now);
+    clearTimeout(idleTimer);
+    idleTimer = setTimeout(() => finish(NO_SUFFIX_MIN_LEN), NO_SUFFIX_IDLE_MS);
+  };
   const reset = () => {
     chars = [];
     times = [];
@@ -143,10 +185,10 @@ function install() {
   window.addEventListener(
     "keydown",
     (e) => {
-      if (e.ctrlKey || e.altKey || e.metaKey || e.isComposing) return;
+      logKey(e.key, e.code, "key");
+      if (e.ctrlKey || e.altKey || e.metaKey) return;
       const now = performance.now();
       if (times.length && now - times[times.length - 1] > MAX_GAP_MS) reset();
-
       if (e.key === "Enter" || e.code === "Enter" || e.code === "NumpadEnter" || e.key === "Tab") {
         if (finish(MIN_LEN)) {
           e.preventDefault(); // ไม่ให้ Enter ของเครื่องสแกนไป submit ฟอร์ม
@@ -157,14 +199,31 @@ function install() {
 
       const ch = charFromEvent(e);
       if (ch === null) return;
-      if (!chars.length) {
-        const a = document.activeElement;
-        snapshot = a instanceof HTMLInputElement || a instanceof HTMLTextAreaElement ? { el: a, value: a.value } : null;
+      lastKeyCharAt = now;
+      push(ch, now);
+    },
+    { capture: true },
+  );
+
+  // สำรอง: บางเครื่อง (iPad/iOS, คีย์บอร์ดบางภาษา) keydown ไม่บอกตัวอักษร ("Unidentified")
+  // แต่ช่องกรอกยังได้ข้อความ → อ่านจาก input event แทน
+  window.addEventListener(
+    "input",
+    (e) => {
+      const ie = e as InputEvent;
+      const now = performance.now();
+      if (ie.inputType === "insertLineBreak") {
+        if (finish(MIN_LEN)) e.stopImmediatePropagation();
+        return;
       }
-      chars.push(ch);
-      times.push(now);
-      clearTimeout(idleTimer);
-      idleTimer = setTimeout(() => finish(NO_SUFFIX_MIN_LEN), NO_SUFFIX_IDLE_MS);
+      if (ie.inputType !== "insertText" || !ie.data) return;
+      logKey(ie.data, "", "input");
+      if (now - lastKeyCharAt < 60) return; // keydown อ่านไปแล้ว
+      // เครื่องสแกนส่งทีละ 1 ตัว — ข้อความหลายตัวพร้อมกัน = คีย์บอร์ดเดาคำ/วาง ไม่ใช่การสแกน
+      const raw = ie.data;
+      if ([...raw].length !== 1) return reset();
+      const en = TH_TO_EN.get(raw);
+      push(/^[\x20-\x7e]$/.test(raw) ? { ch: raw, raw } : en ? { ch: en, raw } : { ch: raw, raw: null }, now);
     },
     { capture: true },
   );

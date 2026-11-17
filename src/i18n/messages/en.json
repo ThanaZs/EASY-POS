@@ -351,7 +351,9 @@
     "scanNotFound": "No product with barcode {code}",
     "scanFilled": "✓ Barcode {code} filled in",
     "scanSelected": "✓ Selected {name}",
-    "scannerReset": "Status resets to “Not detected” whenever you close or leave the page — scan once to reconnect"
+    "scannerReset": "Status resets to “Not detected” whenever you close or leave the page — scan once to reconnect",
+    "scannerTapHere": "If nothing shows (e.g. iPad), tap this field first, then scan again",
+    "scannerDebug": "Keys received (for troubleshooting)"
   },
   "photo": {
     "title": "Product photo",
