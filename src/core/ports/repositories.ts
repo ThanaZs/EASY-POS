@@ -5,6 +5,8 @@
 import type {
   CreateSaleResult,
   ID,
+  ImportResult,
+  ImportRow,
   PaymentMethod,
   Product,
   RedeemInviteResult,
@@ -55,13 +57,33 @@ export interface StoreRepo {
 
 export type ProductInput = Pick<
   Product,
-  "sku" | "barcode" | "name" | "category" | "unit" | "priceMinor" | "costMinor" | "lowStockThreshold" | "trackStock" | "expiresAt"
+  | "sku"
+  | "barcode"
+  | "name"
+  | "category"
+  | "subcategory"
+  | "unit"
+  | "packUnit"
+  | "packSize"
+  | "packPriceMinor"
+  | "packBarcode"
+  | "priceMinor"
+  | "costMinor"
+  | "lowStockThreshold"
+  | "trackStock"
+  | "expiresAt"
 >;
+
+export type CategoryNode = { category: string; subcategories: string[] };
 
 export interface ProductRepo {
   list(storeId: ID, q?: { search?: string; category?: string; lowStockOnly?: boolean }): Promise<Product[]>;
   findById(storeId: ID, id: ID): Promise<Product | null>;
   categories(storeId: ID): Promise<string[]>;
+  /** หมวดหลัก + หมวดย่อยที่เคยใช้ (ให้เลือกในฟอร์ม/กรองหน้าขาย) */
+  categoryTree(storeId: ID): Promise<CategoryNode[]>;
+  /** นำเข้าจากไฟล์ — บาร์โค้ดซ้ำ = อัปเดต, ไม่ซ้ำ/ไม่มีบาร์โค้ด = สร้างใหม่ (ใน transaction) */
+  importRows(storeId: ID, rows: ImportRow[], actorId: ID, opts: { updateStock: boolean }): Promise<ImportResult>;
   /** สร้างสินค้า + (ถ้า initialQty > 0) บันทึกรับเข้าครั้งแรก — ใน transaction */
   create(storeId: ID, input: ProductInput, initialQty: number, actorId: ID): Promise<Product>;
   update(storeId: ID, id: ID, patch: Partial<ProductInput>): Promise<Product | null>;

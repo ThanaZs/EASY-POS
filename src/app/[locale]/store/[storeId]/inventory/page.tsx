@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ChevronRight, ImageOff, Plus } from "lucide-react";
+import { ChevronRight, FileSpreadsheet, ImageOff, Plus } from "lucide-react";
 import { can } from "@/core/domain/permissions";
 import { fill, formatMoney } from "@/core/lib/format";
 import { toEnglishLayout } from "@/core/lib/keyboard";
@@ -39,12 +39,20 @@ export default async function InventoryPage({ params, searchParams }: PageProps<
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-xl font-bold">{t.store.modules.inventory}</h1>
         {can(member, "products.create") && (
+          <div className="flex gap-2">
+          <Link
+            href={`${base}/import`}
+            className="inline-flex items-center gap-1 rounded-xl border border-line bg-card px-3 py-2 text-sm font-medium hover:border-brand"
+          >
+            <FileSpreadsheet className="size-4" /> {t.import.button}
+          </Link>
           <Link
             href={`${base}/new`}
             className="inline-flex items-center gap-1 rounded-xl bg-brand px-3 py-2 text-sm font-semibold text-white hover:opacity-90"
           >
             <Plus className="size-4" /> {t.inventory.add}
           </Link>
+          </div>
         )}
       </div>
 
@@ -78,7 +86,7 @@ export default async function InventoryPage({ params, searchParams }: PageProps<
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-medium">{p.name}</p>
                   <p className="truncate text-xs text-muted">
-                    {[p.category, p.sku, p.barcode].filter(Boolean).join(" · ") || "—"}
+                    {[[p.category, p.subcategory].filter(Boolean).join(" › "), p.sku, p.barcode].filter(Boolean).join(" · ") || "—"}
                   </p>
                 </div>
                 <div className="text-right">

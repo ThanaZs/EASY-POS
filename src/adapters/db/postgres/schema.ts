@@ -120,7 +120,13 @@ export const products = pgTable(
     barcode: text("barcode"),
     name: text("name").notNull(),
     category: text("category"),
-    unit: text("unit").notNull().default("pcs"),
+    subcategory: text("subcategory"),
+    unit: text("unit").notNull().default("pcs"), // หน่วยขายปลีก = หน่วยนับสต็อก (ชิ้น)
+    // ขายยกแพ็ก/ลัง (ไม่บังคับ): 1 packUnit = packSize unit
+    packUnit: text("pack_unit"),
+    packSize: integer("pack_size"),
+    packPriceMinor: bigint("pack_price_minor", { mode: "number" }), // null = ราคาชิ้น × packSize
+    packBarcode: text("pack_barcode"),
     priceMinor: money("price_minor"),
     costMinor: money("cost_minor"),
     stockQty: integer("stock_qty").notNull().default(0),
@@ -134,6 +140,7 @@ export const products = pgTable(
   },
   (t) => [
     uniqueIndex("products_store_barcode").on(t.storeId, t.barcode),
+    uniqueIndex("products_store_pack_barcode").on(t.storeId, t.packBarcode),
     index("products_store_name").on(t.storeId, t.name),
   ],
 );
@@ -199,7 +206,8 @@ export const saleItems = pgTable("sale_items", {
   saleId: uuid("sale_id").notNull().references(() => sales.id, { onDelete: "cascade" }),
   productId: uuid("product_id").references(() => products.id, { onDelete: "set null" }),
   name: text("name").notNull(),
-  qty: integer("qty").notNull(),
+  qty: integer("qty").notNull(), // จำนวนตามหน่วยที่ขาย (ชิ้น หรือ ลัง)
+  baseQty: integer("base_qty"), // จำนวนที่ตัดสต็อกจริง (ชิ้น) — null = เท่ากับ qty (บิลเก่า)
   unitPriceMinor: money("unit_price_minor"),
   costMinor: money("cost_minor"),
   discountMinor: money("discount_minor"),

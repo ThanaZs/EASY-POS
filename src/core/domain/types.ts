@@ -91,7 +91,12 @@ export interface Product {
   barcode: string | null;
   name: string;
   category: string | null;
-  unit: string; // ชิ้น, กล่อง, kg ...
+  subcategory: string | null;
+  unit: string; // หน่วยขายปลีก = หน่วยนับสต็อก (ชิ้น, ขวด, kg ...)
+  packUnit: string | null; // ขายยกแพ็ก/ลัง (ไม่บังคับ)
+  packSize: number | null; // 1 packUnit = packSize unit
+  packPriceMinor: number | null; // null = ราคาชิ้น × packSize
+  packBarcode: string | null;
   priceMinor: number;
   costMinor: number;
   stockQty: number; // จำนวนคงเหลือ (denormalized จาก stock_movements)
@@ -130,6 +135,7 @@ export interface SaleItem {
   unitPriceMinor: number;
   costMinor: number; // ต้นทุนต่อหน่วย ณ เวลาขาย (ใช้คิดกำไร)
   discountMinor: number;
+  baseQty?: number; // จำนวนชิ้นที่ตัดสต็อกจริง (ขายยกลัง = qty × packSize)
 }
 
 export interface Sale {
@@ -156,7 +162,8 @@ export interface Sale {
 /** บิลแบบไม่มีรายการสินค้า (ใช้ในหน้ารายการ) */
 export type SaleHeader = Omit<Sale, "items">;
 
-export type SaleLineInput = { productId: ID; qty: number };
+/** unit: "base" = ขายปลีก (ค่าเริ่มต้น), "pack" = ขายยกแพ็ก/ลัง */
+export type SaleLineInput = { productId: ID; qty: number; unit?: "base" | "pack" };
 
 export type CreateSaleResult =
   | { ok: true; sale: Sale }
@@ -165,5 +172,21 @@ export type CreateSaleResult =
       reason: "empty" | "product_not_found" | "insufficient_stock" | "insufficient_payment";
       productName?: string;
     };
+
+/** ข้อมูลสินค้า 1 แถวจากไฟล์นำเข้า (Excel) */
+export interface ImportRow {
+  barcode: string | null;
+  name: string;
+  priceMinor: number;
+  costMinor: number;
+  stockQty: number | null; // null = ไม่แตะสต็อก
+  category: string | null;
+  subcategory: string | null;
+}
+export type ImportResult = { created: number; updated: number; skipped: number };
+
+/** ราคาขายยกแพ็ก/ลัง */
+export const packPrice = (p: Pick<Product, "priceMinor" | "packSize" | "packPriceMinor">) =>
+  p.packPriceMinor ?? p.priceMinor * (p.packSize ?? 1);
 
 export type VoidSaleResult = { ok: true } | { ok: false; reason: "not_found" | "already_voided" };

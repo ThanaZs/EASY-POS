@@ -22,6 +22,7 @@ export type PosProduct = {
   id: string;
   name: string;
   category: string | null;
+  subcategory: string | null;
   barcode: string | null;
   sku: string | null;
   priceMinor: number;
@@ -29,6 +30,19 @@ export type PosProduct = {
   trackStock: boolean;
   unit: string;
   imageUrl: string | null;
+  // ขายยกแพ็ก/ลัง (null = ขายปลีกอย่างเดียว)
+  packUnit: string | null;
+  packSize: number | null;
+  packPriceMinor: number | null; // ราคาต่อแพ็ก (คำนวณแล้ว)
+  packBarcode: string | null;
+};
+
+type Unit = "base" | "pack";
+/** คีย์ในตะกร้า: สินค้าเดียวกันขายปลีกกับยกลังแยกบรรทัด */
+const keyOf = (id: string, unit: Unit) => `${id}|${unit}`;
+const parseKey = (k: string) => {
+  const [id, unit] = k.split("|");
+  return { id, unit: (unit === "pack" ? "pack" : "base") as Unit };
 };
 
 type Props = {
@@ -57,6 +71,7 @@ export function PosClient(props: Props) {
   const [cart, setCart] = useState<Map<string, number>>(new Map());
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<string | null>(null);
+  const [subcategory, setSubcategory] = useState<string | null>(null);
   const [discountText, setDiscountText] = useState("");
   const [cartOpen, setCartOpen] = useState(false); // มือถือ
   const [payOpen, setPayOpen] = useState(false);
@@ -74,26 +89,44 @@ export function PosClient(props: Props) {
     () => [...new Set(products.map((p) => p.category).filter((c): c is string => Boolean(c)))].sort(),
     [products],
   );
+  const subcategories = useMemo(
+    () =>
+      category
+        ? [...new Set(products.filter((p) => p.category === category).map((p) => p.subcategory).filter((c): c is string => Boolean(c)))].sort()
+        : [],
+    [products, category],
+  );
   const visible = useMemo(() => {
     const q = search.trim().toLowerCase();
+    const en = toEnglishLayout(search.trim());
     return products.filter(
       (p) =>
         (!category || p.category === category) &&
+        (!subcategory || p.subcategory === subcategory) &&
         (!q ||
           p.name.toLowerCase().includes(q) ||
           p.barcode === search.trim() ||
-          p.barcode === toEnglishLayout(search.trim()) ||
+          p.barcode === en ||
+          p.packBarcode === en ||
           p.sku?.toLowerCase().includes(q)),
     );
-  }, [products, search, category]);
+  }, [products, search, category, subcategory]);
 
+  const mult = (p: PosProduct, unit: Unit) => (unit === "pack" ? (p.packSize ?? 1) : 1);
   const lines = [...cart.entries()]
-    .map(([id, qty]) => ({ p: byId.get(id), qty }))
-    .filter((l): l is { p: PosProduct; qty: number } => Boolean(l.p));
+    .map(([key, qty]) => {
+      const { id, unit } = parseKey(key);
+      const p = byId.get(id);
+      if (!p) return null;
+      const unitPriceMinor = unit === "pack" ? (p.packPriceMinor ?? p.priceMinor * (p.packSize ?? 1)) : p.priceMinor;
+      const label = unit === "pack" ? `${p.name} (${p.packUnit} ×${p.packSize})` : p.name;
+      return { key, p, unit, qty, unitPriceMinor, label };
+    })
+    .filter((l): l is NonNullable<typeof l> => l !== null);
   const itemCount = lines.reduce((s, l) => s + l.qty, 0);
   const discountMinor = props.canDiscount ? Math.max(0, parseMoney(discountText, currency) ?? 0) : 0;
   const totals = calcSaleTotals(
-    lines.map((l) => ({ productId: l.p.id, name: l.p.name, qty: l.qty, unitPriceMinor: l.p.priceMinor, costMinor: 0, discountMinor: 0 })),
+    lines.map((l) => ({ productId: l.p.id, name: l.label, qty: l.qty, unitPriceMinor: l.unitPriceMinor, costMinor: 0, discountMinor: 0 })),
     { billDiscountMinor: discountMinor, taxRateBp: props.taxRateBp, taxIncluded: props.taxIncluded },
   );
   const receivedMinor = parseMoney(receivedText, currency);
@@ -101,27 +134,33 @@ export function PosClient(props: Props) {
   const canConfirm = lines.length > 0 && (method !== "cash" || receivedText === "" || changeMinor >= 0);
 
   const limited = (p: PosProduct) => p.trackStock && !props.allowNegativeStock;
-  const remaining = (p: PosProduct) => (limited(p) ? p.stockQty - (cart.get(p.id) ?? 0) : Infinity);
+  /** จำนวนชิ้นของสินค้านี้ในตะกร้า (รวมที่ขายยกลัง) */
+  const baseInCart = (c: Map<string, number>, p: PosProduct, except?: Unit) =>
+    (except === "base" ? 0 : (c.get(keyOf(p.id, "base")) ?? 0)) +
+    (except === "pack" ? 0 : (c.get(keyOf(p.id, "pack")) ?? 0) * (p.packSize ?? 1));
+  const remaining = (p: PosProduct) => (limited(p) ? p.stockQty - baseInCart(cart, p) : Infinity);
 
-  function setQty(id: string, qty: number) {
+  function setQty(key: string, qty: number) {
+    const { id, unit } = parseKey(key);
     const p = byId.get(id);
     if (!p) return;
-    const max = limited(p) ? p.stockQty : Infinity;
     setCart((prev) => {
       const next = new Map(prev);
+      const max = limited(p) ? Math.floor((p.stockQty - baseInCart(prev, p, unit)) / mult(p, unit)) : Infinity;
       const q = Math.min(max, Math.max(0, qty));
-      if (q === 0) next.delete(id);
-      else next.set(id, q);
+      if (q <= 0) next.delete(key);
+      else next.set(key, q);
       return next;
     });
     setError(null);
   }
-  /** +1 แบบอ่านค่าล่าสุดจาก state (สแกนรัวๆ ไม่ตกหล่น) */
-  function add(p: PosProduct) {
+  /** +1 (ชิ้น หรือ ลัง) แบบอ่านค่าล่าสุดจาก state (สแกนรัวๆ ไม่ตกหล่น) */
+  function add(p: PosProduct, unit: Unit = "base") {
+    if (unit === "pack" && !p.packSize) return;
     setCart((prev) => {
-      const cur = prev.get(p.id) ?? 0;
-      if (limited(p) && cur >= p.stockQty) return prev;
-      return new Map(prev).set(p.id, cur + 1);
+      if (limited(p) && p.stockQty - baseInCart(prev, p) < mult(p, unit)) return prev;
+      const key = keyOf(p.id, unit);
+      return new Map(prev).set(key, (prev.get(key) ?? 0) + 1);
     });
     setError(null);
   }
@@ -132,6 +171,12 @@ export function PosClient(props: Props) {
     if (!code) return;
     const q = code.toLowerCase();
     const en = toEnglishLayout(code); // ยิงตอนคีย์บอร์ดเป็นภาษาไทย
+    const packHit = products.find((p) => p.packBarcode && (p.packBarcode === code || p.packBarcode === en));
+    if (packHit) {
+      add(packHit, "pack");
+      setSearch("");
+      return;
+    }
     const exact = products.find((p) => p.barcode === code || p.sku === code || p.barcode === en || p.sku === en);
     const matches = exact ? [exact] : products.filter((p) => p.name.toLowerCase().includes(q));
     const target = matches.length === 1 ? matches[0] : null;
@@ -143,6 +188,15 @@ export function PosClient(props: Props) {
 
   /** กล้องเจอบาร์โค้ด → เพิ่มลงตะกร้า (สแกนต่อได้เรื่อยๆ) */
   function onCameraCode(code: string) {
+    // บาร์โค้ดลัง → ขายยกลัง
+    const pack = products.find((x) => x.packBarcode === code);
+    if (pack) {
+      if (remaining(pack) >= (pack.packSize ?? 1)) {
+        add(pack, "pack");
+        setScanStatus(fill(t.scan.added, { name: `${pack.name} (${pack.packUnit} ×${pack.packSize})` }));
+      } else setScanStatus(`${pack.name}: ${t.pos.outOfStock}`);
+      return;
+    }
     const p = products.find((x) => x.barcode === code || x.sku === code);
     if (p && remaining(p) > 0) {
       add(p);
@@ -193,7 +247,7 @@ export function PosClient(props: Props) {
       const res = await checkoutAction({
         locale,
         storeId: props.storeId,
-        lines: lines.map((l) => ({ productId: l.p.id, qty: l.qty })),
+        lines: lines.map((l) => ({ productId: l.p.id, qty: l.qty, unit: l.unit })),
         discountMinor,
         method,
         paidMinor: method === "cash" && receivedText !== "" ? receivedMinor : null,
@@ -241,28 +295,31 @@ export function PosClient(props: Props) {
           <p className="p-6 text-center text-sm text-muted">{t.pos.emptyCart}</p>
         ) : (
           <ul className="divide-y divide-line">
-            {lines.map(({ p, qty }) => (
-              <li key={p.id} className="flex items-center gap-2 p-3">
+            {lines.map(({ key, p, unit, qty, unitPriceMinor, label }) => (
+              <li key={key} className="flex items-center gap-2 p-3">
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium">{p.name}</p>
-                  <p className="text-xs text-muted tabular-nums">{money(p.priceMinor)}</p>
+                  <p className="truncate text-sm font-medium">{label}</p>
+                  <p className="text-xs text-muted tabular-nums">
+                    {money(unitPriceMinor)}
+                    {unit === "pack" && <span className="ml-1 rounded bg-brand-soft px-1 text-brand-ink">{p.packUnit}</span>}
+                  </p>
                 </div>
                 <div className="flex items-center rounded-lg border border-line">
-                  <button className="p-1.5" onClick={() => setQty(p.id, qty - 1)} aria-label="-">
+                  <button className="p-1.5" onClick={() => setQty(key, qty - 1)} aria-label="-">
                     {qty === 1 ? <Trash2 className="size-4 text-rose-600" /> : <Minus className="size-4" />}
                   </button>
                   <input
                     value={qty}
-                    onChange={(e) => setQty(p.id, Number.parseInt(e.target.value || "0", 10) || 0)}
+                    onChange={(e) => setQty(key, Number.parseInt(e.target.value || "0", 10) || 0)}
                     inputMode="numeric"
                     className="w-10 bg-transparent text-center text-sm tabular-nums outline-none"
                     aria-label={p.name}
                   />
-                  <button className="p-1.5 disabled:opacity-30" onClick={() => setQty(p.id, qty + 1)} disabled={remaining(p) <= 0} aria-label="+">
+                  <button className="p-1.5 disabled:opacity-30" onClick={() => setQty(key, qty + 1)} disabled={remaining(p) < mult(p, unit)} aria-label="+">
                     <Plus className="size-4" />
                   </button>
                 </div>
-                <p className="w-20 text-right text-sm font-semibold tabular-nums">{money(p.priceMinor * qty)}</p>
+                <p className="w-20 text-right text-sm font-semibold tabular-nums">{money(unitPriceMinor * qty)}</p>
               </li>
             ))}
           </ul>
@@ -352,9 +409,27 @@ export function PosClient(props: Props) {
                 {[null, ...categories].map((c) => (
                   <button
                     key={c ?? "*"}
-                    onClick={() => setCategory(c)}
+                    onClick={() => {
+                      setCategory(c);
+                      setSubcategory(null);
+                    }}
                     className={`shrink-0 rounded-full border px-3 py-1 text-sm ${
                       category === c ? "border-brand bg-brand text-white" : "border-line bg-card"
+                    }`}
+                  >
+                    {c ?? t.pos.all}
+                  </button>
+                ))}
+              </div>
+            )}
+            {subcategories.length > 0 && (
+              <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
+                {[null, ...subcategories].map((c) => (
+                  <button
+                    key={c ?? "*"}
+                    onClick={() => setSubcategory(c)}
+                    className={`shrink-0 rounded-full border px-3 py-0.5 text-xs ${
+                      subcategory === c ? "border-brand bg-brand-soft font-semibold text-brand-ink" : "border-line bg-card text-muted"
                     }`}
                   >
                     {c ?? t.pos.all}
@@ -368,15 +443,16 @@ export function PosClient(props: Props) {
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-4">
                 {visible.map((p) => {
                   const left = remaining(p);
-                  const inCart = cart.get(p.id) ?? 0;
+                  const inCart = baseInCart(cart, p);
+                  const packLeft = !!p.packSize && left >= p.packSize;
                   return (
+                    <div key={p.id} className="flex flex-col">
                     <button
-                      key={p.id}
                       onClick={() => add(p)}
                       disabled={left <= 0}
-                      className={`relative flex min-h-24 flex-col justify-between rounded-xl border bg-card p-3 text-left shadow-sm pressable disabled:opacity-40 ${
-                        inCart ? "border-brand ring-2 ring-brand-soft" : "border-line"
-                      }`}
+                      className={`relative flex min-h-24 flex-1 flex-col justify-between border bg-card p-3 text-left shadow-sm pressable disabled:opacity-40 ${
+                        p.packSize ? "rounded-t-xl" : "rounded-xl"
+                      } ${inCart ? "border-brand ring-2 ring-brand-soft" : "border-line"}`}
                     >
                       {inCart > 0 && (
                         <span
@@ -406,6 +482,19 @@ export function PosClient(props: Props) {
                         )}
                       </span>
                     </button>
+                    {p.packSize && (
+                      <button
+                        onClick={() => add(p, "pack")}
+                        disabled={!packLeft}
+                        className="flex items-center justify-between gap-1 rounded-b-xl border border-t-0 border-line bg-brand-soft px-3 py-1.5 text-xs font-semibold text-brand-ink hover:brightness-95 disabled:opacity-40"
+                      >
+                        <span>
+                          +1 {p.packUnit} ×{p.packSize}
+                        </span>
+                        <span className="tabular-nums">{money(p.packPriceMinor ?? p.priceMinor * p.packSize)}</span>
+                      </button>
+                    )}
+                    </div>
                   );
                 })}
               </div>

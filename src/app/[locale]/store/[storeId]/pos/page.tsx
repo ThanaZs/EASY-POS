@@ -1,4 +1,5 @@
 import { can } from "@/core/domain/permissions";
+import { packPrice } from "@/core/domain/types";
 import { loadLocale } from "@/i18n/page";
 import { getRepositories, getStorage } from "@/server/container";
 import { requireStoreAccess } from "@/server/session";
@@ -13,6 +14,7 @@ export default async function PosPage({ params }: PageProps<"/[locale]/store/[st
     id: p.id,
     name: p.name,
     category: p.category,
+    subcategory: p.subcategory,
     barcode: p.barcode,
     sku: p.sku,
     priceMinor: p.priceMinor,
@@ -20,6 +22,10 @@ export default async function PosPage({ params }: PageProps<"/[locale]/store/[st
     trackStock: p.trackStock,
     unit: p.unit,
     imageUrl: p.imagePath && storage ? storage.publicUrl(p.imagePath) : null,
+    packUnit: p.packSize ? p.packUnit : null,
+    packSize: p.packSize,
+    packPriceMinor: p.packSize ? packPrice(p) : null,
+    packBarcode: p.packBarcode,
   }));
 
   return (

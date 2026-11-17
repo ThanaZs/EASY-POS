@@ -39,6 +39,11 @@ export default async function ReceivePage({ params, searchParams }: PageProps<"/
           <form action={stockMoveAction} className="grid gap-4 sm:grid-cols-2">
             <input type="hidden" name="locale" value={locale} />
             <input type="hidden" name="storeId" value={storeId} />
+            {sp.error === "noPack" && (
+              <div className="sm:col-span-2">
+                <Alert>{t.stock.noPack}</Alert>
+              </div>
+            )}
             {sp.saved === "1" && (
               <div className="sm:col-span-2">
                 <Alert kind="success">{t.stock.saved}</Alert>
@@ -57,16 +62,35 @@ export default async function ReceivePage({ params, searchParams }: PageProps<"/
             </fieldset>
             <ScanSelect
               devices={t.devices}
-              products={tracked.map((p) => ({ id: p.id, name: p.name, codes: [p.barcode, p.sku].filter((c): c is string => Boolean(c)) }))}
+              products={tracked.map((p) => ({
+                id: p.id,
+                name: p.name,
+                codes: [p.barcode, p.sku].filter((c): c is string => Boolean(c)),
+                packCodes: p.packSize && p.packBarcode ? [p.packBarcode] : [],
+              }))}
             />
             <div className="sm:col-span-2">
               <Select
                 label={t.stock.product}
                 name="productId"
-                options={tracked.map((p) => ({ value: p.id, label: `${p.name} (${p.stockQty} ${p.unit})` }))}
+                options={tracked.map((p) => ({
+                  value: p.id,
+                  label: `${p.name} (${p.stockQty} ${p.unit})${p.packSize ? ` · 1 ${p.packUnit} = ${p.packSize}` : ""}`,
+                }))}
               />
             </div>
-            <Field label={t.stock.qty} name="qty" type="number" min={0} required inputMode="numeric" />
+            <div className="grid grid-cols-[1fr_auto] items-end gap-2">
+              <Field label={t.stock.qty} name="qty" type="number" min={0} required inputMode="numeric" />
+              <Select
+                label={t.stock.unit}
+                name="unit"
+                defaultValue={sp.unit === "pack" ? "pack" : "base"}
+                options={[
+                  { value: "base", label: t.stock.unitBase },
+                  { value: "pack", label: t.stock.unitPack },
+                ]}
+              />
+            </div>
             <Field label={t.stock.note} name="note" maxLength={200} />
             <div className="sm:col-span-2">
               <PrimaryButton type="submit">{t.stock.submit}</PrimaryButton>

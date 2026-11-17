@@ -27,7 +27,7 @@ export async function checkoutAction(input: {
   const method = METHODS.includes(input.method) ? input.method : "cash";
   const lines = (Array.isArray(input.lines) ? input.lines : [])
     .slice(0, 300)
-    .map((l) => ({ productId: String(l.productId), qty: Number(l.qty) }))
+    .map((l) => ({ productId: String(l.productId), qty: Number(l.qty), unit: l.unit === "pack" ? ("pack" as const) : ("base" as const) }))
     .filter((l) => Number.isFinite(l.qty));
   const discount = can(member, "pos.discount") ? Math.max(0, Math.floor(Number(input.discountMinor) || 0)) : 0;
   const paid = method === "cash" && input.paidMinor !== null ? Math.floor(Number(input.paidMinor) || 0) : null;

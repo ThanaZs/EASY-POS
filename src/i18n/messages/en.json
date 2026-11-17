@@ -178,8 +178,20 @@
       "duplicate": "This barcode is already used by another product",
       "photoTooBig": "Photo is too large — please retake",
       "photoInvalid": "Invalid image file",
-      "photoFailed": "Product saved, but the photo upload failed — please try again"
-    }
+      "photoFailed": "Product saved, but the photo upload failed — please try again",
+      "packSize": "Pack size must be greater than 1"
+    },
+    "subcategory": "Subcategory",
+    "noCategory": "— None —",
+    "addCategory": "+ Add new…",
+    "newCategoryPlaceholder": "Type a new category name",
+    "packEnable": "Can be sold by pack / case",
+    "packHint": "Stock is always counted in the retail unit — receive by case, and POS has a sell-by-case button",
+    "packUnit": "Pack unit name (e.g. case, pack, dozen)",
+    "packSize": "1 {unit} = how many {base}",
+    "packPrice": "Price per {unit}",
+    "packPriceHint": "Leave blank = unit price × pack size",
+    "packBarcode": "Case barcode (optional)"
   },
   "stock": {
     "product": "Product",
@@ -202,7 +214,11 @@
     },
     "empty": "No stock movements yet",
     "noProducts": "No products yet — add some in Inventory first",
-    "time": "Time"
+    "time": "Time",
+    "unit": "Unit",
+    "unitBase": "Unit (retail)",
+    "unitPack": "Case / pack",
+    "noPack": "This product has no case/pack set up — set it on the product page or receive by unit"
   },
   "pos": {
     "search": "Scan / search products",
@@ -386,6 +402,40 @@
         "Or click ⋮ → “Install EASY-POS” / “Apps → Install this site as an app”",
         "Click “Install”"
       ]
+    }
+  },
+  "import": {
+    "title": "Import products from Excel",
+    "intro": "Choose an .xlsx or .csv file — columns are matched automatically. Check the preview before importing",
+    "button": "Import Excel",
+    "choose": "Tap to choose a file",
+    "formats": "Supports .xlsx (Excel) and .csv — the first row must be headers",
+    "template": "Download template",
+    "readError": "Can't read the file — make sure it is .xlsx or .csv with a header row",
+    "importError": "Import partly failed — please try again (already imported rows won't duplicate)",
+    "mapping": "Column mapping",
+    "mappingHint": "Picked from the header names — change if wrong",
+    "notUsed": "— Not used —",
+    "preview": "Preview ({n} rows)",
+    "more": "and {n} more",
+    "updateStock": "Also update stock of existing products",
+    "updateStockHint": "Checked = set stock from the file (logged as an adjustment) · Unchecked = only name/price/category; new products still use the file's quantity",
+    "rules": "Barcode matches an existing product = update · no match / no barcode = new · blank or \"nan\" = empty",
+    "importBtn": "Import {n} rows",
+    "importing": "Importing {done}/{total}…",
+    "needName": "Choose the product name column",
+    "done": "Import finished",
+    "summary": "New {created} · Updated {updated} · Skipped {skipped}",
+    "goInventory": "Go to inventory",
+    "again": "Import another file",
+    "fields": {
+      "barcode": "Barcode",
+      "name": "Product name",
+      "price": "Price",
+      "cost": "Cost",
+      "stock": "Stock",
+      "category": "Category",
+      "subcategory": "Subcategory"
     }
   }
 }

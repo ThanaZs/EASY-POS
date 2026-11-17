@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { randomCode } from "@/core/lib/code";
 import { parseMoney } from "@/core/lib/format";
+import { toEnglishLayout } from "@/core/lib/keyboard";
 import type { ProductInput } from "@/core/ports/repositories";
 import { getRepositories, getStorage } from "@/server/container";
 import { int, optStr, storeCtx, str } from "@/server/form";
@@ -59,13 +60,30 @@ export async function saveProductAction(form: FormData) {
   if (!name) redirect(`${back}?error=name`);
   if (price === null || cost === null) redirect(`${back}?error=price`);
 
+  // ขายยกแพ็ก/ลัง (ไม่บังคับ)
+  const packOn = form.get("packEnabled") === "on";
+  const packSize = packOn ? int(form, "packSize", 0, 100_000, 0) : 0;
+  if (packOn && packSize < 2) redirect(`${back}?error=packSize`);
+  const packPriceText = str(form, "packPrice");
+  const packPriceMinor = packOn && packPriceText ? parseMoney(packPriceText, store.currency) : null;
+  if (packOn && packPriceText && packPriceMinor === null) redirect(`${back}?error=price`);
+  const code = (k: string) => {
+    const v = optStr(form, k, 60);
+    return v ? toEnglishLayout(v) : null; // ยิงตอนคีย์บอร์ดไทย → ตัวเลข
+  };
+
   const expires = str(form, "expiresAt");
   const input: ProductInput = {
     name,
     sku: optStr(form, "sku", 60),
-    barcode: optStr(form, "barcode", 60),
+    barcode: code("barcode"),
     category: optStr(form, "category", 60),
-    unit: str(form, "unit").slice(0, 20) || "pcs",
+    subcategory: optStr(form, "category", 60) ? optStr(form, "subcategory", 60) : null,
+    unit: str(form, "unit").slice(0, 20) || "ชิ้น",
+    packUnit: packOn ? str(form, "packUnit").slice(0, 20) || "ลัง" : null,
+    packSize: packOn ? packSize : null,
+    packPriceMinor,
+    packBarcode: packOn ? code("packBarcode") : null,
     priceMinor: price,
     costMinor: cost,
     lowStockThreshold: int(form, "lowStockThreshold", 0, 1_000_000, store.lowStockThreshold),

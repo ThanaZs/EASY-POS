@@ -8,7 +8,7 @@ export default async function NewProductPage({ params, searchParams }: PageProps
   const { locale, t } = await loadLocale(params);
   const { storeId } = await params;
   const { store } = await requireStoreAccess(locale, storeId, "products.create");
-  const categories = await (await getRepositories()).products.categories(storeId);
+  const categories = await (await getRepositories()).products.categoryTree(storeId);
   return (
     <div className="mx-auto max-w-2xl space-y-4">
       <BackLink href={`/${locale}/store/${storeId}/inventory`} label={t.store.modules.inventory} />
@@ -17,7 +17,7 @@ export default async function NewProductPage({ params, searchParams }: PageProps
         locale={locale}
         t={t}
         store={store}
-        categories={categories}
+        categoryTree={categories}
         error={(await searchParams).error}
         photoEnabled={(await getStorage()) !== null}
         photoUrl={null}

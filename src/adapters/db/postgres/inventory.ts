@@ -1,7 +1,7 @@
 import "server-only";
 import { and, asc, desc, eq, ilike, inArray, isNotNull, lte, or, sql } from "drizzle-orm";
 import { calcSaleTotals } from "@/core/domain/sale";
-import type { Product, Sale, SaleHeader, SaleItem, StockMovement } from "@/core/domain/types";
+import { packPrice, type Product, type Sale, type SaleHeader, type SaleItem, type StockMovement } from "@/core/domain/types";
 import { businessDate } from "@/core/lib/format";
 import type { DailySales, ProductRepo, SaleRepo, StockRepo } from "@/core/ports/repositories";
 import { getDb } from "./client";
@@ -70,7 +70,9 @@ export function productRepo(): ProductRepo {
       const search = q.search?.trim();
       if (search) {
         const like = `%${search.replace(/[%_\\]/g, "\\$&")}%`;
-        conds.push(or(ilike(products.name, like), ilike(products.sku, like), eq(products.barcode, search))!);
+        conds.push(
+          or(ilike(products.name, like), ilike(products.sku, like), eq(products.barcode, search), eq(products.packBarcode, search))!,
+        );
       }
       if (q.category) conds.push(eq(products.category, q.category));
       if (q.lowStockOnly) {
@@ -94,6 +96,113 @@ export function productRepo(): ProductRepo {
         .where(and(eq(products.storeId, storeId), eq(products.isActive, true), isNotNull(products.category)))
         .orderBy(asc(products.category));
       return rows.map((r) => r.c!).filter(Boolean);
+    },
+    async categoryTree(storeId) {
+      const rows = await db
+        .selectDistinct({ c: products.category, s: products.subcategory })
+        .from(products)
+        .where(and(eq(products.storeId, storeId), eq(products.isActive, true), isNotNull(products.category)))
+        .orderBy(asc(products.category), asc(products.subcategory));
+      const tree = new Map<string, string[]>();
+      for (const r of rows) {
+        if (!r.c) continue;
+        const subs = tree.get(r.c) ?? [];
+        if (r.s && !subs.includes(r.s)) subs.push(r.s);
+        tree.set(r.c, subs);
+      }
+      return [...tree].map(([category, subcategories]) => ({ category, subcategories }));
+    },
+    importRows(storeId, rows, actorId, opts) {
+      return db.transaction(async (tx) => {
+        const result = { created: 0, updated: 0, skipped: 0 };
+        const barcodes = rows.map((r) => r.barcode).filter((b): b is string => Boolean(b));
+        const existing = barcodes.length
+          ? await tx
+              .select()
+              .from(products)
+              .where(and(eq(products.storeId, storeId), inArray(products.barcode, barcodes)))
+              .for("update")
+          : [];
+        const byBarcode = new Map(existing.map((p) => [p.barcode!, p]));
+        const seen = new Set<string>();
+        for (const r of rows) {
+          if (!r.name.trim()) {
+            result.skipped++;
+            continue;
+          }
+          if (r.barcode) {
+            if (seen.has(r.barcode)) {
+              result.skipped++; // บาร์โค้ดซ้ำในไฟล์เดียวกัน — ใช้แถวแรก
+              continue;
+            }
+            seen.add(r.barcode);
+          }
+          const old = r.barcode ? byBarcode.get(r.barcode) : undefined;
+          const now = new Date();
+          if (old) {
+            // สินค้าที่มีอยู่แล้ว: แตะสต็อกเฉพาะเมื่อผู้ใช้เลือก "อัปเดตจำนวนคงเหลือ"
+            const qtyAfter = opts.updateStock && r.stockQty !== null ? r.stockQty : old.stockQty;
+            await tx
+              .update(products)
+              .set({
+                name: r.name,
+                priceMinor: r.priceMinor,
+                costMinor: r.costMinor,
+                category: r.category,
+                subcategory: r.subcategory,
+                stockQty: qtyAfter,
+                isActive: true,
+                updatedAt: now,
+              })
+              .where(eq(products.id, old.id));
+            if (qtyAfter !== old.stockQty) {
+              await tx.insert(stockMovements).values({
+                storeId,
+                productId: old.id,
+                productName: r.name,
+                type: "adjust",
+                qty: qtyAfter - old.stockQty,
+                qtyBefore: old.stockQty,
+                qtyAfter,
+                note: "import",
+                actorId,
+              });
+            }
+            result.updated++;
+          } else {
+            const qty = r.stockQty ?? 0;
+            const [p] = await tx
+              .insert(products)
+              .values({
+                storeId,
+                barcode: r.barcode,
+                name: r.name,
+                priceMinor: r.priceMinor,
+                costMinor: r.costMinor,
+                category: r.category,
+                subcategory: r.subcategory,
+                unit: "ชิ้น",
+                stockQty: qty,
+              })
+              .returning({ id: products.id });
+            if (qty !== 0) {
+              await tx.insert(stockMovements).values({
+                storeId,
+                productId: p.id,
+                productName: r.name,
+                type: "in",
+                qty,
+                qtyBefore: 0,
+                qtyAfter: qty,
+                note: "import",
+                actorId,
+              });
+            }
+            result.created++;
+          }
+        }
+        return result;
+      });
     },
     create(storeId, input, initialQty, actorId) {
       return mapDuplicate(() =>
@@ -208,14 +317,18 @@ export function saleRepo(): SaleRepo {
   const db = getDb();
   return {
     create(input) {
-      // รวมบรรทัดสินค้าเดียวกัน + ตัดจำนวนที่ไม่ถูกต้อง
-      const qtyById = new Map<string, number>();
+      // รวมบรรทัดสินค้าเดียวกัน (แยกขายปลีก/ยกลัง) + ตัดจำนวนที่ไม่ถูกต้อง
+      const qtyByLine = new Map<string, { productId: string; unit: "base" | "pack"; qty: number }>();
       for (const l of input.lines) {
         const qty = Math.floor(l.qty);
-        if (qty > 0) qtyById.set(l.productId, (qtyById.get(l.productId) ?? 0) + qty);
+        if (!(qty > 0)) continue;
+        const unit = l.unit === "pack" ? "pack" : "base";
+        const key = `${l.productId}:${unit}`;
+        const cur = qtyByLine.get(key);
+        qtyByLine.set(key, { productId: l.productId, unit, qty: (cur?.qty ?? 0) + qty });
       }
-      if (qtyById.size === 0) return Promise.resolve({ ok: false, reason: "empty" } as const);
-      const ids = [...qtyById.keys()];
+      if (qtyByLine.size === 0) return Promise.resolve({ ok: false, reason: "empty" } as const);
+      const ids = [...new Set([...qtyByLine.values()].map((l) => l.productId))];
 
       return db.transaction(async (tx) => {
         // ล็อกต่อร้าน: เลขใบเสร็จไม่ชนกันเมื่อขายพร้อมกันหลายเครื่อง
@@ -228,20 +341,41 @@ export function saleRepo(): SaleRepo {
           .for("update");
         if (rows.length !== ids.length) return { ok: false, reason: "product_not_found" } as const;
 
+        const byId = new Map(rows.map((p) => [p.id, p]));
         const items: SaleItem[] = [];
+        const baseById = new Map<string, number>(); // จำนวนชิ้นที่ต้องตัดสต็อกต่อสินค้า
+        for (const l of qtyByLine.values()) {
+          const p = byId.get(l.productId)!;
+          if (l.unit === "pack") {
+            if (!p.packUnit || !p.packSize || p.packSize < 1) return { ok: false, reason: "product_not_found" } as const;
+            const baseQty = l.qty * p.packSize;
+            items.push({
+              productId: p.id,
+              name: `${p.name} (${p.packUnit} ×${p.packSize})`,
+              qty: l.qty,
+              unitPriceMinor: packPrice(p),
+              costMinor: p.costMinor * p.packSize,
+              discountMinor: 0,
+              baseQty,
+            });
+            baseById.set(p.id, (baseById.get(p.id) ?? 0) + baseQty);
+          } else {
+            items.push({
+              productId: p.id,
+              name: p.name,
+              qty: l.qty,
+              unitPriceMinor: p.priceMinor,
+              costMinor: p.costMinor,
+              discountMinor: 0,
+              baseQty: l.qty,
+            });
+            baseById.set(p.id, (baseById.get(p.id) ?? 0) + l.qty);
+          }
+        }
         for (const p of rows) {
-          const qty = qtyById.get(p.id)!;
-          if (p.trackStock && !input.allowNegativeStock && p.stockQty < qty) {
+          if (p.trackStock && !input.allowNegativeStock && p.stockQty < baseById.get(p.id)!) {
             return { ok: false, reason: "insufficient_stock", productName: p.name } as const;
           }
-          items.push({
-            productId: p.id,
-            name: p.name,
-            qty,
-            unitPriceMinor: p.priceMinor,
-            costMinor: p.costMinor,
-            discountMinor: 0,
-          });
         }
 
         const totals = calcSaleTotals(items, {
@@ -278,7 +412,7 @@ export function saleRepo(): SaleRepo {
 
         for (const p of rows) {
           if (!p.trackStock) continue;
-          const qty = qtyById.get(p.id)!;
+          const qty = baseById.get(p.id)!;
           await tx
             .update(products)
             .set({ stockQty: p.stockQty - qty, updatedAt: now })
@@ -316,6 +450,7 @@ export function saleRepo(): SaleRepo {
           unitPriceMinor: i.unitPriceMinor,
           costMinor: i.costMinor,
           discountMinor: i.discountMinor,
+          baseQty: i.baseQty ?? i.qty,
         })),
       };
       return sale;
@@ -350,7 +485,7 @@ export function saleRepo(): SaleRepo {
         // คืนสต็อก (รวมจำนวนต่อสินค้า) เฉพาะสินค้าที่ยังมีอยู่และนับสต็อก
         const items = await tx.select().from(saleItems).where(eq(saleItems.saleId, id));
         const qtyById = new Map<string, number>();
-        for (const i of items) if (i.productId) qtyById.set(i.productId, (qtyById.get(i.productId) ?? 0) + i.qty);
+        for (const i of items) if (i.productId) qtyById.set(i.productId, (qtyById.get(i.productId) ?? 0) + (i.baseQty ?? i.qty));
         if (qtyById.size === 0) return { ok: true } as const;
         const prods = await tx
           .select()

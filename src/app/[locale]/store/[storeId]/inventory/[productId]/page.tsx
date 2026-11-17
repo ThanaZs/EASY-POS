@@ -21,7 +21,7 @@ export default async function EditProductPage({
   const repos = await getRepositories();
   const [product, categories] = await Promise.all([
     repos.products.findById(storeId, productId),
-    repos.products.categories(storeId),
+    repos.products.categoryTree(storeId),
   ]);
   if (!product || !product.isActive) notFound();
   const storage = await getStorage();
@@ -38,7 +38,7 @@ export default async function EditProductPage({
         t={t}
         store={store}
         product={product}
-        categories={categories}
+        categoryTree={categories}
         error={(await searchParams).error}
         photoEnabled={storage !== null}
         photoUrl={product.imagePath && storage ? storage.publicUrl(product.imagePath) : null}
