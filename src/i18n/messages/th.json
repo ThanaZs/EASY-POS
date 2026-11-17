@@ -517,5 +517,9 @@
     "fromObf": "ข้อมูลจาก Open Beauty Facts (CC BY-SA)",
     "exists": "บาร์โค้ดนี้มีสินค้าอยู่แล้วในร้าน",
     "editExisting": "แก้ไขสินค้านี้"
+  },
+  "keyboard": {
+    "done": "เสร็จ",
+    "space": "เว้นวรรค"
   }
 }

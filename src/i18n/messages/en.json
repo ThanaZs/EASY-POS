@@ -517,5 +517,9 @@
     "fromObf": "Data from Open Beauty Facts (CC BY-SA)",
     "exists": "This barcode is already in your store",
     "editExisting": "Edit this product"
+  },
+  "keyboard": {
+    "done": "Done",
+    "space": "space"
   }
 }
