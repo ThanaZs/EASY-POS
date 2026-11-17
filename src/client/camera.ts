@@ -125,6 +125,88 @@ export type BarcodeCamera = {
   focusAt: (x: number, y: number) => void;
 };
 
+const CAM_KEY = "ep_cam_device";
+const MAIN_CAM = /camera2 0,|camera 0,|main/i; // ชื่อกล้องหลักที่พบบ่อยบน Android
+const VIDEO = { width: { ideal: 1920 }, height: { ideal: 1080 } };
+const hasTorch = (st: MediaStream) => {
+  const t = st.getVideoTracks()[0] as Track | undefined;
+  return !!(t?.getCapabilities?.() as Caps | undefined)?.torch;
+};
+
+/**
+ * เปิดกล้องหลัง — มือถือหลายเลนส์ (เช่น Samsung) facingMode "environment" มักได้เลนส์มุมกว้าง/เทเล ที่ไม่มีไฟแฟลช
+ * → ถ้ากล้องที่ได้ไม่มีไฟฉาย ลองกล้องหลังตัวอื่นทีละตัว เลือกตัวที่มีไฟ (มักเป็นกล้องหลัก "camera2 0") แล้วจำไว้ในเครื่อง
+ */
+async function openBackCamera(): Promise<MediaStream> {
+  const md = navigator.mediaDevices;
+  let saved: string | null = null;
+  try {
+    saved = localStorage.getItem(CAM_KEY);
+  } catch {
+    // ignore
+  }
+  if (saved) {
+    try {
+      return await md.getUserMedia({
+        video: { deviceId: { exact: saved }, ...VIDEO },
+        audio: false,
+      });
+    } catch {
+      // กล้องเปลี่ยน/ไม่มีแล้ว → หาใหม่
+    }
+  }
+  const first = await md.getUserMedia({
+    video: { facingMode: { ideal: "environment" }, ...VIDEO },
+    audio: false,
+  });
+  if (hasTorch(first)) return first;
+  try {
+    const firstId = first.getVideoTracks()[0]?.getSettings().deviceId;
+    const backs = (await md.enumerateDevices())
+      .filter(
+        (d) =>
+          d.kind === "videoinput" &&
+          d.deviceId !== firstId &&
+          !/front|user|หน้า/i.test(d.label),
+      )
+      // กล้องหลักของ Samsung/Android มักชื่อ "camera2 0, facing back"
+      .sort(
+        (a, b) =>
+          Number(MAIN_CAM.test(b.label)) - Number(MAIN_CAM.test(a.label)),
+      )
+      .slice(0, 4);
+    if (backs.length) {
+      first.getTracks().forEach((t) => t.stop()); // บางเครื่องเปิดกล้องพร้อมกันหลายตัวไม่ได้
+      for (const d of backs) {
+        try {
+          const st = await md.getUserMedia({
+            video: { deviceId: { exact: d.deviceId }, ...VIDEO },
+            audio: false,
+          });
+          if (hasTorch(st)) {
+            try {
+              localStorage.setItem(CAM_KEY, d.deviceId);
+            } catch {
+              // ignore
+            }
+            return st;
+          }
+          st.getTracks().forEach((t) => t.stop());
+        } catch {
+          // กล้องตัวนี้เปิดไม่ได้ — ลองตัวถัดไป
+        }
+      }
+      return await md.getUserMedia({
+        video: { facingMode: { ideal: "environment" }, ...VIDEO },
+        audio: false,
+      });
+    }
+  } catch {
+    // enumerateDevices ใช้ไม่ได้ — ใช้กล้องแรก
+  }
+  return first;
+}
+
 /**
  * เปิดกล้องหลังใส่ <video> แล้วอ่านบาร์โค้ดวนไปเรื่อยๆ — ทำให้แม่นขึ้นด้วย:
  * 1) ตัดเฉพาะกลางภาพ (บริเวณกรอบเล็ง) แล้วค่อยอ่าน + ทุกๆ 3 เฟรมอ่านทั้งภาพ
@@ -181,15 +263,11 @@ export function useBarcodeCamera(
     (async () => {
       try {
         if (!navigator.mediaDevices?.getUserMedia) throw new Error("no-media");
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            facingMode: { ideal: "environment" },
-            width: { ideal: 1920 },
-            height: { ideal: 1080 },
-          },
-          audio: false,
-        });
-        if (stopped) return;
+        stream = await openBackCamera();
+        if (stopped) {
+          stream.getTracks().forEach((t) => t.stop());
+          return;
+        }
         const track = stream.getVideoTracks()[0] as Track;
         trackRef.current = track;
         const caps = (track.getCapabilities?.() ?? {}) as Caps;
