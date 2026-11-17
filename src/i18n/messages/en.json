@@ -46,7 +46,8 @@
     "myStores": "My stores",
     "joinStore": "Join a store",
     "account": "Manage account",
-    "logout": "Sign out"
+    "logout": "Sign out",
+    "back": "Back to home"
   },
   "createStore": {
     "storeName": "Store name",

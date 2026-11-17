@@ -1,17 +1,21 @@
+import { BackLink } from "@/components/BackLink";
 import Link from "next/link";
 import { ChevronRight, Store } from "lucide-react";
 import { loadLocale } from "@/i18n/page";
 import { getRepositories } from "@/server/container";
 import { requireUser } from "@/server/session";
 
-export default async function MyStoresPage({ params }: PageProps<"/[locale]/hub/stores">) {
+export default async function MyStoresPage({
+  params,
+}: PageProps<"/[locale]/hub/stores">) {
   const { locale, t } = await loadLocale(params);
   const user = await requireUser(locale);
   const stores = await (await getRepositories()).stores.listForUser(user.id);
 
   return (
     <div className="mx-auto max-w-2xl">
-      <h1 className="mb-4 text-xl font-bold">{t.hub.myStores}</h1>
+      <BackLink href={`/${locale}/hub`} label={t.hub.back} />
+      <h1 className="mb-4 mt-2 text-xl font-bold">{t.hub.myStores}</h1>
       {stores.length === 0 ? (
         <p className="text-muted">{t.stores.empty}</p>
       ) : (
@@ -26,7 +30,9 @@ export default async function MyStoresPage({ params }: PageProps<"/[locale]/hub/
                   <Store />
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate font-semibold">{store.name}</span>
+                  <span className="block truncate font-semibold">
+                    {store.name}
+                  </span>
                   <span className="text-sm text-muted">
                     {t.stores.role}: {t.roles[member.role]}
                   </span>
