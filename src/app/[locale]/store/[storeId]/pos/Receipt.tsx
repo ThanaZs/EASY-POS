@@ -43,7 +43,9 @@ export function Receipt({
   return (
     <div className="relative font-mono text-sm text-neutral-900">
       {voidedLabel && (
-        <p className="mb-2 rounded border-2 border-rose-600 py-1 text-center font-sans font-bold text-rose-600">{voidedLabel}</p>
+        <p className="mb-2 rounded border-2 border-rose-600 py-1 text-center font-sans font-bold text-rose-600">
+          {voidedLabel}
+        </p>
       )}
       <h2 className="text-center text-base font-bold">{storeName}</h2>
       <p className="text-center text-xs">
@@ -71,15 +73,21 @@ export function Receipt({
       ))}
       <hr className="my-2 border-dashed border-neutral-400" />
       <Line label={t.subtotal} value={money(r.subtotalMinor)} />
-      {r.discountMinor > 0 && <Line label={t.discount} value={`-${money(r.discountMinor)}`} />}
+      {r.discountMinor > 0 && (
+        <Line label={t.discount} value={`-${money(r.discountMinor)}`} />
+      )}
       {r.taxMinor > 0 && <Line label={t.tax} value={money(r.taxMinor)} />}
       <p className="flex justify-between text-base font-bold">
         <span>{t.total}</span>
         <span>{money(r.totalMinor)}</span>
       </p>
       <Line label={t.methods[r.paymentMethod]} value={money(r.paidMinor)} />
-      {r.changeMinor > 0 && <Line label={t.change} value={money(r.changeMinor)} />}
-      {footer && <p className="mt-3 whitespace-pre-line text-center text-xs">{footer}</p>}
+      {r.changeMinor > 0 && (
+        <Line label={t.change} value={money(r.changeMinor)} />
+      )}
+      {footer && (
+        <p className="mt-3 whitespace-pre-line text-center text-xs">{footer}</p>
+      )}
     </div>
   );
 }

@@ -274,7 +274,20 @@
       "insufficient_payment": "Received amount is too low",
       "failed": "Could not save. Please try again"
     },
-    "cartShort": "Cart"
+    "cartShort": "Cart",
+    "hold": "Hold",
+    "held": "Held bills",
+    "heldCount": "Held bills {n}",
+    "heldDone": "Bill held — start a new one",
+    "resume": "Resume",
+    "resumeSwap": "The current cart will be held instead",
+    "deleteHeld": "Delete held bill",
+    "summary": "Review order",
+    "back": "Back",
+    "clearCart": "Clear cart",
+    "scanSpeed": "Scan speed",
+    "seconds": "{n} s",
+    "itemsCount": "{n} items"
   },
   "overview": {
     "today": "Sales today",

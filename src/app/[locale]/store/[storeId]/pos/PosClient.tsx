@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useRef, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import {
   ArrowLeft,
   Camera,
   LoaderCircle,
+  PauseCircle,
   Minus,
   Plus,
   Printer,
@@ -16,17 +17,22 @@ import {
   X,
 } from "lucide-react";
 import { calcSaleTotals } from "@/core/domain/sale";
-import { CameraScanner } from "@/components/CameraScanner";
 import { PrinterStatus } from "@/components/devices/PrinterStatus";
 import { ScannerStatus } from "@/components/devices/ScannerStatus";
 import { getAutoPrint, printSlip } from "@/client/devices/printer";
 import { toEnglishLayout, useBarcodeScanner } from "@/client/devices/scanner";
 import { receiptToSlip } from "@/client/devices/slip";
 import type { PaymentMethod } from "@/core/domain/types";
-import { fill, formatMoney, parseMoney } from "@/core/lib/format";
+import {
+  fill,
+  formatDateTime,
+  formatMoney,
+  parseMoney,
+} from "@/core/lib/format";
 import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionary";
 import { checkoutAction } from "./actions";
+import { PosScanView } from "./PosScanView";
 import { Receipt, type ReceiptData } from "./Receipt";
 
 export type PosProduct = {
@@ -49,6 +55,17 @@ export type PosProduct = {
 };
 
 type Unit = "base" | "pack";
+/** บิลที่พักไว้ (เก็บในเครื่องนี้ — localStorage แยกตามร้าน) */
+type HeldBill = {
+  id: string;
+  at: number;
+  cart: Array<[string, number]>;
+  discountText: string;
+};
+function makeHeld(cart: Map<string, number>, discountText: string): HeldBill {
+  const now = Date.now();
+  return { id: String(now), at: now, cart: [...cart.entries()], discountText };
+}
 /** คีย์ในตะกร้า: สินค้าเดียวกันขายปลีกกับยกลังแยกบรรทัด */
 const keyOf = (id: string, unit: Unit) => `${id}|${unit}`;
 const parseKey = (k: string) => {
@@ -99,11 +116,63 @@ export function PosClient(props: Props) {
   const searchRef = useRef<HTMLInputElement>(null);
   const [scanOpen, setScanOpen] = useState(false);
   const [scanStatus, setScanStatus] = useState<string | null>(null);
-
   const byId = useMemo(
     () => new Map(products.map((p) => [p.id, p])),
     [products],
   );
+  const [held, setHeld] = useState<HeldBill[]>([]);
+  const [heldOpen, setHeldOpen] = useState(false);
+  const heldKey = `ep_held_${props.storeId}`;
+  useEffect(() => {
+    try {
+      const raw = JSON.parse(localStorage.getItem(heldKey) ?? "[]");
+      if (Array.isArray(raw)) setHeld(raw as HeldBill[]); // eslint-disable-line react-hooks/set-state-in-effect -- อ่านได้เฉพาะใน browser
+    } catch {
+      // ignore
+    }
+  }, [heldKey]);
+  function saveHeld(next: HeldBill[]) {
+    setHeld(next);
+    try {
+      localStorage.setItem(heldKey, JSON.stringify(next));
+    } catch {
+      // ignore
+    }
+  }
+  /** พักบิลปัจจุบัน → ตะกร้าว่าง เริ่มบิลใหม่ได้ */
+  function holdBill() {
+    if (cart.size === 0) return;
+    const bill: HeldBill = makeHeld(cart, discountText);
+    saveHeld([bill, ...held]);
+    setCart(new Map());
+    setDiscountText("");
+    setCartOpen(false);
+    setScanStatus(t.pos.heldDone);
+  }
+  /** เรียกบิลที่พักกลับมา — ถ้าตะกร้าตอนนี้มีของ พักบิลปัจจุบันไว้แทน (สลับกัน) */
+  function resumeBill(id: string) {
+    const bill = held.find((b) => b.id === id);
+    if (!bill) return;
+    let rest = held.filter((b) => b.id !== id);
+    if (cart.size > 0) rest = [makeHeld(cart, discountText), ...rest];
+    saveHeld(rest);
+    setCart(new Map(bill.cart.filter(([k]) => byId.has(parseKey(k).id))));
+    setDiscountText(bill.discountText);
+    setHeldOpen(false);
+    setScanStatus(null);
+  }
+  const billTotal = (b: HeldBill) =>
+    b.cart.reduce((sum, [k, q]) => {
+      const { id, unit } = parseKey(k);
+      const p = byId.get(id);
+      if (!p) return sum;
+      const price =
+        unit === "pack"
+          ? (p.packPriceMinor ?? p.priceMinor * (p.packSize ?? 1))
+          : p.priceMinor;
+      return sum + price * q;
+    }, 0);
+
   const categories = useMemo(
     () =>
       [
@@ -256,30 +325,42 @@ export function PosClient(props: Props) {
     }
   }
 
-  /** กล้องเจอบาร์โค้ด → เพิ่มลงตะกร้า (สแกนต่อได้เรื่อยๆ) */
-  function onCameraCode(code: string) {
-    // บาร์โค้ดลัง → ขายยกลัง
-    const pack = products.find((x) => x.packBarcode === code);
-    if (pack) {
-      if (remaining(pack) >= (pack.packSize ?? 1)) {
-        add(pack, "pack");
-        setScanStatus(
-          fill(t.scan.added, {
-            name: `${pack.name} (${pack.packUnit} ×${pack.packSize})`,
-          }),
-        );
-      } else setScanStatus(`${pack.name}: ${t.pos.outOfStock}`);
-      return;
-    }
-    const p = products.find((x) => x.barcode === code || x.sku === code);
-    if (p && remaining(p) > 0) {
-      add(p);
-      setScanStatus(fill(t.scan.added, { name: p.name }));
-    } else if (p) {
-      setScanStatus(`${p.name}: ${t.pos.outOfStock}`);
-    } else {
-      setScanStatus(fill(t.scan.notFound, { code }));
-    }
+  /** กล้อง/เครื่องสแกนเจอบาร์โค้ด → เพิ่มลงตะกร้า (สแกนต่อได้เรื่อยๆ) */
+  function onCameraCode(code: string): {
+    ok: boolean;
+    message: string;
+    key?: string;
+  } {
+    const result = (() => {
+      // บาร์โค้ดลัง → ขายยกลัง
+      const pack = products.find((x) => x.packBarcode === code);
+      if (pack) {
+        if (remaining(pack) >= (pack.packSize ?? 1)) {
+          add(pack, "pack");
+          return {
+            ok: true,
+            message: fill(t.scan.added, {
+              name: `${pack.name} (${pack.packUnit} ×${pack.packSize})`,
+            }),
+            key: keyOf(pack.id, "pack"),
+          };
+        }
+        return { ok: false, message: `${pack.name}: ${t.pos.outOfStock}` };
+      }
+      const p = products.find((x) => x.barcode === code || x.sku === code);
+      if (p && remaining(p) > 0) {
+        add(p);
+        return {
+          ok: true,
+          message: fill(t.scan.added, { name: p.name }),
+          key: keyOf(p.id, "base"),
+        };
+      }
+      if (p) return { ok: false, message: `${p.name}: ${t.pos.outOfStock}` };
+      return { ok: false, message: fill(t.scan.notFound, { code }) };
+    })();
+    setScanStatus(result.message);
+    return result;
   }
 
   // เครื่องสแกน (USB/Bluetooth แบบคีย์บอร์ด): ยิงได้เลยไม่ต้องคลิกช่องค้นหา, ภาษาคีย์บอร์ดไม่มีผล
@@ -475,16 +556,25 @@ export function PosClient(props: Props) {
             {money(totals.totalMinor)}
           </span>
         </div>
-        <button
-          disabled={lines.length === 0}
-          onClick={() => {
-            setPayOpen(true);
-            setError(null);
-          }}
-          className="w-full rounded-xl bg-brand px-4 py-3 text-lg font-semibold text-white hover:opacity-90 disabled:opacity-40"
-        >
-          {t.pos.pay}
-        </button>
+        <div className="flex gap-2">
+          <button
+            disabled={lines.length === 0}
+            onClick={holdBill}
+            className="flex items-center justify-center gap-1 rounded-xl border border-line px-4 py-3 font-semibold transition hover:border-brand active:scale-95 disabled:opacity-40"
+          >
+            <PauseCircle className="size-5" /> {t.pos.hold}
+          </button>
+          <button
+            disabled={lines.length === 0}
+            onClick={() => {
+              setPayOpen(true);
+              setError(null);
+            }}
+            className="flex-1 rounded-xl bg-brand px-4 py-3 text-lg font-semibold text-white hover:opacity-90 disabled:opacity-40"
+          >
+            {t.pos.summary}
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -504,6 +594,15 @@ export function PosClient(props: Props) {
             <div className="flex flex-wrap gap-2">
               <ScannerStatus t={t.devices} />
               <PrinterStatus t={t.devices} storeName={props.storeName} />
+              {held.length > 0 && (
+                <button
+                  onClick={() => setHeldOpen(true)}
+                  className="flex items-center gap-1.5 rounded-full border border-brand bg-brand-soft px-3 py-1.5 text-sm font-semibold text-brand-ink transition active:scale-95"
+                >
+                  <PauseCircle className="size-4" />{" "}
+                  {fill(t.pos.heldCount, { n: held.length })}
+                </button>
+              )}
             </div>
             <div className="flex gap-2">
               <label className="relative block flex-1">
@@ -681,17 +780,87 @@ export function PosClient(props: Props) {
       </div>
 
       {scanOpen && (
-        <CameraScanner
-          continuous
-          onDetected={onCameraCode}
+        <PosScanView
+          lines={lines.map((l) => ({
+            key: l.key,
+            label: l.label,
+            imageUrl: l.p.imageUrl,
+            unitPriceMinor: l.unitPriceMinor,
+            qty: l.qty,
+            canAdd: remaining(l.p) >= mult(l.p, l.unit),
+          }))}
+          totalText={money(totals.totalMinor)}
+          itemCount={itemCount}
+          money={money}
+          onCode={onCameraCode}
+          setQty={setQty}
+          onClear={() => setCart(new Map())}
+          onHold={holdBill}
           onClose={() => setScanOpen(false)}
-          labels={t.scan}
-          status={
-            scanStatus
-              ? `${scanStatus} · ${t.pos.cartShort} ${itemCount} · ${money(totals.totalMinor)}`
-              : null
-          }
+          onSummary={() => {
+            setScanOpen(false);
+            setPayOpen(true);
+            setError(null);
+          }}
+          t={{ pos: t.pos, scan: t.scan }}
         />
+      )}
+
+      {heldOpen && (
+        <div
+          className="fixed inset-0 z-40 grid place-items-end bg-black/40 sm:place-items-center print:hidden"
+          role="dialog"
+          aria-modal
+          onClick={(e) => e.target === e.currentTarget && setHeldOpen(false)}
+        >
+          <div className="w-full max-w-md space-y-3 rounded-t-2xl bg-card p-4 sm:rounded-2xl">
+            <div className="flex items-center justify-between">
+              <h2 className="flex items-center gap-2 text-lg font-semibold">
+                <PauseCircle className="size-5" /> {t.pos.held}
+              </h2>
+              <button
+                onClick={() => setHeldOpen(false)}
+                aria-label={t.pos.cancel}
+              >
+                <X className="size-5" />
+              </button>
+            </div>
+            {cart.size > 0 && (
+              <p className="text-sm text-muted">{t.pos.resumeSwap}</p>
+            )}
+            <ul className="scroll-box divide-y divide-line rounded-xl border border-line">
+              {held.map((b) => (
+                <li key={b.id} className="flex items-center gap-3 p-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-semibold tabular-nums">
+                      {money(billTotal(b))}
+                    </p>
+                    <p className="text-xs text-muted">
+                      {formatDateTime(new Date(b.at), locale, props.timeZone)} ·{" "}
+                      {fill(t.pos.itemsCount, {
+                        n: b.cart.reduce((n, [, q]) => n + q, 0),
+                      })}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => saveHeld(held.filter((x) => x.id !== b.id))}
+                    className="rounded-lg p-2 text-muted hover:bg-rose-50 hover:text-rose-600"
+                    aria-label={t.pos.deleteHeld}
+                    title={t.pos.deleteHeld}
+                  >
+                    <Trash2 className="size-4" />
+                  </button>
+                  <button
+                    onClick={() => resumeBill(b.id)}
+                    className="rounded-xl bg-brand px-3 py-2 text-sm font-semibold text-white active:scale-95"
+                  >
+                    {t.pos.resume}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
       )}
 
       {payOpen && (
