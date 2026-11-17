@@ -130,11 +130,28 @@ export function productRepo(): ProductRepo {
       });
     },
     async deactivate(storeId, id) {
-      // เอาบาร์โค้ดออกด้วย เพื่อให้นำบาร์โค้ดไปใช้กับสินค้าใหม่ได้
+      const [old] = await db
+        .select({ imagePath: products.imagePath })
+        .from(products)
+        .where(and(eq(products.storeId, storeId), eq(products.id, id)));
+      // เอาบาร์โค้ดออกด้วย เพื่อให้นำบาร์โค้ดไปใช้กับสินค้าใหม่ได้; ลบรูปเพื่อประหยัดพื้นที่
       await db
         .update(products)
-        .set({ isActive: false, barcode: null, updatedAt: new Date() })
+        .set({ isActive: false, barcode: null, imagePath: null, updatedAt: new Date() })
         .where(and(eq(products.storeId, storeId), eq(products.id, id)));
+      return old?.imagePath ?? null;
+    },
+    async setImage(storeId, id, path) {
+      const [old] = await db
+        .select({ imagePath: products.imagePath })
+        .from(products)
+        .where(and(eq(products.storeId, storeId), eq(products.id, id)));
+      if (!old) return null;
+      await db
+        .update(products)
+        .set({ imagePath: path, updatedAt: new Date() })
+        .where(and(eq(products.storeId, storeId), eq(products.id, id)));
+      return old.imagePath;
     },
   };
 }

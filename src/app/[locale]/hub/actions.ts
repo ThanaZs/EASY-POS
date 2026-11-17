@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import { defaultLocale, defaultTimeZone, isLocale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/dictionary";
 import { getAuth } from "@/server/auth";
-import { getRepositories } from "@/server/container";
+import { getRepositories, getStorage } from "@/server/container";
 import { requireUser } from "@/server/session";
 
 const str = (f: FormData, k: string) => String(f.get(k) ?? "").trim();
@@ -99,6 +99,13 @@ export async function deleteAccountAction(form: FormData) {
   if (str(form, "confirm") !== t.account.deleteWord) redirect(`/${locale}/hub/account?del=mismatch`);
   // ออกจากระบบก่อน (ล้าง cookie + cookie cache) แล้วค่อยลบข้อมูล
   await getAuth().api.signOut({ headers: await headers() });
-  await (await getRepositories()).users.deleteAccount(user.id);
+  const repos = await getRepositories();
+  // ลบรูปสินค้าของร้านที่เป็นเจ้าของ (ร้านจะถูกลบพร้อมบัญชี)
+  const storage = await getStorage();
+  if (storage) {
+    const owned = (await repos.stores.listForUser(user.id)).filter((m) => m.member.role === "owner");
+    for (const { store } of owned) await storage.removePrefix(`stores/${store.id}`).catch((e) => console.error(e));
+  }
+  await repos.users.deleteAccount(user.id);
   redirect(`/${locale}/login?deleted=1`);
 }

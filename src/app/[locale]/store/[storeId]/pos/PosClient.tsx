@@ -28,6 +28,7 @@ export type PosProduct = {
   stockQty: number;
   trackStock: boolean;
   unit: string;
+  imageUrl: string | null;
 };
 
 type Props = {
@@ -379,6 +380,16 @@ export function PosClient(props: Props) {
                         >
                           {inCart}
                         </span>
+                      )}
+                      {p.imageUrl && (
+                        // eslint-disable-next-line @next/next/no-img-element -- รูปจาก storage (ไม่ใช้ Image Optimization เพื่อไม่กินโควตา)
+                        <img
+                          src={p.imageUrl}
+                          alt=""
+                          loading="lazy"
+                          decoding="async"
+                          className="-mx-3 -mt-3 mb-2 aspect-square w-[calc(100%+1.5rem)] max-w-none rounded-t-xl object-cover"
+                        />
                       )}
                       <span className="line-clamp-2 pr-6 text-sm font-medium">{p.name}</span>
                       <span className="mt-2 flex items-end justify-between gap-1">

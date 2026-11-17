@@ -175,7 +175,10 @@
     "errors": {
       "name": "Please enter a product name",
       "price": "Invalid price",
-      "duplicate": "This barcode is already used by another product"
+      "duplicate": "This barcode is already used by another product",
+      "photoTooBig": "Photo is too large — please retake",
+      "photoInvalid": "Invalid image file",
+      "photoFailed": "Product saved, but the photo upload failed — please try again"
     }
   },
   "stock": {
@@ -338,5 +341,16 @@
     "scannerBtFailed": "Connection failed — turn the scanner off and on, then try again",
     "scannerOr": "Or, if your scanner works as a keyboard (USB / paired in Bluetooth settings):",
     "scannerVia": "via"
+  },
+  "photo": {
+    "title": "Product photo",
+    "take": "Take photo",
+    "change": "Retake",
+    "remove": "Remove photo",
+    "capture": "Capture",
+    "retake": "Retake",
+    "use": "Use this photo",
+    "close": "Close",
+    "hint": "Taken with the in-app camera only — cropped to 600×600 and compressed automatically"
   }
 }

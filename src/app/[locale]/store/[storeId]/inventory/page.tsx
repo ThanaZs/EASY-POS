@@ -1,9 +1,9 @@
 import Link from "next/link";
-import { ChevronRight, Plus, Search } from "lucide-react";
+import { ChevronRight, ImageOff, Plus, Search } from "lucide-react";
 import { can } from "@/core/domain/permissions";
 import { fill, formatMoney } from "@/core/lib/format";
 import { loadLocale } from "@/i18n/page";
-import { getRepositories } from "@/server/container";
+import { getRepositories, getStorage } from "@/server/container";
 import { requireStoreAccess } from "@/server/session";
 import { BackLink } from "../BackLink";
 import { ScanToSearch } from "./ScanToSearch";
@@ -19,9 +19,10 @@ export default async function InventoryPage({ params, searchParams }: PageProps<
   const low = sp.low === "1";
 
   const repos = await getRepositories();
-  const [items, categories] = await Promise.all([
+  const [items, categories, storage] = await Promise.all([
     repos.products.list(storeId, { search: q, category: cat || undefined, lowStockOnly: low }),
     repos.products.categories(storeId),
+    getStorage(),
   ]);
   const base = `/${locale}/store/${storeId}/inventory`;
   const canEdit = can(member, "products.edit");
@@ -76,6 +77,16 @@ export default async function InventoryPage({ params, searchParams }: PageProps<
           {items.map((p) => {
             const body = (
               <>
+                {storage && (
+                  <span className="grid size-11 shrink-0 place-items-center overflow-hidden rounded-lg bg-surface">
+                    {p.imagePath ? (
+                      // eslint-disable-next-line @next/next/no-img-element -- รูปจาก storage
+                      <img src={storage.publicUrl(p.imagePath)} alt="" loading="lazy" decoding="async" className="size-full object-cover" />
+                    ) : (
+                      <ImageOff className="size-4 text-muted" />
+                    )}
+                  </span>
+                )}
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-medium">{p.name}</p>
                   <p className="truncate text-xs text-muted">

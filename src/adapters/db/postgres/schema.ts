@@ -127,6 +127,7 @@ export const products = pgTable(
     lowStockThreshold: integer("low_stock_threshold").notNull().default(5),
     trackStock: boolean("track_stock").notNull().default(true),
     expiresAt: timestamp("expires_at", { withTimezone: true }),
+    imagePath: text("image_path"), // path ใน storage (ไม่ใช่ URL — ย้ายผู้ให้บริการได้)
     isActive: boolean("is_active").notNull().default(true),
     createdAt: createdAt(),
     updatedAt: updatedAt(),

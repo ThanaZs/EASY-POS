@@ -1,6 +1,6 @@
 import { can } from "@/core/domain/permissions";
 import { loadLocale } from "@/i18n/page";
-import { getRepositories } from "@/server/container";
+import { getRepositories, getStorage } from "@/server/container";
 import { requireStoreAccess } from "@/server/session";
 import { PosClient, type PosProduct } from "./PosClient";
 
@@ -8,7 +8,7 @@ export default async function PosPage({ params }: PageProps<"/[locale]/store/[st
   const { locale, t } = await loadLocale(params);
   const { storeId } = await params;
   const { store, member, user } = await requireStoreAccess(locale, storeId, "pos.sell");
-  const products = await (await getRepositories()).products.list(storeId);
+  const [products, storage] = await Promise.all([(await getRepositories()).products.list(storeId), getStorage()]);
   const items: PosProduct[] = products.map((p) => ({
     id: p.id,
     name: p.name,
@@ -19,6 +19,7 @@ export default async function PosPage({ params }: PageProps<"/[locale]/store/[st
     stockQty: p.stockQty,
     trackStock: p.trackStock,
     unit: p.unit,
+    imageUrl: p.imagePath && storage ? storage.publicUrl(p.imagePath) : null,
   }));
 
   return (

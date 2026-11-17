@@ -98,6 +98,7 @@ export interface Product {
   lowStockThreshold: number;
   trackStock: boolean;
   expiresAt: Date | null;
+  imagePath: string | null; // รูปสินค้าใน storage
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;

@@ -16,6 +16,10 @@ const schema = z.object({
   SMTP_USER: z.string().optional(),
   SMTP_PASS: z.string().optional(),
   MAIL_FROM_NAME: z.string().default("EASY-POS (no-reply)"),
+  // ที่เก็บรูปสินค้า (Supabase Storage) — ไม่ใส่ = ปิดฟีเจอร์รูป
+  SUPABASE_URL: z.string().optional(),
+  SUPABASE_SECRET_KEY: z.string().optional(),
+  STORAGE_BUCKET: z.string().default("product-images"),
   APP_URL: z.string().optional(),
   // Vercel ใส่ให้อัตโนมัติ (ไม่มี https://)
   VERCEL_PROJECT_PRODUCTION_URL: z.string().optional(),

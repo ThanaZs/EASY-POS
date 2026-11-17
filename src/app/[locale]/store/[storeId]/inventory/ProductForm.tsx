@@ -6,6 +6,7 @@ import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionary";
 import { saveProductAction } from "./actions";
 import { BarcodeField } from "./BarcodeField";
+import { ProductPhotoField } from "./ProductPhotoField";
 
 /** ฟอร์มเดียวใช้ทั้งเพิ่มและแก้ไขสินค้า */
 export function ProductForm({
@@ -15,6 +16,8 @@ export function ProductForm({
   product,
   categories,
   error,
+  photoEnabled,
+  photoUrl,
 }: {
   locale: Locale;
   t: Dictionary;
@@ -22,6 +25,8 @@ export function ProductForm({
   product?: Product;
   categories: string[];
   error?: unknown;
+  photoEnabled: boolean;
+  photoUrl: string | null;
 }) {
   const msg = pickMessage(t.inventory.errors, error);
   const money = (v?: number) => (v === undefined ? "" : minorToInput(v, store.currency));
@@ -39,6 +44,7 @@ export function ProductForm({
         <div className="sm:col-span-2">
           <Field label={t.inventory.name} name="name" defaultValue={product?.name} maxLength={120} required autoFocus={!product} />
         </div>
+        {photoEnabled && <ProductPhotoField currentUrl={photoUrl} t={t.photo} noCamera={t.scan.noCamera} />}
         <Field
           label={`${t.inventory.price} (${store.currency})`}
           name="price"

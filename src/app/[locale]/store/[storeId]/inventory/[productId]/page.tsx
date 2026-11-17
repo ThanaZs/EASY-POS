@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { can } from "@/core/domain/permissions";
 import { loadLocale } from "@/i18n/page";
-import { getRepositories } from "@/server/container";
+import { getRepositories, getStorage } from "@/server/container";
 import { requireStoreAccess } from "@/server/session";
 import { BackLink } from "../../BackLink";
 import { deleteProductAction } from "../actions";
@@ -24,6 +24,7 @@ export default async function EditProductPage({
     repos.products.categories(storeId),
   ]);
   if (!product || !product.isActive) notFound();
+  const storage = await getStorage();
 
   return (
     <div className="mx-auto max-w-2xl space-y-4">
@@ -39,6 +40,8 @@ export default async function EditProductPage({
         product={product}
         categories={categories}
         error={(await searchParams).error}
+        photoEnabled={storage !== null}
+        photoUrl={product.imagePath && storage ? storage.publicUrl(product.imagePath) : null}
       />
       {can(member, "products.delete") && (
         <form action={deleteProductAction}>

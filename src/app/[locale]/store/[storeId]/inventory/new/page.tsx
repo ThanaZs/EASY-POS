@@ -1,5 +1,5 @@
 import { loadLocale } from "@/i18n/page";
-import { getRepositories } from "@/server/container";
+import { getRepositories, getStorage } from "@/server/container";
 import { requireStoreAccess } from "@/server/session";
 import { BackLink } from "../../BackLink";
 import { ProductForm } from "../ProductForm";
@@ -13,7 +13,15 @@ export default async function NewProductPage({ params, searchParams }: PageProps
     <div className="mx-auto max-w-2xl space-y-4">
       <BackLink href={`/${locale}/store/${storeId}/inventory`} label={t.store.modules.inventory} />
       <h1 className="text-xl font-bold">{t.inventory.add}</h1>
-      <ProductForm locale={locale} t={t} store={store} categories={categories} error={(await searchParams).error} />
+      <ProductForm
+        locale={locale}
+        t={t}
+        store={store}
+        categories={categories}
+        error={(await searchParams).error}
+        photoEnabled={(await getStorage()) !== null}
+        photoUrl={null}
+      />
     </div>
   );
 }

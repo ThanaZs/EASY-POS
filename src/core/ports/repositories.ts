@@ -65,8 +65,10 @@ export interface ProductRepo {
   /** สร้างสินค้า + (ถ้า initialQty > 0) บันทึกรับเข้าครั้งแรก — ใน transaction */
   create(storeId: ID, input: ProductInput, initialQty: number, actorId: ID): Promise<Product>;
   update(storeId: ID, id: ID, patch: Partial<ProductInput>): Promise<Product | null>;
-  /** ลบแบบซ่อน (is_active=false) เพราะบิลเก่ายังอ้างถึง */
-  deactivate(storeId: ID, id: ID): Promise<void>;
+  /** ลบแบบซ่อน (is_active=false) เพราะบิลเก่ายังอ้างถึง — คืน path รูปเดิม (ให้ลบไฟล์) */
+  deactivate(storeId: ID, id: ID): Promise<string | null>;
+  /** ตั้ง/ลบรูป — คืน path รูปเดิม (ให้ลบไฟล์) */
+  setImage(storeId: ID, id: ID, path: string | null): Promise<string | null>;
 }
 
 export interface StockRepo {
