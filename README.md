@@ -12,12 +12,32 @@
 ต้องมี: Node.js 22+ และ Git
 
 ```bash
-git clone <URL ของ repo นี้>
+git clone https://github.com/ThanaZs/EASY-POS.git easy-pos
 cd easy-pos
-npm install
-cp .env.example .env.local   # แล้วใส่ค่า (ยังไม่ใส่ก็รันดู UI ได้)
-npm run dev                  # เปิด http://localhost:3000
+git checkout dev              # ทำงานบน dev เสมอ (push main = deploy เว็บจริงทันที)
+npm install                   # Windows ถ้า esbuild error: npm install --ignore-scripts แล้ว node scripts/copy-wasm.mjs
+cp .env.example .env.local    # แล้วใส่ค่าจริง (ดูหัวข้อ "ค่าลับ" ด้านล่าง)
+npm run dev                   # เปิด http://localhost:3000
 ```
+
+### ค่าลับ (ไม่อยู่ใน git — ห้าม commit)
+ค่าจริงทุกตัวอยู่ที่ **Vercel → project easy-pos → Settings → Environment Variables** (คัดลอกมาใส่ `.env.local`)
+แล้วเพิ่ม 2 บรรทัดสำหรับเครื่อง dev: `APP_URL=http://localhost:3000` และ `DATABASE_POOL_MAX=5`
+- Supabase secret key / รหัส DB: Supabase → Project Settings (ไม่แสดงซ้ำ — ถ้าหายให้ reset แล้วอัปเดตใน Vercel ด้วย)
+- Gmail App Password: myaccount.google.com/apppasswords (สร้างใหม่ได้)
+
+### บริการภายนอกที่ใช้ (ล็อกอินด้วยบัญชีเจ้าของ)
+| บริการ | ใช้ทำอะไร | หมายเหตุ |
+|---|---|---|
+| GitHub `ThanaZs/EASY-POS` | เก็บโค้ด | branch `dev` = ทำงาน, `main` = เว็บจริง |
+| Vercel project `easy-pos` | เว็บจริง https://easy-pos-beta.vercel.app | region `hnd1` (Tokyo) ใน `vercel.json` |
+| Supabase project `easy-pos` (Tokyo) | Postgres + เก็บรูป (bucket `product-images`) | ใช้ Transaction pooler `aws-1-ap-northeast-1` |
+| Google Cloud project `EASY-POS` | ปุ่ม Google login | โหมด Testing — ใช้ได้เฉพาะ test users |
+| Gmail (SMTP) | ส่ง OTP / ลืมรหัสผ่าน | ชื่อผู้ส่ง "EASY-POS (no-reply)" |
+| cron-job.org | ping `/api/health?db=1` ทุก 5 นาที | กันเครื่องเย็น + กัน Supabase pause |
+
+### ให้ Claude ทำต่อ
+เปิด Claude Code ในโฟลเดอร์นี้ → มันจะอ่าน `CLAUDE.md` → `docs/PROGRESS.md` (สถานะล่าสุด/บันทึกทุกงาน) + `docs/ROADMAP.md`
 
 | คำสั่ง | ทำอะไร |
 |---|---|
