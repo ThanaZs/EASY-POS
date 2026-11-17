@@ -1,6 +1,6 @@
 "use client";
 
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Download, Smartphone, X } from "lucide-react";
 import { detectPlatform, isStandalone, startPwaListener, useInstallPrompt, type Platform } from "@/client/pwa";
@@ -21,7 +21,6 @@ export function PwaListener() {
  */
 export function InstallPrompt({ t }: { t: Dictionary["install"] }) {
   const dialog = useRef<HTMLDialogElement>(null);
-  const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
   const { state, install } = useInstallPrompt();
@@ -49,8 +48,9 @@ export function InstallPrompt({ t }: { t: Dictionary["install"] }) {
     } catch {
       // ignore
     }
-    if (welcome) router.replace(pathname, { scroll: false }); // เอา ?welcome=1 ออก (รีเฟรชแล้วไม่เด้งซ้ำ)
-  }, [params, pathname, router]);
+    // เอา ?welcome=1 ออก (รีเฟรชแล้วไม่เด้งซ้ำ) — แก้แค่ URL ไม่โหลดหน้าจาก server ซ้ำ (เดิม router.replace ทำให้หลังล็อกอินโหลด 2 รอบ)
+    if (welcome) window.history.replaceState(null, "", pathname);
+  }, [params, pathname]);
 
   const close = () => dialog.current?.close();
 

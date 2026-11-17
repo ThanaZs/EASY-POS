@@ -68,6 +68,7 @@ export default async function InventoryPage({ params, searchParams }: PageProps<
         sub={subParam}
         low={low}
         tree={tree}
+        scan={t.scan}
         labels={{
           search: t.inventory.search,
           allCategories: t.inventory.allCategories,

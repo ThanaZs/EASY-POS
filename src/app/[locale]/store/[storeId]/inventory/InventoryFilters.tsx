@@ -2,7 +2,9 @@
 
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
-import { LoaderCircle, Search, X } from "lucide-react";
+import { Camera, LoaderCircle, Search, X } from "lucide-react";
+import { CameraScanner } from "@/components/CameraScanner";
+import type { Dictionary } from "@/i18n/dictionary";
 import { useBarcodeScanner } from "@/client/devices/scanner";
 import type { CategoryNode } from "@/core/ports/repositories";
 
@@ -29,6 +31,7 @@ export function InventoryFilters({
   low,
   tree,
   labels,
+  scan,
 }: {
   q: string;
   cat: string;
@@ -36,6 +39,7 @@ export function InventoryFilters({
   low: boolean;
   tree: CategoryNode[];
   labels: Labels;
+  scan: Dictionary["scan"];
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -46,17 +50,19 @@ export function InventoryFilters({
   const [selCat, setSelCat] = useState(cat);
   const [selSub, setSelSub] = useState(sub);
   const [selLow, setSelLow] = useState(low);
+  const [camera, setCamera] = useState(false);
 
   // ยิงบาร์โค้ด (จะโฟกัสช่องค้นหาอยู่หรือไม่ก็ได้) → แทนที่คำค้นด้วยรหัสใหม่ + ล้างตัวกรองอื่นให้เจอสินค้าแน่ๆ
   // ต้องยกเลิกตัวหน่วงเวลาของช่องพิมพ์ด้วย ไม่งั้นค่าที่เครื่องสแกนพิมพ์ทับ/คืนค่าเดิม จะมาทับผลการยิงทีหลัง (เคยเด้งกลับโล่ง/เป็นรหัสเก่า)
-  useBarcodeScanner((code) => {
+  const onScanned = (code: string) => {
     clearTimeout(timer.current);
     setText(code);
     setSelCat("");
     setSelSub("");
     setSelLow(false);
     apply({ q: code, cat: "", sub: "", low: false });
-  });
+  };
+  useBarcodeScanner(onScanned);
   const node = tree.find((n) => n.category === selCat);
   const showSubs = !!node && node.subcategories.length > 0;
 
@@ -126,7 +132,7 @@ export function InventoryFilters({
             }}
             placeholder={labels.search}
             aria-label={labels.search}
-            className="w-full rounded-xl border border-line bg-card py-2 pl-9 pr-9 outline-none focus:border-brand"
+            className="w-full rounded-xl border border-line bg-card py-2 pl-9 pr-20 outline-none focus:border-brand"
           />
           {text && (
             <button
@@ -137,11 +143,21 @@ export function InventoryFilters({
                 apply({ q: "" });
               }}
               aria-label="clear"
-              className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1 text-muted hover:bg-surface"
+              className="absolute right-11 top-1/2 -translate-y-1/2 rounded-full p-1 text-muted hover:bg-surface"
             >
               <X className="size-4" />
             </button>
           )}
+          {/* สแกนด้วยกล้อง (มือถือ/แท็บเล็ต/เว็บแคม) */}
+          <button
+            type="button"
+            onClick={() => setCamera(true)}
+            aria-label={scan.button}
+            title={scan.button}
+            className="absolute right-1.5 top-1/2 grid size-8 -translate-y-1/2 place-items-center rounded-lg text-muted transition hover:bg-surface hover:text-brand-ink active:scale-95"
+          >
+            <Camera className="size-5" />
+          </button>
         </label>
         <select
           value={selCat}
@@ -173,6 +189,16 @@ export function InventoryFilters({
           {labels.lowOnly}
         </label>
       </div>
+      {camera && (
+        <CameraScanner
+          onDetected={(code) => {
+            setCamera(false);
+            onScanned(code);
+          }}
+          onClose={() => setCamera(false)}
+          labels={scan}
+        />
+      )}
       {showSubs && (
         <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1">
           {chip("", labels.allSub)}
