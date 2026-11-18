@@ -282,7 +282,17 @@
     "filter": "Filter",
     "clear": "Clear",
     "entries": "entries",
-    "viewProductHistory": "View purchase/sales history"
+    "viewProductHistory": "View purchase/sales history",
+    "historyHint": "Tap a product to see where it was bought, the price, date and lot",
+    "suppliersOf": "Bought from",
+    "cheapest": "Cheapest",
+    "supplierStats": "{times}× · {qty} {unit} · last {date}",
+    "purchaseTimeline": "Purchase history",
+    "noPurchases": "No receipts yet",
+    "unknownSupplier": "Supplier not set",
+    "totalPaid": "Total",
+    "otherMovements": "Other movements (sales / issue / adjust / refund)",
+    "noPurchaseYet": "No purchase info yet"
   },
   "pos": {
     "search": "Scan / search products",

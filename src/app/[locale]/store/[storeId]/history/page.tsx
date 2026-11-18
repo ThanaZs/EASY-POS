@@ -1,202 +1,173 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ImageOff, PackagePlus, Pencil, X } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowUp,
+  ChevronRight,
+  ImageOff,
+  PackagePlus,
+  Pencil,
+  Pin,
+  Store,
+  X,
+} from "lucide-react";
+import { can } from "@/core/domain/permissions";
 import type { StockMovement } from "@/core/domain/types";
-import { formatMoney } from "@/core/lib/format";
+import { fill, formatMoney } from "@/core/lib/format";
 import { loadLocale } from "@/i18n/page";
 import { getRepositories, getStorage } from "@/server/container";
 import { requireStoreAccess } from "@/server/session";
 import { BackLink } from "../BackLink";
+import { togglePinAction } from "../inventory/actions";
 import { InventoryFilters, NO_SUB } from "../inventory/InventoryFilters";
 import { ScanToSearch } from "../inventory/ScanToSearch";
+import { StockBadge } from "../inventory/StockBadge";
 import { MovementList } from "./MovementList";
 
-const TYPES = ["in", "sale", "out", "adjust", "refund"] as const;
 const UUID = /^[0-9a-f-]{36}$/i;
 
-// ประวัติสินค้า: ซื้อมาราคาเท่าไร · จากไหน · ลอตไหน · วันไหน + ความเคลื่อนไหวทั้งหมด (ขาย/เบิก/ปรับ/คืน)
-// ?product=<id> → สรุปของสินค้านั้น (ซื้อล่าสุด, ต้นทุนเฉลี่ย, แยกตามร้านที่ซื้อ)
+// ประวัติสินค้า
+// - หน้ารวม: รายการสินค้าแบบคลังสินค้า (รูป, ปักหมุด — ซิงก์กับคลัง) + ซื้อล่าสุด (ราคา · ร้าน · วันที่)
+// - กดสินค้า (?product=): สรุป + ไทม์ไลน์การซื้อ (ที่ไหน ราคาเท่าไร วันไหน ลอตไหน) + ความเคลื่อนไหวอื่น (ขาย/เบิก/ปรับ/คืน)
 export default async function HistoryPage({
   params,
   searchParams,
 }: PageProps<"/[locale]/store/[storeId]/history">) {
   const { locale, t } = await loadLocale(params);
   const { storeId } = await params;
-  const { store } = await requireStoreAccess(locale, storeId, "stock.history");
+  const { store, member } = await requireStoreAccess(
+    locale,
+    storeId,
+    "stock.history",
+  );
   const sp = await searchParams;
   const one = (k: string) =>
     typeof sp[k] === "string" ? (sp[k] as string) : "";
   const productId = UUID.test(one("product")) ? one("product") : "";
-  const type = (TYPES as readonly string[]).includes(one("type"))
-    ? (one("type") as StockMovement["type"])
-    : null;
   const q = one("q").slice(0, 60);
   const cat = one("cat").slice(0, 60);
   const subParam = cat ? one("sub").slice(0, 60) : "";
   const low = one("low") === "1";
   const pin = one("pin") === "1";
   const supplier = one("supplier").slice(0, 80);
-  const from = /^\d{4}-\d{2}-\d{2}$/.test(one("from")) ? one("from") : "";
-  const to = /^\d{4}-\d{2}-\d{2}$/.test(one("to")) ? one("to") : "";
 
   const repos = await getRepositories();
-  // ตัวกรองแบบคลังสินค้า (ค้นชื่อ/SKU/บาร์โค้ด, หมวด, หมวดย่อย, ปักหมุด, ใกล้หมด) → หาสินค้าที่ตรงก่อน แล้วดึงประวัติของสินค้าเหล่านั้น
-  const productFilter = !productId && (q || cat || low || pin);
-  const [matches, tree] = await Promise.all([
-    productFilter
-      ? repos.products.list(storeId, {
-          search: q || undefined,
-          category: cat || undefined,
-          subcategory: subParam === NO_SUB ? null : subParam || undefined,
-          lowStockOnly: low,
-          pinnedOnly: pin,
-        })
-      : Promise.resolve([]),
-    repos.products.categoryTree(storeId),
-  ]);
-  // ยิง/พิมพ์บาร์โค้ดตรงสินค้าเดียว → เปิดหน้าสรุปของสินค้านั้นเลย
-  const exact = q
-    ? matches.filter(
-        (p) => p.barcode === q || p.packBarcode === q || p.sku === q,
-      )
-    : [];
-  const focusId = productId || (exact.length === 1 ? exact[0].id : "");
-  const [items, suppliers, product, productAll, storage] = await Promise.all([
-    repos.stock.history(storeId, {
-      productId: focusId || undefined,
-      productIds:
-        !focusId && productFilter ? matches.map((p) => p.id) : undefined,
-      types: type ? [type] : undefined,
-      supplier: supplier || undefined,
-      from: from || undefined,
-      to: to || undefined,
-      timeZone: store.timeZone,
-      limit: 300,
-    }),
-    repos.stock.suppliers(storeId),
-    focusId ? repos.products.findById(storeId, focusId) : Promise.resolve(null),
-    focusId
-      ? repos.stock.history(storeId, {
-          productId: focusId,
-          types: ["in"],
-          limit: 1000,
-        })
-      : Promise.resolve([]),
-    getStorage(),
-  ]);
-  if (focusId && !product) notFound();
-
+  const storage = await getStorage();
   const base = `/${locale}/store/${storeId}/history`;
-  const money = (m: number) => formatMoney(m, store.currency, locale);
   const s = t.stock;
-  const link = (patch: Record<string, string | null>) => {
-    const p = new URLSearchParams();
-    const cur: Record<string, string> = {
-      product: productId,
-      type: type ?? "",
-      q,
-      supplier,
-      from,
-      to,
-    };
-    for (const [k, v] of Object.entries({ ...cur, ...patch }))
-      if (v) p.set(k, v);
-    const qs = p.toString();
-    return qs ? `${base}?${qs}` : base;
-  };
+  const money = (m: number) => formatMoney(m, store.currency, locale);
   const day = (d: string) =>
     new Intl.DateTimeFormat(locale, {
       day: "numeric",
       month: "short",
-      year: "numeric",
+      year: "2-digit",
       timeZone: "UTC",
     }).format(new Date(`${d}T00:00:00Z`));
+  const dayOf = (m: StockMovement) =>
+    m.purchasedOn ??
+    new Intl.DateTimeFormat("en-CA", { timeZone: store.timeZone }).format(
+      m.createdAt,
+    );
+  const img = (path: string | null, size: string) =>
+    path && storage ? (
+      // eslint-disable-next-line @next/next/no-img-element -- รูปจาก storage
+      <img
+        src={storage.publicUrl(path)}
+        alt=""
+        loading="lazy"
+        className={`${size} shrink-0 rounded-lg object-cover`}
+      />
+    ) : (
+      <span
+        className={`grid ${size} shrink-0 place-items-center rounded-lg bg-surface text-muted`}
+      >
+        <ImageOff className="size-3.5" />
+      </span>
+    );
 
-  // ----- สรุปการซื้อของสินค้าที่เลือก -----
-  const buys = productAll.filter((m) => m.unitCostMinor != null);
-  const last =
-    productAll.find((m) => m.unitCostMinor != null || m.supplier || m.lotNo) ??
-    null;
-  const qtyWithCost = buys.reduce((n, m) => n + m.qty, 0);
-  const avgCost = qtyWithCost
-    ? Math.round(
-        buys.reduce((n, m) => n + m.qty * (m.unitCostMinor ?? 0), 0) /
-          qtyWithCost,
-      )
-    : null;
-  const prices = buys.map((m) => m.unitCostMinor!);
-  const bySupplier = new Map<
-    string,
-    {
-      times: number;
-      qty: number;
-      lastPrice: number | null;
-      lastDay: string | null;
-    }
-  >();
-  for (const m of productAll) {
-    if (!m.supplier) continue;
-    const cur = bySupplier.get(m.supplier) ?? {
-      times: 0,
-      qty: 0,
-      lastPrice: null,
-      lastDay: null,
-    };
-    cur.times++;
-    cur.qty += m.qty;
-    if (cur.lastPrice === null && m.unitCostMinor != null)
-      cur.lastPrice = m.unitCostMinor; // รายการเรียงใหม่ → เก่า
-    if (!cur.lastDay) cur.lastDay = m.purchasedOn;
-    bySupplier.set(m.supplier, cur);
+  // ยิง/พิมพ์บาร์โค้ดตรงสินค้าเดียว → เปิดหน้าสินค้านั้นเลย
+  let focusId = productId;
+  if (!focusId && q) {
+    const hit = (await repos.products.list(storeId, { search: q })).filter(
+      (p) => p.barcode === q || p.packBarcode === q || p.sku === q,
+    );
+    if (hit.length === 1) focusId = hit[0].id;
   }
 
-  const chip = (active: boolean, label: string, href: string) => (
-    <Link
-      key={href + label}
-      prefetch={false}
-      href={href}
-      className={`shrink-0 rounded-full border px-3 py-1 text-sm transition active:scale-95 ${
-        active ? "border-brand bg-brand text-white" : "border-line bg-card"
-      }`}
-    >
-      {label}
-    </Link>
-  );
+  // ===================== มุมมองสินค้าเดียว =====================
+  if (focusId) {
+    const [product, all] = await Promise.all([
+      repos.products.findById(storeId, focusId),
+      repos.stock.history(storeId, { productId: focusId, limit: 1000 }),
+    ]);
+    if (!product) notFound();
+    const purchases = all.filter((m) => m.type === "in");
+    const others = all.filter((m) => m.type !== "in");
+    const priced = purchases.filter((m) => m.unitCostMinor != null);
+    const qtyPriced = priced.reduce((n, m) => n + m.qty, 0);
+    const avgCost = qtyPriced
+      ? Math.round(
+          priced.reduce((n, m) => n + m.qty * m.unitCostMinor!, 0) / qtyPriced,
+        )
+      : null;
+    const prices = priced.map((m) => m.unitCostMinor!);
+    const lastBuy =
+      purchases.find((m) => m.unitCostMinor != null || m.supplier) ?? null;
+    const bySupplier = new Map<
+      string,
+      { times: number; qty: number; lastPrice: number | null; lastDay: string }
+    >();
+    for (const m of purchases) {
+      if (!m.supplier) continue;
+      const cur = bySupplier.get(m.supplier) ?? {
+        times: 0,
+        qty: 0,
+        lastPrice: null,
+        lastDay: dayOf(m),
+      };
+      cur.times++;
+      cur.qty += m.qty;
+      if (cur.lastPrice === null && m.unitCostMinor != null)
+        cur.lastPrice = m.unitCostMinor;
+      bySupplier.set(m.supplier, cur);
+    }
+    const cheapest = [...bySupplier]
+      .filter(([, v]) => v.lastPrice != null)
+      .sort((a, b) => a[1].lastPrice! - b[1].lastPrice!)[0]?.[0];
 
-  return (
-    <div className="mx-auto max-w-3xl space-y-4">
-      <BackLink
-        href={productId ? base : `/${locale}/store/${storeId}`}
-        label={productId ? s.allHistory : t.store.back}
-      />
-      <h1 className="text-xl font-bold">{t.store.modules.history}</h1>
+    return (
+      <div className="mx-auto max-w-3xl space-y-4">
+        <BackLink href={base} label={s.allHistory} />
 
-      {/* ----- สินค้าที่เลือก: สรุปการซื้อ ----- */}
-      {product && (
+        {/* ----- หัวสินค้า ----- */}
         <section className="space-y-3 rounded-2xl border border-line bg-card p-4">
           <div className="flex items-center gap-3">
-            {product.imagePath && storage ? (
-              // eslint-disable-next-line @next/next/no-img-element -- รูปจาก storage
-              <img
-                src={storage.publicUrl(product.imagePath)}
-                alt=""
-                className="size-14 rounded-xl object-cover"
-              />
-            ) : (
-              <span className="grid size-14 place-items-center rounded-xl bg-surface text-muted">
-                <ImageOff className="size-5" />
-              </span>
-            )}
+            {img(product.imagePath, "size-16")}
             <div className="min-w-0 flex-1">
-              <p className="truncate text-lg font-bold">{product.name}</p>
-              <p className="text-sm text-muted">
-                {s.inStockNow}:{" "}
+              <p className="flex items-center gap-1.5 truncate text-lg font-bold">
+                {product.pinned && (
+                  <Pin className="size-4 shrink-0 fill-current text-brand" />
+                )}
+                <span className="truncate">{product.name}</span>
+              </p>
+              <p className="truncate text-xs text-muted">
+                {[
+                  [product.category, product.subcategory]
+                    .filter(Boolean)
+                    .join(" › "),
+                  product.barcode,
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </p>
+              <p className="mt-0.5 text-sm text-muted">
+                {s.inStockNow}{" "}
                 <b className="text-ink">
                   {product.stockQty} {product.unit}
                 </b>{" "}
-                · {s.costNow}:{" "}
+                · {s.costNow}{" "}
                 <b className="text-ink">{money(product.costMinor)}</b> ·{" "}
-                {s.priceNow}:{" "}
+                {s.priceNow}{" "}
                 <b className="text-ink">{money(product.priceMinor)}</b>
               </p>
             </div>
@@ -209,24 +180,27 @@ export default async function HistoryPage({
             >
               <PackagePlus className="size-4" /> {s.receiveMore}
             </Link>
-            <Link
-              prefetch={false}
-              href={`/${locale}/store/${storeId}/inventory/${product.id}`}
-              className="inline-flex items-center gap-1 rounded-xl border border-line px-3 py-1.5 text-sm font-medium"
-            >
-              <Pencil className="size-4" /> {t.inventory.edit}
-            </Link>
+            {can(member, "products.edit") && (
+              <Link
+                prefetch={false}
+                href={`/${locale}/store/${storeId}/inventory/${product.id}`}
+                className="inline-flex items-center gap-1 rounded-xl border border-line px-3 py-1.5 text-sm font-medium"
+              >
+                <Pencil className="size-4" /> {t.inventory.edit}
+              </Link>
+            )}
           </div>
-
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             <Stat
               label={s.lastBuy}
               value={
-                last?.unitCostMinor != null ? money(last.unitCostMinor) : "—"
+                lastBuy?.unitCostMinor != null
+                  ? money(lastBuy.unitCostMinor)
+                  : "—"
               }
               sub={
-                last
-                  ? [last.supplier, last.purchasedOn && day(last.purchasedOn)]
+                lastBuy
+                  ? [lastBuy.supplier, day(dayOf(lastBuy))]
                       .filter(Boolean)
                       .join(" · ")
                   : ""
@@ -235,7 +209,7 @@ export default async function HistoryPage({
             <Stat
               label={s.avgCost}
               value={avgCost != null ? money(avgCost) : "—"}
-              sub={qtyWithCost ? `${qtyWithCost} ${product.unit}` : ""}
+              sub={qtyPriced ? `${qtyPriced} ${product.unit}` : ""}
             />
             <Stat
               label={s.priceRange}
@@ -247,53 +221,195 @@ export default async function HistoryPage({
             />
             <Stat
               label={s.timesBought}
-              value={String(productAll.length)}
-              sub={`${productAll.reduce((n, m) => n + m.qty, 0)} ${product.unit}`}
+              value={String(purchases.length)}
+              sub={`${purchases.reduce((n, m) => n + m.qty, 0)} ${product.unit}`}
             />
           </div>
+        </section>
 
-          {bySupplier.size > 0 && (
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[28rem] text-sm">
-                <thead className="text-left text-xs text-muted">
-                  <tr>
-                    <th className="py-1 font-medium">{s.supplier}</th>
-                    <th className="py-1 font-medium">{s.times}</th>
-                    <th className="py-1 font-medium">{s.lastPrice}</th>
-                    <th className="py-1 font-medium">{s.lastDate}</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-line">
-                  {[...bySupplier].map(([name, v]) => (
-                    <tr key={name}>
-                      <td className="py-1.5 font-medium">
-                        <Link
-                          prefetch={false}
-                          href={link({ supplier: name })}
-                          className="hover:text-brand-ink hover:underline"
-                        >
-                          {name}
-                        </Link>
-                      </td>
-                      <td className="py-1.5 tabular-nums">
-                        {v.times} ({v.qty} {product.unit})
-                      </td>
-                      <td className="py-1.5 tabular-nums">
-                        {v.lastPrice != null ? money(v.lastPrice) : "—"}
-                      </td>
-                      <td className="py-1.5">
-                        {v.lastDay ? day(v.lastDay) : "—"}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+        {/* ----- ซื้อจากร้านไหนบ้าง ----- */}
+        {bySupplier.size > 0 && (
+          <section className="space-y-2">
+            <h2 className="font-semibold">{s.suppliersOf}</h2>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {[...bySupplier].map(([name, v]) => {
+                const best = name === cheapest && bySupplier.size > 1;
+                return (
+                  <div
+                    key={name}
+                    className={`rounded-2xl border bg-card p-3 ${best ? "border-emerald-400" : "border-line"}`}
+                  >
+                    <p className="flex items-center gap-1.5 font-semibold">
+                      <Store className="size-4 text-muted" /> {name}
+                      {best && (
+                        <span className="rounded-md bg-emerald-100 px-1.5 text-[11px] text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+                          {s.cheapest}
+                        </span>
+                      )}
+                    </p>
+                    <p className="text-sm">
+                      {v.lastPrice != null ? (
+                        <b className="tabular-nums">{money(v.lastPrice)}</b>
+                      ) : (
+                        "—"
+                      )}{" "}
+                      <span className="text-muted">/ {product.unit}</span>
+                    </p>
+                    <p className="text-xs text-muted">
+                      {fill(s.supplierStats, {
+                        times: v.times,
+                        qty: v.qty,
+                        unit: product.unit,
+                        date: day(v.lastDay),
+                      })}
+                    </p>
+                  </div>
+                );
+              })}
             </div>
+          </section>
+        )}
+
+        {/* ----- ไทม์ไลน์การซื้อ ----- */}
+        <section className="space-y-2">
+          <h2 className="font-semibold">{s.purchaseTimeline}</h2>
+          {purchases.length === 0 ? (
+            <p className="rounded-2xl border border-dashed border-line bg-card p-6 text-center text-muted">
+              {s.noPurchases}
+            </p>
+          ) : (
+            <ol className="scroll-box space-y-2">
+              {purchases.map((m, i) => {
+                const prev = purchases
+                  .slice(i + 1)
+                  .find((x) => x.unitCostMinor != null);
+                const diff =
+                  m.unitCostMinor != null && prev?.unitCostMinor != null
+                    ? m.unitCostMinor - prev.unitCostMinor
+                    : 0;
+                const d = dayOf(m);
+                return (
+                  <li
+                    key={m.id}
+                    className="flex gap-3 rounded-2xl border border-line bg-card p-3"
+                  >
+                    <div className="grid w-14 shrink-0 place-items-center rounded-xl bg-brand-soft py-1.5 text-center leading-tight text-brand-ink">
+                      <span className="text-lg font-bold">
+                        {Number(d.slice(8))}
+                      </span>
+                      <span className="text-[11px]">
+                        {new Intl.DateTimeFormat(locale, {
+                          month: "short",
+                          year: "2-digit",
+                          timeZone: "UTC",
+                        }).format(new Date(`${d}T00:00:00Z`))}
+                      </span>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="flex items-center gap-1.5 truncate font-semibold">
+                        <Store className="size-4 shrink-0 text-muted" />
+                        <span className="truncate">
+                          {m.supplier ?? s.unknownSupplier}
+                        </span>
+                      </p>
+                      <p className="text-xs text-muted">
+                        {[
+                          m.lotNo && `${s.lotNo} ${m.lotNo}`,
+                          `+${m.qty} ${product.unit}`,
+                          m.note && m.note !== "initial" ? m.note : null,
+                        ]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </p>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      {m.unitCostMinor != null ? (
+                        <>
+                          <p className="font-bold tabular-nums">
+                            {money(m.unitCostMinor)}
+                            <span className="text-xs font-normal text-muted">
+                              /{product.unit}
+                            </span>
+                          </p>
+                          <p className="text-xs tabular-nums text-muted">
+                            {s.totalPaid} {money(m.unitCostMinor * m.qty)}
+                          </p>
+                          {diff !== 0 && (
+                            <p
+                              className={`inline-flex items-center text-xs font-semibold ${diff > 0 ? "text-rose-600" : "text-emerald-600"}`}
+                            >
+                              {diff > 0 ? (
+                                <ArrowUp className="size-3" />
+                              ) : (
+                                <ArrowDown className="size-3" />
+                              )}
+                              {money(Math.abs(diff))}
+                            </p>
+                          )}
+                        </>
+                      ) : (
+                        <p className="text-sm text-muted">—</p>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
+            </ol>
           )}
         </section>
-      )}
 
-      {/* ----- ตัวกรองสินค้า (เหมือนคลังสินค้า) ----- */}
+        {/* ----- ความเคลื่อนไหวอื่น ----- */}
+        {others.length > 0 && (
+          <details className="space-y-2 rounded-2xl border border-line bg-card p-3">
+            <summary className="cursor-pointer font-semibold">
+              {s.otherMovements}{" "}
+              <span className="text-sm font-normal text-muted">
+                ({others.length})
+              </span>
+            </summary>
+            <MovementList
+              items={others}
+              t={t}
+              locale={locale}
+              timeZone={store.timeZone}
+              currency={store.currency}
+              showProduct={false}
+            />
+          </details>
+        )}
+      </div>
+    );
+  }
+
+  // ===================== หน้ารวม: รายการสินค้า =====================
+  const [products, tree, last, suppliers, bySupplierIds] = await Promise.all([
+    repos.products.list(storeId, {
+      search: q || undefined,
+      category: cat || undefined,
+      subcategory: subParam === NO_SUB ? null : subParam || undefined,
+      lowStockOnly: low,
+      pinnedOnly: pin,
+    }),
+    repos.products.categoryTree(storeId),
+    repos.stock.lastPurchases(storeId),
+    repos.stock.suppliers(storeId),
+    supplier
+      ? repos.stock.productIdsBySupplier(storeId, supplier)
+      : Promise.resolve(null),
+  ]);
+  const items = bySupplierIds
+    ? products.filter((p) => bySupplierIds.includes(p.id))
+    : products;
+  const canPin = can(member, "products.edit");
+
+  return (
+    <div className="space-y-4">
+      <BackLink href={`/${locale}/store/${storeId}`} label={t.store.back} />
+      <div>
+        <h1 className="text-xl font-bold">{t.store.modules.history}</h1>
+        <p className="text-sm text-muted">{s.historyHint}</p>
+      </div>
+
       <ScanToSearch devices={t.devices} />
       <InventoryFilters
         q={q}
@@ -312,93 +428,125 @@ export default async function HistoryPage({
           noSub: t.inventory.noSub,
         }}
       />
-
-      {/* ----- ตัวกรองประวัติ: ร้านที่ซื้อ / ช่วงวันที่ / ประเภท ----- */}
-      <form
-        method="get"
-        className="space-y-2 rounded-2xl border border-line bg-card p-3"
-      >
-        {Object.entries({
-          product: productId,
-          type: type ?? "",
-          q,
-          cat,
-          sub: subParam,
-          low: low ? "1" : "",
-          pin: pin ? "1" : "",
-        })
-          .filter(([, v]) => v)
-          .map(([k, v]) => (
-            <input key={k} type="hidden" name={k} value={v} />
-          ))}
-        <div className="flex flex-wrap items-end gap-2">
-          <label className="min-w-40 flex-1 text-xs text-muted">
-            {s.supplier}
-            <select
-              name="supplier"
-              defaultValue={supplier}
-              className="mt-0.5 block w-full rounded-xl border border-line bg-card px-3 py-1.5 text-sm text-ink"
-            >
-              <option value="">{s.allSuppliers}</option>
-              {suppliers.map((x) => (
-                <option key={x} value={x}>
-                  {x}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="text-xs text-muted">
-            {s.from}
-            <input
-              type="date"
-              name="from"
-              defaultValue={from}
-              className="mt-0.5 block rounded-xl border border-line bg-card px-2 py-1.5 text-sm text-ink"
-            />
-          </label>
-          <label className="text-xs text-muted">
-            {s.to}
-            <input
-              type="date"
-              name="to"
-              defaultValue={to}
-              className="mt-0.5 block rounded-xl border border-line bg-card px-2 py-1.5 text-sm text-ink"
-            />
-          </label>
+      {suppliers.length > 0 && (
+        <form method="get" className="flex flex-wrap items-center gap-2">
+          {Object.entries({
+            q,
+            cat,
+            sub: subParam,
+            low: low ? "1" : "",
+            pin: pin ? "1" : "",
+          })
+            .filter(([, v]) => v)
+            .map(([k, v]) => (
+              <input key={k} type="hidden" name={k} value={v} />
+            ))}
+          <Store className="size-4 text-muted" />
+          <select
+            name="supplier"
+            defaultValue={supplier}
+            className="rounded-xl border border-line bg-card px-3 py-1.5 text-sm"
+          >
+            <option value="">{s.allSuppliers}</option>
+            {suppliers.map((x) => (
+              <option key={x} value={x}>
+                {x}
+              </option>
+            ))}
+          </select>
           <button
             type="submit"
-            className="rounded-xl bg-brand px-4 py-2 text-sm font-semibold text-white"
+            className="rounded-xl border border-line bg-card px-3 py-1.5 text-sm font-medium hover:border-brand"
           >
             {s.filter}
           </button>
-          {(q || cat || low || pin || supplier || from || to || type) && (
+          {supplier && (
             <Link
               prefetch={false}
-              href={productId ? `${base}?product=${productId}` : base}
-              className="inline-flex items-center gap-1 px-2 py-2 text-sm text-muted hover:text-ink"
+              href={base}
+              className="inline-flex items-center gap-1 text-sm text-muted hover:text-ink"
             >
               <X className="size-4" /> {s.clear}
             </Link>
           )}
-        </div>
-        <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1">
-          {chip(!type, s.all, link({ type: null }))}
-          {TYPES.map((x) => chip(type === x, s.types[x], link({ type: x })))}
-        </div>
-      </form>
+        </form>
+      )}
 
       <p className="text-sm text-muted">
-        {items.length} {s.entries}
+        {fill(t.inventory.count, { n: items.length })}
       </p>
-      <MovementList
-        items={items}
-        t={t}
-        locale={locale}
-        timeZone={store.timeZone}
-        currency={store.currency}
-        linkBase={base}
-        showProduct={!focusId}
-      />
+      {items.length === 0 ? (
+        <p className="rounded-2xl border border-dashed border-line bg-card p-8 text-center text-muted">
+          {s.noMatch}
+        </p>
+      ) : (
+        <ul className="scroll-box grid rounded-2xl border border-line bg-card lg:grid-cols-2 lg:divide-x lg:divide-line">
+          {items.map((p) => {
+            const lb = last.get(p.id);
+            return (
+              <li key={p.id} className="flex items-center border-b border-line">
+                {canPin ? (
+                  <form action={togglePinAction} className="shrink-0">
+                    <input type="hidden" name="locale" value={locale} />
+                    <input type="hidden" name="storeId" value={storeId} />
+                    <input type="hidden" name="productId" value={p.id} />
+                    <input
+                      type="hidden"
+                      name="pinned"
+                      value={p.pinned ? "0" : "1"}
+                    />
+                    <button
+                      type="submit"
+                      aria-label={
+                        p.pinned ? t.inventory.unpin : t.inventory.pin
+                      }
+                      title={p.pinned ? t.inventory.unpin : t.inventory.pin}
+                      className={`grid h-12 w-9 place-items-center transition active:scale-90 ${p.pinned ? "text-brand" : "text-line hover:text-muted"}`}
+                    >
+                      <Pin
+                        className={`size-4 ${p.pinned ? "fill-current" : ""}`}
+                      />
+                    </button>
+                  </form>
+                ) : (
+                  <span className="w-3" />
+                )}
+                <Link
+                  prefetch={false}
+                  href={`${base}?product=${p.id}`}
+                  className="flex min-w-0 flex-1 items-center gap-2.5 py-1.5 pr-2 row-hover"
+                >
+                  {storage && img(p.imagePath, "size-9")}
+                  <div className="min-w-0 flex-1 leading-tight">
+                    <p className="truncate text-sm font-medium">{p.name}</p>
+                    {lb ? (
+                      <p className="truncate text-[11px]">
+                        {lb.unitCostMinor != null && (
+                          <b className="tabular-nums">
+                            {money(lb.unitCostMinor)}
+                          </b>
+                        )}
+                        <span className="text-muted">
+                          {lb.unitCostMinor != null ? " · " : ""}
+                          {[lb.supplier, day(dayOf(lb))]
+                            .filter(Boolean)
+                            .join(" · ")}
+                        </span>
+                      </p>
+                    ) : (
+                      <p className="truncate text-[11px] text-muted">
+                        {s.noPurchaseYet}
+                      </p>
+                    )}
+                  </div>
+                  <StockBadge p={p} t={t} />
+                  <ChevronRight className="size-4 shrink-0 text-muted" />
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      )}
     </div>
   );
 }

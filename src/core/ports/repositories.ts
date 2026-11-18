@@ -168,6 +168,10 @@ export interface StockRepo {
       limit?: number;
     },
   ): Promise<StockMovement[]>;
+  /** การซื้อครั้งล่าสุดของแต่ละสินค้า (รับเข้าที่มีราคา/ร้าน/ลอต) → productId → movement */
+  lastPurchases(storeId: ID): Promise<Map<ID, StockMovement>>;
+  /** สินค้าที่เคยซื้อจากร้านนี้ */
+  productIdsBySupplier(storeId: ID, supplier: string): Promise<ID[]>;
   /** ร้านที่เคยซื้อ (ล่าสุดก่อน) ไว้เป็นตัวเลือกในช่อง "ซื้อจาก" */
   suppliers(storeId: ID): Promise<string[]>;
 }

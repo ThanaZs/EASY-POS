@@ -425,6 +425,34 @@ export function stockRepo(): StockRepo {
         .limit(q.limit ?? 200);
       return rows.map(toMovement);
     },
+    async lastPurchases(storeId) {
+      const rows = await db
+        .selectDistinctOn([stockMovements.productId])
+        .from(stockMovements)
+        .where(
+          and(
+            eq(stockMovements.storeId, storeId),
+            eq(stockMovements.type, "in"),
+            isNotNull(stockMovements.productId),
+            sql`(${stockMovements.unitCostMinor} is not null or ${stockMovements.supplier} is not null or ${stockMovements.lotNo} is not null)`,
+          ),
+        )
+        .orderBy(stockMovements.productId, desc(stockMovements.createdAt));
+      return new Map(rows.map((r) => [r.productId!, toMovement(r)]));
+    },
+    async productIdsBySupplier(storeId, supplier) {
+      const rows = await db
+        .selectDistinct({ id: stockMovements.productId })
+        .from(stockMovements)
+        .where(
+          and(
+            eq(stockMovements.storeId, storeId),
+            eq(stockMovements.supplier, supplier),
+            isNotNull(stockMovements.productId),
+          ),
+        );
+      return rows.map((r) => r.id!);
+    },
     async suppliers(storeId) {
       const rows = await db
         .select({

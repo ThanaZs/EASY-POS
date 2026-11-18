@@ -282,7 +282,17 @@
     "filter": "กรอง",
     "clear": "ล้าง",
     "entries": "รายการ",
-    "viewProductHistory": "ดูประวัติซื้อ/ขายของสินค้านี้"
+    "viewProductHistory": "ดูประวัติซื้อ/ขายของสินค้านี้",
+    "historyHint": "แตะสินค้าเพื่อดูว่าซื้อจากที่ไหน ราคาเท่าไร วันไหน ลอตไหน",
+    "suppliersOf": "ซื้อจากร้านไหนบ้าง",
+    "cheapest": "ถูกสุด",
+    "supplierStats": "ซื้อ {times} ครั้ง · {qty} {unit} · ล่าสุด {date}",
+    "purchaseTimeline": "ประวัติการซื้อ",
+    "noPurchases": "ยังไม่มีการรับเข้า",
+    "unknownSupplier": "ไม่ได้ระบุร้าน",
+    "totalPaid": "รวม",
+    "otherMovements": "ความเคลื่อนไหวอื่น (ขาย / เบิก / ปรับ / คืน)",
+    "noPurchaseYet": "ยังไม่มีข้อมูลการซื้อ"
   },
   "pos": {
     "search": "สแกน / ค้นหาสินค้า",
