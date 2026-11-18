@@ -2,8 +2,18 @@
 
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
-import { ArrowBigUp, Delete } from "lucide-react";
-import { setInputValue } from "@/client/devices/scanner";
+import {
+  ArrowBigUp,
+  Check,
+  ChevronDown,
+  ChevronUp,
+  Delete,
+} from "lucide-react";
+import {
+  isScannerConnected,
+  setInputValue,
+  useScannerState,
+} from "@/client/devices/scanner";
 
 // ===== คีย์บอร์ดของ EASY-POS เอง (เฉพาะ iPhone/iPad) =====
 // ปัญหา: iPhone/iPad ต่อเครื่องสแกน Bluetooth (เป็น "คีย์บอร์ดจริง") → iOS ซ่อนคีย์บอร์ดบนจอ แตะช่องแล้วพิมพ์ไม่ได้
@@ -76,7 +86,7 @@ const LANG_KEY = "ep_vkb_lang";
 export function VirtualKeyboard({
   labels,
 }: {
-  labels: { done: string; space: string };
+  labels: { done: string; space: string; prev: string; next: string };
 }) {
   const pathname = usePathname();
   const [opened, setOpened] = useState<{ el: Target; path: string } | null>(
@@ -151,7 +161,8 @@ export function VirtualKeyboard({
   // หน้าเลื่อนไม่ได้ = คีย์บอร์ดไม่ขยับ; ระบบเลื่อนช่องที่พิมพ์ขึ้นมาให้เห็นเอง (ย้าย top ของ body)
   // ปิดคีย์บอร์ด → ปลดล็อก แล้วกลับไปตำแหน่งเดิมของหน้า
   // เผื่อ 64px ล่างสุดให้แถบ ˄ ˅ ✓ ของ iOS (พื้นหลังคีย์บอร์ดยาวลงไปใต้แถบ ไม่มีช่องว่าง)
-  const lift = 64;
+  // แถบ ˄ ˅ ✓ ของ iOS ขึ้นเฉพาะตอนมีคีย์บอร์ดจริง (เครื่องสแกน) ต่ออยู่ → เผื่อที่ 64px เฉพาะตอนนั้น
+  const lift = isScannerConnected(useScannerState()) ? 64 : 0;
   const lockY = useRef(0);
   const isOpen = !!target;
   useEffect(() => {
@@ -256,6 +267,26 @@ export function VirtualKeyboard({
     }
     setTarget(null);
   }
+  /** ˄ ˅ ไปช่องพิมพ์ก่อนหน้า/ถัดไปในหน้า (แทนแถบของ iOS ที่หายไปเมื่อปิดคีย์บอร์ดระบบ) */
+  const fields = () =>
+    [...document.querySelectorAll<Target>("input, textarea")].filter(
+      (el) =>
+        isTypable(el) &&
+        el.getClientRects().length > 0 &&
+        !el.closest("[data-vkb]"),
+    );
+  const step = (dir: 1 | -1) => {
+    if (!target) return;
+    const list = fields();
+    const next = list[list.indexOf(target) + dir];
+    if (next) next.focus();
+  };
+  const navState = (() => {
+    if (!target) return { prev: false, next: false };
+    const list = fields();
+    const i = list.indexOf(target);
+    return { prev: i > 0, next: i >= 0 && i < list.length - 1 };
+  })();
   const setLang = (m: "th" | "en") => {
     setMode(m);
     try {
@@ -288,11 +319,46 @@ export function VirtualKeyboard({
   return (
     <div
       ref={panel}
-      // พื้นหลังยาวถึงขอบล่างจอ (ใต้แถบ ˄ ˅ ✓ ของ iOS) → ไม่มีช่องว่างเห็นหน้าเว็บ ปุ่มอยู่เหนือแถบพอดี
-      style={{ paddingBottom: `calc(${lift}px + env(safe-area-inset-bottom))` }}
+      data-vkb
+      // พื้นหลังยาวถึงขอบล่างจอ; เผื่อที่ให้แถบของ iOS เฉพาะตอนต่อเครื่องสแกน (ไม่งั้นไม่มีแถบ → ชิดล่าง)
+      style={{
+        paddingBottom: `calc(${lift}px + env(safe-area-inset-bottom))`,
+      }}
       className="fixed inset-x-0 bottom-0 z-[80] space-y-1.5 border-t border-line bg-surface p-1.5 shadow-[0_-8px_24px_rgba(0,0,0,0.12)]"
       onPointerDown={keep}
     >
+      {/* แถบ ˄ ˅ เสร็จ ✓ (ของเราเอง อยู่บนคีย์บอร์ดเสมอ) */}
+      <div className="mx-auto flex max-w-2xl items-center gap-1">
+        {(
+          [
+            [-1, ChevronUp, navState.prev],
+            [1, ChevronDown, navState.next],
+          ] as const
+        ).map(([dir, Icon, ok]) => (
+          <button
+            key={dir}
+            type="button"
+            onPointerDown={keep}
+            onMouseDown={keep}
+            onClick={() => step(dir)}
+            disabled={!ok}
+            aria-label={dir < 0 ? labels.prev : labels.next}
+            className="grid h-9 w-12 place-items-center rounded-lg text-ink active:bg-brand-soft disabled:opacity-30"
+          >
+            <Icon className="size-6" />
+          </button>
+        ))}
+        <span className="flex-1" />
+        <button
+          type="button"
+          onPointerDown={keep}
+          onMouseDown={keep}
+          onClick={done}
+          className="flex h-9 items-center gap-1 rounded-lg px-3 font-semibold text-brand-ink active:bg-brand-soft"
+        >
+          {labels.done} <Check className="size-5" />
+        </button>
+      </div>
       {mode === "num" ? (
         <div className="mx-auto grid max-w-md grid-cols-3 gap-1.5">
           {["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((d) => (
@@ -308,9 +374,6 @@ export function VirtualKeyboard({
           </div>
           <div className="flex">
             {key(<Delete className="mx-auto size-6" />, backspace, "h-12")}
-          </div>
-          <div className="col-span-3 flex">
-            {key(labels.done, done, "h-12 bg-brand font-semibold text-white")}
           </div>
         </div>
       ) : (
@@ -353,12 +416,7 @@ export function VirtualKeyboard({
               () => setLang(mode === "en" ? "th" : "en"),
               "flex-[1.2] text-sm",
             )}
-            {key(labels.space, () => insert(" "), "flex-[4] text-sm")}
-            {key(
-              labels.done,
-              done,
-              "flex-[2] bg-brand text-sm font-semibold text-white",
-            )}
+            {key(labels.space, () => insert(" "), "flex-[6] text-sm")}
           </div>
         </div>
       )}

@@ -595,7 +595,9 @@
   },
   "keyboard": {
     "done": "Done",
-    "space": "space"
+    "space": "space",
+    "prev": "Previous field",
+    "next": "Next field"
   },
   "audit": {
     "hint": "Every change in this store: who did what, to which item, from what to what, and when (latest 300)",
