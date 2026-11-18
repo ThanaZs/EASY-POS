@@ -2,6 +2,7 @@ import { Alert } from "@/components/Alert";
 import { Card, Field, PrimaryButton } from "@/components/Field";
 import { Select } from "@/components/Select";
 import { can } from "@/core/domain/permissions";
+import { todayIn } from "@/core/lib/format";
 import { loadLocale } from "@/i18n/page";
 import { getRepositories, getStorage } from "@/server/container";
 import { requireStoreAccess } from "@/server/session";
@@ -23,10 +24,11 @@ export default async function ReceivePage({
   );
   const sp = await searchParams;
   const repos = await getRepositories();
-  const [products, recent, storage] = await Promise.all([
+  const [products, recent, storage, suppliers] = await Promise.all([
     repos.products.list(storeId),
     repos.stock.history(storeId, { limit: 15 }),
     getStorage(),
+    repos.stock.suppliers(storeId),
   ]);
   const tracked = products.filter((p) => p.trackStock);
   const modes = [
@@ -53,7 +55,10 @@ export default async function ReceivePage({
         </p>
       ) : (
         <Card>
-          <form action={stockMoveAction} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <form
+            action={stockMoveAction}
+            className="group grid grid-cols-1 gap-4 sm:grid-cols-2"
+          >
             <input type="hidden" name="locale" value={locale} />
             <input type="hidden" name="storeId" value={storeId} />
             {sp.error === "noPack" && (
@@ -126,6 +131,69 @@ export default async function ReceivePage({
               />
             </div>
             <Field label={t.stock.note} name="note" maxLength={200} />
+            {/* ข้อมูลการซื้อ: แสดงเฉพาะโหมด "รับเข้า" */}
+            <fieldset className="hidden gap-3 rounded-2xl border border-dashed border-line p-3 group-has-[input[name=mode][value=in]:checked]:grid sm:col-span-2 sm:grid-cols-2">
+              <legend className="px-1 text-sm font-semibold">
+                {t.stock.purchaseInfo}
+              </legend>
+              <div className="grid grid-cols-[1fr_auto] items-end gap-2">
+                <Field
+                  label={t.stock.buyPrice}
+                  name="buyPrice"
+                  inputMode="decimal"
+                  placeholder="0.00"
+                  autoComplete="off"
+                />
+                <Select
+                  label={t.stock.priceMode}
+                  name="priceMode"
+                  options={[
+                    { value: "unit", label: t.stock.perUnit },
+                    { value: "total", label: t.stock.perTotal },
+                  ]}
+                />
+              </div>
+              <label className="block space-y-1">
+                <span className="text-sm text-muted">{t.stock.supplier}</span>
+                <input
+                  name="supplier"
+                  list="supplier-list"
+                  maxLength={80}
+                  autoComplete="off"
+                  placeholder={t.stock.supplierHint}
+                  className="w-full rounded-xl border border-line bg-card px-3 py-2.5 outline-none focus:border-brand focus:ring-2 focus:ring-brand-soft"
+                />
+                <datalist id="supplier-list">
+                  {suppliers.map((s) => (
+                    <option key={s} value={s} />
+                  ))}
+                </datalist>
+              </label>
+              <Field
+                label={t.stock.lotNo}
+                name="lotNo"
+                maxLength={60}
+                autoComplete="off"
+                placeholder={t.stock.lotHint}
+              />
+              <Field
+                label={t.stock.purchasedOn}
+                name="purchasedOn"
+                type="date"
+                defaultValue={todayIn(store.timeZone)}
+              />
+              {can(member, "products.edit") && (
+                <label className="flex items-center gap-2 text-sm sm:col-span-2">
+                  <input
+                    type="checkbox"
+                    name="updateCost"
+                    defaultChecked
+                    className="size-4"
+                  />
+                  {t.stock.updateCost}
+                </label>
+              )}
+            </fieldset>
             <div className="sm:col-span-2">
               <PrimaryButton type="submit">{t.stock.submit}</PrimaryButton>
             </div>
@@ -138,6 +206,8 @@ export default async function ReceivePage({
         t={t}
         locale={locale}
         timeZone={store.timeZone}
+        currency={store.currency}
+        linkBase={`/${locale}/store/${storeId}/history`}
       />
     </div>
   );

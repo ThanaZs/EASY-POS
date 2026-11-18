@@ -48,6 +48,10 @@ const toMovement = (r: MovementRow): StockMovement => ({
   note: r.note,
   refSaleId: r.refSaleId,
   actorId: r.actorId,
+  unitCostMinor: r.unitCostMinor,
+  supplier: r.supplier,
+  lotNo: r.lotNo,
+  purchasedOn: r.purchasedOn,
   createdAt: r.createdAt,
 });
 const toSaleHeader = (r: SaleRow): SaleHeader => ({
@@ -386,6 +390,7 @@ export function stockRepo(): StockRepo {
             qtyAfter,
             note: input.note,
             actorId: input.actorId,
+            ...(input.purchase ?? {}),
           })
           .returning();
         return toMovement(m);
@@ -394,6 +399,20 @@ export function stockRepo(): StockRepo {
     async history(storeId, q = {}) {
       const conds = [eq(stockMovements.storeId, storeId)];
       if (q.productId) conds.push(eq(stockMovements.productId, q.productId));
+      if (q.types?.length) conds.push(inArray(stockMovements.type, q.types));
+      const search = q.search?.trim();
+      if (search)
+        conds.push(
+          ilike(
+            stockMovements.productName,
+            `%${search.replace(/[%_\\]/g, "\\$&")}%`,
+          ),
+        );
+      if (q.supplier) conds.push(eq(stockMovements.supplier, q.supplier));
+      const tz = q.timeZone ?? "Asia/Bangkok";
+      const day = sql`(${stockMovements.createdAt} at time zone ${tz})::date`;
+      if (q.from) conds.push(sql`${day} >= ${q.from}::date`);
+      if (q.to) conds.push(sql`${day} <= ${q.to}::date`);
       const rows = await db
         .select()
         .from(stockMovements)
@@ -401,6 +420,24 @@ export function stockRepo(): StockRepo {
         .orderBy(desc(stockMovements.createdAt))
         .limit(q.limit ?? 200);
       return rows.map(toMovement);
+    },
+    async suppliers(storeId) {
+      const rows = await db
+        .select({
+          s: stockMovements.supplier,
+          at: sql<Date>`max(${stockMovements.createdAt})`,
+        })
+        .from(stockMovements)
+        .where(
+          and(
+            eq(stockMovements.storeId, storeId),
+            isNotNull(stockMovements.supplier),
+          ),
+        )
+        .groupBy(stockMovements.supplier)
+        .orderBy(desc(sql`max(${stockMovements.createdAt})`))
+        .limit(100);
+      return rows.map((r) => r.s!).filter(Boolean);
     },
   };
 }

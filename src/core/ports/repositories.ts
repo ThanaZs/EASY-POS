@@ -9,6 +9,7 @@ import type {
   ImportRow,
   PaymentMethod,
   Product,
+  PurchaseInfo,
   RedeemInviteResult,
   Sale,
   SaleHeader,
@@ -114,8 +115,23 @@ export interface StockRepo {
     qty: number;
     note: string;
     actorId: ID;
+    purchase?: PurchaseInfo;
   }): Promise<StockMovement | null>;
-  history(storeId: ID, q?: { productId?: ID; limit?: number }): Promise<StockMovement[]>;
+  history(
+    storeId: ID,
+    q?: {
+      productId?: ID;
+      types?: StockMovement["type"][];
+      search?: string; // ชื่อสินค้า (snapshot)
+      supplier?: string;
+      from?: string; // YYYY-MM-DD ตามทามโซนร้าน
+      to?: string;
+      timeZone?: string;
+      limit?: number;
+    },
+  ): Promise<StockMovement[]>;
+  /** ร้านที่เคยซื้อ (ล่าสุดก่อน) ไว้เป็นตัวเลือกในช่อง "ซื้อจาก" */
+  suppliers(storeId: ID): Promise<string[]>;
 }
 
 export interface DailySales {

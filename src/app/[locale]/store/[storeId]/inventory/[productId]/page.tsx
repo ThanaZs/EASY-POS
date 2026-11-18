@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { can } from "@/core/domain/permissions";
 import { loadLocale } from "@/i18n/page";
@@ -57,7 +58,16 @@ export default async function EditProductPage({
         }
       />
       <section className="space-y-2">
-        <h2 className="font-semibold">{t.audit.productHistory}</h2>
+        <div className="flex items-baseline justify-between gap-2">
+          <h2 className="font-semibold">{t.audit.productHistory}</h2>
+          <Link
+            prefetch={false}
+            href={`/${locale}/store/${storeId}/history?product=${product.id}`}
+            className="text-sm font-medium text-brand-ink hover:underline"
+          >
+            {t.stock.viewProductHistory} →
+          </Link>
+        </div>
         <AuditList
           entries={history}
           t={t.audit}

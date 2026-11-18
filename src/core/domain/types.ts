@@ -125,8 +125,16 @@ export interface StockMovement {
   note: string;
   refSaleId: ID | null;
   actorId: ID | null;
+  /** ข้อมูลการซื้อ (รับเข้า) — สินค้าเก่าที่บันทึกก่อนมีฟีเจอร์นี้เป็น null */
+  unitCostMinor: number | null; // ราคาซื้อต่อหน่วยปลีก
+  supplier: string | null;
+  lotNo: string | null;
+  purchasedOn: string | null; // YYYY-MM-DD
   createdAt: Date;
 }
+
+/** ข้อมูลการซื้อที่ใส่ตอนรับเข้า */
+export type PurchaseInfo = { unitCostMinor: number | null; supplier: string | null; lotNo: string | null; purchasedOn: string | null };
 
 export type PaymentMethod = "cash" | "qr" | "card" | "transfer" | "other";
 

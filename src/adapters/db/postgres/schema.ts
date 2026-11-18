@@ -4,6 +4,7 @@ import { sql } from "drizzle-orm";
 import {
   bigint,
   boolean,
+  date,
   index,
   integer,
   jsonb,
@@ -161,9 +162,17 @@ export const stockMovements = pgTable(
     note: text("note").notNull().default(""),
     refSaleId: uuid("ref_sale_id"),
     actorId: uuid("actor_id").references(() => users.id, { onDelete: "set null" }),
+    // ข้อมูลการซื้อ (เฉพาะรับเข้า — ใส่หรือไม่ใส่ก็ได้)
+    unitCostMinor: bigint("unit_cost_minor", { mode: "number" }), // ราคาซื้อต่อหน่วยปลีก
+    supplier: text("supplier"), // ซื้อจากไหน
+    lotNo: text("lot_no"), // ลอต
+    purchasedOn: date("purchased_on", { mode: "string" }), // วันที่ซื้อ (YYYY-MM-DD)
     createdAt: createdAt(),
   },
-  (t) => [index("stock_movements_store_time").on(t.storeId, t.createdAt)],
+  (t) => [
+    index("stock_movements_store_time").on(t.storeId, t.createdAt),
+    index("stock_movements_product_time").on(t.storeId, t.productId, t.createdAt),
+  ],
 );
 
 export const customers = pgTable("customers", {

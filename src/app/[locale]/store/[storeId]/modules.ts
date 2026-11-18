@@ -1,5 +1,6 @@
 import {
   BarChart3,
+  ClipboardList,
   Boxes,
   Calculator,
   PackagePlus,
@@ -44,6 +45,12 @@ export const MODULES: Array<{
     Icon: BarChart3,
     color: "bg-indigo-600",
     anyOf: [{ permission: "reports.view", path: "overview" }],
+  },
+  {
+    key: "history",
+    Icon: ClipboardList,
+    color: "bg-sky-600",
+    anyOf: [{ permission: "stock.history", path: "history" }],
   },
   {
     key: "settings",

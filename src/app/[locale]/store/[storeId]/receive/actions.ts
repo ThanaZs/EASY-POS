@@ -2,6 +2,8 @@
 
 import { redirect } from "next/navigation";
 import { can } from "@/core/domain/permissions";
+import type { PurchaseInfo } from "@/core/domain/types";
+import { parseMoney, todayIn } from "@/core/lib/format";
 import { getRepositories } from "@/server/container";
 import { int, storeCtx, str } from "@/server/form";
 import { audit } from "@/server/audit";
@@ -13,7 +15,7 @@ import { requireStoreAccess } from "@/server/session";
  */
 export async function stockMoveAction(form: FormData) {
   const { locale, storeId } = storeCtx(form);
-  const { user, member } = await requireStoreAccess(locale, storeId);
+  const { user, member, store } = await requireStoreAccess(locale, storeId);
   const back = `/${locale}/store/${storeId}/receive`;
   const mode = str(form, "mode");
   const productId = str(form, "productId");
@@ -35,8 +37,41 @@ export async function stockMoveAction(form: FormData) {
     delta = qty - p.stockQty;
   else redirect(back);
 
+  // ข้อมูลการซื้อ (เฉพาะรับเข้า): ราคาซื้อ (ต่อหน่วยที่เลือก หรือ รวมทั้งหมด), ซื้อจาก, ลอต, วันที่ซื้อ
+  let purchase: PurchaseInfo | undefined;
+  let newCost: number | null = null;
+  if (mode === "in" && qty > 0) {
+    const price = parseMoney(str(form, "buyPrice"), store.currency);
+    let unitCostMinor: number | null = null;
+    if (price !== null && price > 0) {
+      unitCostMinor =
+        str(form, "priceMode") === "total"
+          ? Math.round(price / qty)
+          : byPack
+            ? Math.round(price / p.packSize!)
+            : price;
+    }
+    const day = str(form, "purchasedOn");
+    purchase = {
+      unitCostMinor,
+      supplier: str(form, "supplier").slice(0, 80) || null,
+      lotNo: str(form, "lotNo").slice(0, 60) || null,
+      purchasedOn: /^\d{4}-\d{2}-\d{2}$/.test(day)
+        ? day
+        : todayIn(store.timeZone),
+    };
+    if (
+      unitCostMinor !== null &&
+      form.get("updateCost") === "on" &&
+      can(member, "products.edit") &&
+      unitCostMinor !== p.costMinor
+    )
+      newCost = unitCostMinor;
+  }
+
   if (delta !== 0 || mode === "adjust") {
     const mv = await repos.stock.move({
+      purchase,
       storeId,
       productId,
       type: mode as "in" | "out" | "adjust",
@@ -50,8 +85,26 @@ export async function stockMoveAction(form: FormData) {
         entityId: productId,
         entityName: p.name,
         changes: { stockQty: [mv.qtyBefore, mv.qtyAfter] },
-        note: fullNote,
+        note: [
+          fullNote,
+          purchase?.supplier,
+          purchase?.lotNo && `lot ${purchase.lotNo}`,
+          purchase?.unitCostMinor != null && `@${purchase.unitCostMinor / 100}`,
+        ]
+          .filter(Boolean)
+          .join(" · "),
       });
+    // อัปเดตต้นทุนสินค้าเป็นราคาซื้อล่าสุด (ติ๊กไว้ตอนรับเข้า)
+    if (mv && newCost !== null) {
+      await repos.products.update(storeId, productId, { costMinor: newCost });
+      await audit(storeId, user, "product.update", {
+        entityType: "product",
+        entityId: productId,
+        entityName: p.name,
+        changes: { costMinor: [p.costMinor, newCost] },
+        note: "receive",
+      });
+    }
   }
   redirect(`${back}?saved=1&mode=${mode}&unit=${byPack ? "pack" : "base"}`);
 }
