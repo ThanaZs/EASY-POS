@@ -12,6 +12,7 @@ import { fill, formatMoney } from "@/core/lib/format";
 import { toEnglishLayout } from "@/core/lib/keyboard";
 import { loadLocale } from "@/i18n/page";
 import { getRepositories, getStorage } from "@/server/container";
+import { restoreFilters } from "@/server/filters";
 import { requireStoreAccess } from "@/server/session";
 import { BackLink } from "../BackLink";
 import { togglePinAction } from "./actions";
@@ -31,6 +32,13 @@ export default async function InventoryPage({
     "products.view",
   );
   const sp = await searchParams;
+  // กลับมาหน้านี้แบบไม่มีตัวกรอง → ใช้ตัวกรองล่าสุดที่เลือกไว้
+  await restoreFilters(
+    "inventory",
+    storeId,
+    `/${locale}/store/${storeId}/inventory`,
+    sp,
+  );
   const q = typeof sp.q === "string" ? sp.q : "";
   const cat = typeof sp.cat === "string" ? sp.cat : "";
   const low = sp.low === "1";

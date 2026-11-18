@@ -1,12 +1,22 @@
 "use client";
 
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { Camera, LoaderCircle, Pin, Search, X } from "lucide-react";
 import { CameraScanner } from "@/components/CameraScanner";
 import type { Dictionary } from "@/i18n/dictionary";
 import { useBarcodeScanner } from "@/client/devices/scanner";
 import type { CategoryNode } from "@/core/ports/repositories";
+
+/** เขียน cookie ตัวกรองล่าสุดของหน้า (อ่านที่ server/filters.ts) — ว่าง = ลบ */
+function rememberFilters(pathname: string, search: string) {
+  const [, , , storeId, page] = pathname.split("/");
+  if (!storeId || (page !== "inventory" && page !== "history")) return;
+  const p = new URLSearchParams(search);
+  for (const k of ["product", "reset"]) p.delete(k);
+  const qs = p.toString();
+  document.cookie = `epf_${page}_${storeId}=${encodeURIComponent(qs)}; path=/; max-age=${qs ? 43200 : 0}; samesite=lax`;
+}
 
 /** ค่า ?sub= สำหรับ "ไม่มีหมวดย่อย" (สินค้าที่มีแค่หมวดหลัก) */
 export const NO_SUB = "-";
@@ -90,6 +100,7 @@ export function InventoryFilters({
     if (state.current.low) p.set("low", "1");
     if (state.current.pin) p.set("pin", "1");
     const qs = p.toString();
+    rememberFilters(pathname, qs); // ก่อนเปลี่ยนหน้า — ไม่งั้นล้างตัวกรองจนว่างแล้ว server พากลับไปตัวกรองเก่า
     startTransition(() =>
       router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false }),
     );
@@ -101,6 +112,11 @@ export function InventoryFilters({
     state.current.q = q;
   }, [q]);
   useEffect(() => () => clearTimeout(timer.current), []);
+
+  // จำตัวกรองที่กำลังดูอยู่ (8 ชม.) → ออกไปเพิ่ม/แก้ไขสินค้า/หน้าอื่น แล้วกลับมาแบบไม่มีพารามิเตอร์
+  // = server/filters.ts พากลับมาตัวกรองเดิม; ล้างตัวกรองจนว่าง = ลบที่จำไว้
+  const search = useSearchParams().toString();
+  useEffect(() => rememberFilters(pathname, search), [pathname, search]);
 
   const chip = (value: string, label: string) => (
     <button

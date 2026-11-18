@@ -15,6 +15,7 @@ import type { StockMovement } from "@/core/domain/types";
 import { fill, formatMoney } from "@/core/lib/format";
 import { loadLocale } from "@/i18n/page";
 import { getRepositories, getStorage } from "@/server/container";
+import { restoreFilters } from "@/server/filters";
 import { requireStoreAccess } from "@/server/session";
 import { BackLink } from "../BackLink";
 import { togglePinAction } from "../inventory/actions";
@@ -40,6 +41,13 @@ export default async function HistoryPage({
     "stock.history",
   );
   const sp = await searchParams;
+  // กลับมาหน้านี้แบบไม่มีตัวกรอง → ใช้ตัวกรองล่าสุดที่เลือกไว้
+  await restoreFilters(
+    "history",
+    storeId,
+    `/${locale}/store/${storeId}/history`,
+    sp,
+  );
   const one = (k: string) =>
     typeof sp[k] === "string" ? (sp[k] as string) : "";
   const productId = UUID.test(one("product")) ? one("product") : "";
@@ -454,7 +462,7 @@ export default async function HistoryPage({
                 <Link
                   key={value || "*"}
                   prefetch={false}
-                  href={qs ? `${base}?${qs}` : base}
+                  href={qs ? `${base}?${qs}` : `${base}?reset=1`}
                   aria-current={active ? "true" : undefined}
                   className={`shrink-0 rounded-full border px-3 py-1 text-sm transition active:scale-95 ${
                     active
