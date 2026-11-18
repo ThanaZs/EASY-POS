@@ -90,6 +90,13 @@ export function InventoryFilters({
       pin: boolean;
     }>,
   ) {
+    // คำค้นเป็นบาร์โค้ด (ตัวเลขล้วน ≥6 หลัก) แล้วไปเลือกหมวด/ปักหมุด/ใกล้หมด → ล้างบาร์โค้ดทิ้ง
+    // ไม่งั้นหมวดอื่นจะว่างเปล่าเพราะยังค้นรหัสสินค้าชิ้นเดียวอยู่ (ผู้ใช้งง)
+    if (!("q" in next) && /^\d{6,}$/.test(state.current.q.trim())) {
+      next = { ...next, q: "" };
+      clearTimeout(timer.current);
+      setText("");
+    }
     state.current = { ...state.current, ...next };
     // คงพารามิเตอร์อื่นของหน้า (เช่น หน้าประวัติ: ร้านที่ซื้อ/วันที่/ประเภท) — เปลี่ยนตัวกรองสินค้า = ออกจากมุมมองสินค้าเดียว
     const p = new URLSearchParams(window.location.search);
