@@ -9,7 +9,6 @@ import {
   Pencil,
   Pin,
   Store,
-  X,
 } from "lucide-react";
 import { can } from "@/core/domain/permissions";
 import type { StockMovement } from "@/core/domain/types";
@@ -428,48 +427,47 @@ export default async function HistoryPage({
           noSub: t.inventory.noSub,
         }}
       />
+      {/* ร้านที่ซื้อ: แยกเป็นช่องของตัวเอง (แตะชื่อร้าน = กรองทันที) */}
       {suppliers.length > 0 && (
-        <form method="get" className="flex flex-wrap items-center gap-2">
-          {Object.entries({
-            q,
-            cat,
-            sub: subParam,
-            low: low ? "1" : "",
-            pin: pin ? "1" : "",
-          })
-            .filter(([, v]) => v)
-            .map(([k, v]) => (
-              <input key={k} type="hidden" name={k} value={v} />
-            ))}
-          <Store className="size-4 text-muted" />
-          <select
-            name="supplier"
-            defaultValue={supplier}
-            className="rounded-xl border border-line bg-card px-3 py-1.5 text-sm"
-          >
-            <option value="">{s.allSuppliers}</option>
-            {suppliers.map((x) => (
-              <option key={x} value={x}>
-                {x}
-              </option>
-            ))}
-          </select>
-          <button
-            type="submit"
-            className="rounded-xl border border-line bg-card px-3 py-1.5 text-sm font-medium hover:border-brand"
-          >
-            {s.filter}
-          </button>
-          {supplier && (
-            <Link
-              prefetch={false}
-              href={base}
-              className="inline-flex items-center gap-1 text-sm text-muted hover:text-ink"
-            >
-              <X className="size-4" /> {s.clear}
-            </Link>
-          )}
-        </form>
+        <section className="space-y-1.5 rounded-2xl border border-line bg-card p-3">
+          <p className="flex items-center gap-1.5 text-sm font-semibold">
+            <Store className="size-4 text-muted" /> {s.supplierFilter}
+          </p>
+          <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1">
+            {[
+              ["", s.allSuppliers] as const,
+              ...suppliers.map((x) => [x, x] as const),
+            ].map(([value, label]) => {
+              const p = new URLSearchParams();
+              for (const [k, v] of Object.entries({
+                q,
+                cat,
+                sub: subParam,
+                low: low ? "1" : "",
+                pin: pin ? "1" : "",
+                supplier: value,
+              }))
+                if (v) p.set(k, v);
+              const qs = p.toString();
+              const active = supplier === value;
+              return (
+                <Link
+                  key={value || "*"}
+                  prefetch={false}
+                  href={qs ? `${base}?${qs}` : base}
+                  aria-current={active ? "true" : undefined}
+                  className={`shrink-0 rounded-full border px-3 py-1 text-sm transition active:scale-95 ${
+                    active
+                      ? "border-brand bg-brand text-white"
+                      : "border-line bg-card hover:border-brand"
+                  }`}
+                >
+                  {label}
+                </Link>
+              );
+            })}
+          </div>
+        </section>
       )}
 
       <p className="text-sm text-muted">

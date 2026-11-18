@@ -292,7 +292,8 @@
     "unknownSupplier": "Supplier not set",
     "totalPaid": "Total",
     "otherMovements": "Other movements (sales / issue / adjust / refund)",
-    "noPurchaseYet": "No purchase info yet"
+    "noPurchaseYet": "No purchase info yet",
+    "supplierFilter": "Bought from"
   },
   "pos": {
     "search": "Scan / search products",

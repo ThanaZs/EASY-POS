@@ -292,7 +292,8 @@
     "unknownSupplier": "ไม่ได้ระบุร้าน",
     "totalPaid": "รวม",
     "otherMovements": "ความเคลื่อนไหวอื่น (ขาย / เบิก / ปรับ / คืน)",
-    "noPurchaseYet": "ยังไม่มีข้อมูลการซื้อ"
+    "noPurchaseYet": "ยังไม่มีข้อมูลการซื้อ",
+    "supplierFilter": "ร้านที่ซื้อ"
   },
   "pos": {
     "search": "สแกน / ค้นหาสินค้า",
