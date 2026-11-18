@@ -203,7 +203,12 @@ export interface SaleRepo {
   get(storeId: ID, id: ID): Promise<Sale | null>;
   list(
     storeId: ID,
-    q?: { limit?: number; businessDate?: string },
+    q?: {
+      limit?: number;
+      businessDate?: string;
+      fromDate?: string;
+      toDate?: string;
+    },
   ): Promise<SaleHeader[]>;
   /** ต้องทำใน transaction: ล็อกบิล → status=voided → คืนสต็อกสินค้าที่นับสต็อก + movement "refund" */
   void(
@@ -266,9 +271,19 @@ export type AuditEntry = {
 
 export interface AuditRepo {
   log(e: Omit<AuditEntry, "id" | "at"> & { storeId: ID }): Promise<void>;
+  /** คนที่เคยมีบันทึก (ไว้กรอง) — ชื่อล่าสุดของแต่ละคน */
+  actors(storeId: ID): Promise<Array<{ id: ID; name: string }>>;
   list(
     storeId: ID,
-    q?: { limit?: number; entityId?: string; before?: Date },
+    q?: {
+      limit?: number;
+      entityId?: string;
+      before?: Date;
+      actorId?: string;
+      from?: string;
+      to?: string;
+      timeZone?: string;
+    },
   ): Promise<AuditEntry[]>;
 }
 

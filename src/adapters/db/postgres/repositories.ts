@@ -1,5 +1,15 @@
 import "server-only";
-import { and, asc, desc, eq, isNull, lt, ne, sql } from "drizzle-orm";
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  isNotNull,
+  isNull,
+  lt,
+  ne,
+  sql,
+} from "drizzle-orm";
 import type {
   Store,
   StoreInvite,
@@ -342,10 +352,30 @@ function auditRepo(): AuditRepo {
         },
       });
     },
+    async actors(storeId) {
+      const rows = await db
+        .selectDistinctOn([auditLogs.actorId], {
+          id: auditLogs.actorId,
+          name: sql<string>`${auditLogs.details}->>'actorName'`,
+        })
+        .from(auditLogs)
+        .where(
+          and(eq(auditLogs.storeId, storeId), isNotNull(auditLogs.actorId)),
+        )
+        .orderBy(auditLogs.actorId, desc(auditLogs.createdAt));
+      return rows
+        .map((r) => ({ id: r.id!, name: r.name || "—" }))
+        .sort((a, b) => a.name.localeCompare(b.name));
+    },
     async list(storeId, q = {}) {
       const conds = [eq(auditLogs.storeId, storeId)];
       if (q.entityId) conds.push(eq(auditLogs.entityId, q.entityId));
       if (q.before) conds.push(lt(auditLogs.createdAt, q.before));
+      if (q.actorId) conds.push(eq(auditLogs.actorId, q.actorId));
+      const tz = q.timeZone ?? "Asia/Bangkok";
+      const day = sql`(${auditLogs.createdAt} at time zone ${tz})::date`;
+      if (q.from) conds.push(sql`${day} >= ${q.from}::date`);
+      if (q.to) conds.push(sql`${day} <= ${q.to}::date`);
       const rows = await db
         .select()
         .from(auditLogs)

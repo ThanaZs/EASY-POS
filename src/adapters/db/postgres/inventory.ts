@@ -4,6 +4,7 @@ import {
   asc,
   desc,
   eq,
+  gte,
   ilike,
   inArray,
   isNotNull,
@@ -654,6 +655,8 @@ export function saleRepo(): SaleRepo {
     async list(storeId, q = {}) {
       const conds = [eq(sales.storeId, storeId)];
       if (q.businessDate) conds.push(eq(sales.businessDate, q.businessDate));
+      if (q.fromDate) conds.push(gte(sales.businessDate, q.fromDate));
+      if (q.toDate) conds.push(lte(sales.businessDate, q.toDate));
       const rows = await db
         .select()
         .from(sales)

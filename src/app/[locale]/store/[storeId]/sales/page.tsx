@@ -4,6 +4,7 @@ import { fill, formatDateTime, formatMoney, todayIn } from "@/core/lib/format";
 import { loadLocale } from "@/i18n/page";
 import { getRepositories } from "@/server/container";
 import { requireStoreAccess } from "@/server/session";
+import { DateRangeFilter } from "@/components/DateRangeFilter";
 import { BackLink } from "../BackLink";
 
 // ประวัติบิลรายวัน (ตาม business_date ของร้าน)
@@ -14,14 +15,20 @@ export default async function SalesPage({
   const { locale, t } = await loadLocale(params);
   const { storeId } = await params;
   const { store } = await requireStoreAccess(locale, storeId, "reports.view");
-  const d = (await searchParams).date;
-  const day =
-    typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d)
-      ? d
-      : todayIn(store.timeZone);
+  const sp = await searchParams;
+  const one = (k: string) =>
+    typeof sp[k] === "string" ? (sp[k] as string) : "";
+  const isDay = (v: string) => /^\d{4}-\d{2}-\d{2}$/.test(v);
+  const today = todayIn(store.timeZone);
+  // ค่าเริ่มต้น = วันนี้; ลิงก์เก่า ?date= ยังใช้ได้
+  const legacy = isDay(one("date")) ? one("date") : "";
+  const from = isDay(one("from")) ? one("from") : legacy || today;
+  const to = isDay(one("to"))
+    ? one("to")
+    : legacy || (isDay(one("from")) ? one("from") : today);
   const bills = await (
     await getRepositories()
-  ).sales.list(storeId, { businessDate: day, limit: 500 });
+  ).sales.list(storeId, { fromDate: from, toDate: to, limit: 1000 });
   const done = bills.filter((b) => b.status === "completed");
   const money = (m: number) => formatMoney(m, store.currency, locale);
 
@@ -32,23 +39,11 @@ export default async function SalesPage({
         label={t.store.backSales}
       />
       <h1 className="text-xl font-bold">{t.store.tabs.bills}</h1>
-      <form className="flex items-end gap-2">
-        <label className="space-y-1">
-          <span className="block text-sm text-muted">{t.sales.date}</span>
-          <input
-            type="date"
-            name="date"
-            defaultValue={day}
-            className="rounded-xl border border-line bg-card px-3 py-2"
-          />
-        </label>
-        <button className="rounded-xl border border-line bg-card px-4 py-2 text-sm font-medium hover:bg-surface">
-          OK
-        </button>
-      </form>
+      <DateRangeFilter from={from} to={to} today={today} labels={t.range} />
       <div className="flex items-baseline justify-between rounded-2xl border border-line bg-card p-4">
         <span className="text-muted">
-          {t.sales.total} · {fill(t.sales.count, { n: done.length })}
+          {from === today && to === today ? t.sales.total : t.sales.totalRange}{" "}
+          · {fill(t.sales.count, { n: done.length })}
         </span>
         <span className="text-xl font-bold tabular-nums">
           {money(done.reduce((s, b) => s + b.totalMinor, 0))}

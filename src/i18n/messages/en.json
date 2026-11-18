@@ -375,7 +375,7 @@
   },
   "sales": {
     "date": "Date",
-    "empty": "No bills on this day",
+    "empty": "No bills in this date range",
     "voided": "Voided",
     "void": "Void bill",
     "voidReason": "Reason (optional)",
@@ -385,7 +385,8 @@
     "total": "Day total",
     "count": "{n} bills",
     "notFound": "Bill not found",
-    "voidedAt": "Voided at"
+    "voidedAt": "Voided at",
+    "totalRange": "Total for range"
   },
   "settings": {
     "general": "Store details",
@@ -636,6 +637,18 @@
       "allowNegativeStock": "Allow negative stock",
       "pinned": "Pinned",
       "note": "Note"
-    }
+    },
+    "people": "Changed by",
+    "allPeople": "Everyone",
+    "entries": "entries"
+  },
+  "range": {
+    "from": "From",
+    "to": "To",
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "last7": "7 days",
+    "thisMonth": "This month",
+    "all": "All"
   }
 }
