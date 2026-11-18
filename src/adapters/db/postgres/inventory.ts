@@ -399,6 +399,10 @@ export function stockRepo(): StockRepo {
     async history(storeId, q = {}) {
       const conds = [eq(stockMovements.storeId, storeId)];
       if (q.productId) conds.push(eq(stockMovements.productId, q.productId));
+      if (q.productIds) {
+        if (q.productIds.length === 0) return [];
+        conds.push(inArray(stockMovements.productId, q.productIds));
+      }
       if (q.types?.length) conds.push(inArray(stockMovements.type, q.types));
       const search = q.search?.trim();
       if (search)

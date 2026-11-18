@@ -26,7 +26,10 @@ import type {
 export interface UserRepo {
   findById(id: ID): Promise<User | null>;
   findByEmail(email: string): Promise<User | null>;
-  updateProfile(id: ID, patch: Partial<Pick<User, "displayName" | "locale" | "timeZone">>): Promise<User>;
+  updateProfile(
+    id: ID,
+    patch: Partial<Pick<User, "displayName" | "locale" | "timeZone">>,
+  ): Promise<User>;
   /** มีรหัสผ่านไหม (สมัครด้วย Google อย่างเดียว = ไม่มี) */
   hasPassword(id: ID): Promise<boolean>;
   /**
@@ -36,21 +39,31 @@ export interface UserRepo {
   deleteAccount(id: ID): Promise<void>;
 }
 
-export type MemberWithUser = { member: StoreMember; user: Pick<User, "id" | "email" | "displayName"> };
+export type MemberWithUser = {
+  member: StoreMember;
+  user: Pick<User, "id" | "email" | "displayName">;
+};
 
 export interface StoreRepo {
   /** ต้องทำใน transaction: สร้างร้าน + เพิ่มเจ้าของเป็นสมาชิก role=owner */
-  createWithOwner(input: Pick<Store, "name" | "currency" | "timeZone" | "locale" | "ownerId">): Promise<Store>;
+  createWithOwner(
+    input: Pick<Store, "name" | "currency" | "timeZone" | "locale" | "ownerId">,
+  ): Promise<Store>;
   findById(id: ID): Promise<Store | null>;
   findByCode(code: string): Promise<Store | null>;
-  listForUser(userId: ID): Promise<Array<{ store: Store; member: StoreMember }>>;
+  listForUser(
+    userId: ID,
+  ): Promise<Array<{ store: Store; member: StoreMember }>>;
   getMember(storeId: ID, userId: ID): Promise<StoreMember | null>;
   listMembers(storeId: ID): Promise<MemberWithUser[]>;
   removeMember(storeId: ID, userId: ID): Promise<void>;
   /** ลบร้านถาวร (เฉพาะเจ้าของ) — cascade: สินค้า, บิล, สต็อก, สมาชิก, รหัสเชิญ; คืน false ถ้าไม่ใช่เจ้าของ/ไม่พบ */
   deleteStore(storeId: ID, ownerId: ID): Promise<boolean>;
   createInvite(
-    input: Pick<StoreInvite, "storeId" | "role" | "maxUses" | "expiresAt" | "createdBy">,
+    input: Pick<
+      StoreInvite,
+      "storeId" | "role" | "maxUses" | "expiresAt" | "createdBy"
+    >,
   ): Promise<StoreInvite>;
   listInvites(storeId: ID): Promise<StoreInvite[]>;
   /** ลบรหัสเชิญที่ยังไม่มีใครใช้ — คืน false ถ้าใช้ไปแล้ว/ไม่พบ */
@@ -81,23 +94,47 @@ export type ProductInput = Pick<
 >;
 
 /** hasNoSub = มีสินค้าในหมวดนี้ที่ไม่ได้ใส่หมวดย่อย */
-export type CategoryNode = { category: string; subcategories: string[]; hasNoSub?: boolean };
+export type CategoryNode = {
+  category: string;
+  subcategories: string[];
+  hasNoSub?: boolean;
+};
 
 export interface ProductRepo {
   /** subcategory: null = เฉพาะที่ไม่มีหมวดย่อย */
   list(
     storeId: ID,
-    q?: { search?: string; category?: string; subcategory?: string | null; lowStockOnly?: boolean; pinnedOnly?: boolean },
+    q?: {
+      search?: string;
+      category?: string;
+      subcategory?: string | null;
+      lowStockOnly?: boolean;
+      pinnedOnly?: boolean;
+    },
   ): Promise<Product[]>;
   findById(storeId: ID, id: ID): Promise<Product | null>;
   categories(storeId: ID): Promise<string[]>;
   /** หมวดหลัก + หมวดย่อยที่เคยใช้ (ให้เลือกในฟอร์ม/กรองหน้าขาย) */
   categoryTree(storeId: ID): Promise<CategoryNode[]>;
   /** นำเข้าจากไฟล์ — บาร์โค้ดซ้ำ = อัปเดต, ไม่ซ้ำ/ไม่มีบาร์โค้ด = สร้างใหม่ (ใน transaction) */
-  importRows(storeId: ID, rows: ImportRow[], actorId: ID, opts: { updateStock: boolean }): Promise<ImportResult>;
+  importRows(
+    storeId: ID,
+    rows: ImportRow[],
+    actorId: ID,
+    opts: { updateStock: boolean },
+  ): Promise<ImportResult>;
   /** สร้างสินค้า + (ถ้า initialQty > 0) บันทึกรับเข้าครั้งแรก — ใน transaction */
-  create(storeId: ID, input: ProductInput, initialQty: number, actorId: ID): Promise<Product>;
-  update(storeId: ID, id: ID, patch: Partial<ProductInput>): Promise<Product | null>;
+  create(
+    storeId: ID,
+    input: ProductInput,
+    initialQty: number,
+    actorId: ID,
+  ): Promise<Product>;
+  update(
+    storeId: ID,
+    id: ID,
+    patch: Partial<ProductInput>,
+  ): Promise<Product | null>;
   /** ลบแบบซ่อน (is_active=false) เพราะบิลเก่ายังอ้างถึง — คืน path รูปเดิม (ให้ลบไฟล์) */
   deactivate(storeId: ID, id: ID): Promise<string | null>;
   /** ตั้ง/ลบรูป — คืน path รูปเดิม (ให้ลบไฟล์) */
@@ -121,6 +158,7 @@ export interface StockRepo {
     storeId: ID,
     q?: {
       productId?: ID;
+      productIds?: ID[]; // จำกัดเฉพาะสินค้าเหล่านี้ (ว่าง = ไม่มีผล)
       types?: StockMovement["type"][];
       search?: string; // ชื่อสินค้า (snapshot)
       supplier?: string;
@@ -159,9 +197,17 @@ export interface SaleRepo {
     allowNegativeStock: boolean;
   }): Promise<CreateSaleResult>;
   get(storeId: ID, id: ID): Promise<Sale | null>;
-  list(storeId: ID, q?: { limit?: number; businessDate?: string }): Promise<SaleHeader[]>;
+  list(
+    storeId: ID,
+    q?: { limit?: number; businessDate?: string },
+  ): Promise<SaleHeader[]>;
   /** ต้องทำใน transaction: ล็อกบิล → status=voided → คืนสต็อกสินค้าที่นับสต็อก + movement "refund" */
-  void(storeId: ID, id: ID, actorId: ID, reason: string): Promise<VoidSaleResult>;
+  void(
+    storeId: ID,
+    id: ID,
+    actorId: ID,
+    reason: string,
+  ): Promise<VoidSaleResult>;
   dailyTotals(storeId: ID, from: string, to: string): Promise<DailySales[]>;
 }
 
@@ -184,7 +230,14 @@ export interface CatalogRepo {
    * เพิ่ม/อัปเดตจากร้าน: ยังไม่มี → เพิ่ม; มีจากแหล่งภายนอก → แทนด้วยข้อมูลร้าน; มีจากร้านแล้ว → คงชื่อเดิม
    * รูป: เติมเฉพาะเมื่อยังไม่มีรูปในคลัง
    */
-  contribute(items: Array<Pick<CatalogItem, "barcode" | "name" | "category" | "subcategory" | "unit">>): Promise<void>;
+  contribute(
+    items: Array<
+      Pick<
+        CatalogItem,
+        "barcode" | "name" | "category" | "subcategory" | "unit"
+      >
+    >,
+  ): Promise<void>;
   /** เก็บผลจากแหล่งภายนอก (ไม่ทับข้อมูลที่มีอยู่) */
   saveExternal(item: CatalogItem): Promise<void>;
   /** ใส่รูปให้รายการที่ยังไม่มีรูป — คืน true ถ้าใส่ */
@@ -209,7 +262,10 @@ export type AuditEntry = {
 
 export interface AuditRepo {
   log(e: Omit<AuditEntry, "id" | "at"> & { storeId: ID }): Promise<void>;
-  list(storeId: ID, q?: { limit?: number; entityId?: string; before?: Date }): Promise<AuditEntry[]>;
+  list(
+    storeId: ID,
+    q?: { limit?: number; entityId?: string; before?: Date },
+  ): Promise<AuditEntry[]>;
 }
 
 export interface Repositories {

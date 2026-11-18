@@ -81,7 +81,9 @@ export function InventoryFilters({
     }>,
   ) {
     state.current = { ...state.current, ...next };
-    const p = new URLSearchParams();
+    // คงพารามิเตอร์อื่นของหน้า (เช่น หน้าประวัติ: ร้านที่ซื้อ/วันที่/ประเภท) — เปลี่ยนตัวกรองสินค้า = ออกจากมุมมองสินค้าเดียว
+    const p = new URLSearchParams(window.location.search);
+    for (const k of ["q", "cat", "sub", "low", "pin", "product"]) p.delete(k);
     if (state.current.q.trim()) p.set("q", state.current.q.trim());
     if (state.current.cat) p.set("cat", state.current.cat);
     if (state.current.cat && state.current.sub) p.set("sub", state.current.sub);

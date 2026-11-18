@@ -1,12 +1,14 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ImageOff, PackagePlus, Pencil, Search, X } from "lucide-react";
+import { ImageOff, PackagePlus, Pencil, X } from "lucide-react";
 import type { StockMovement } from "@/core/domain/types";
 import { formatMoney } from "@/core/lib/format";
 import { loadLocale } from "@/i18n/page";
 import { getRepositories, getStorage } from "@/server/container";
 import { requireStoreAccess } from "@/server/session";
 import { BackLink } from "../BackLink";
+import { InventoryFilters, NO_SUB } from "../inventory/InventoryFilters";
+import { ScanToSearch } from "../inventory/ScanToSearch";
 import { MovementList } from "./MovementList";
 
 const TYPES = ["in", "sale", "out", "adjust", "refund"] as const;
@@ -29,16 +31,42 @@ export default async function HistoryPage({
     ? (one("type") as StockMovement["type"])
     : null;
   const q = one("q").slice(0, 60);
+  const cat = one("cat").slice(0, 60);
+  const subParam = cat ? one("sub").slice(0, 60) : "";
+  const low = one("low") === "1";
+  const pin = one("pin") === "1";
   const supplier = one("supplier").slice(0, 80);
   const from = /^\d{4}-\d{2}-\d{2}$/.test(one("from")) ? one("from") : "";
   const to = /^\d{4}-\d{2}-\d{2}$/.test(one("to")) ? one("to") : "";
 
   const repos = await getRepositories();
+  // ตัวกรองแบบคลังสินค้า (ค้นชื่อ/SKU/บาร์โค้ด, หมวด, หมวดย่อย, ปักหมุด, ใกล้หมด) → หาสินค้าที่ตรงก่อน แล้วดึงประวัติของสินค้าเหล่านั้น
+  const productFilter = !productId && (q || cat || low || pin);
+  const [matches, tree] = await Promise.all([
+    productFilter
+      ? repos.products.list(storeId, {
+          search: q || undefined,
+          category: cat || undefined,
+          subcategory: subParam === NO_SUB ? null : subParam || undefined,
+          lowStockOnly: low,
+          pinnedOnly: pin,
+        })
+      : Promise.resolve([]),
+    repos.products.categoryTree(storeId),
+  ]);
+  // ยิง/พิมพ์บาร์โค้ดตรงสินค้าเดียว → เปิดหน้าสรุปของสินค้านั้นเลย
+  const exact = q
+    ? matches.filter(
+        (p) => p.barcode === q || p.packBarcode === q || p.sku === q,
+      )
+    : [];
+  const focusId = productId || (exact.length === 1 ? exact[0].id : "");
   const [items, suppliers, product, productAll, storage] = await Promise.all([
     repos.stock.history(storeId, {
-      productId: productId || undefined,
+      productId: focusId || undefined,
+      productIds:
+        !focusId && productFilter ? matches.map((p) => p.id) : undefined,
       types: type ? [type] : undefined,
-      search: productId ? undefined : q || undefined,
       supplier: supplier || undefined,
       from: from || undefined,
       to: to || undefined,
@@ -46,15 +74,17 @@ export default async function HistoryPage({
       limit: 300,
     }),
     repos.stock.suppliers(storeId),
-    productId
-      ? repos.products.findById(storeId, productId)
-      : Promise.resolve(null),
-    productId
-      ? repos.stock.history(storeId, { productId, types: ["in"], limit: 1000 })
+    focusId ? repos.products.findById(storeId, focusId) : Promise.resolve(null),
+    focusId
+      ? repos.stock.history(storeId, {
+          productId: focusId,
+          types: ["in"],
+          limit: 1000,
+        })
       : Promise.resolve([]),
     getStorage(),
   ]);
-  if (productId && !product) notFound();
+  if (focusId && !product) notFound();
 
   const base = `/${locale}/store/${storeId}/history`;
   const money = (m: number) => formatMoney(m, store.currency, locale);
@@ -263,40 +293,60 @@ export default async function HistoryPage({
         </section>
       )}
 
-      {/* ----- ตัวกรอง ----- */}
+      {/* ----- ตัวกรองสินค้า (เหมือนคลังสินค้า) ----- */}
+      <ScanToSearch devices={t.devices} />
+      <InventoryFilters
+        q={q}
+        cat={cat}
+        sub={subParam}
+        low={low}
+        pin={pin}
+        tree={tree}
+        scan={t.scan}
+        labels={{
+          search: t.inventory.search,
+          allCategories: t.inventory.allCategories,
+          lowOnly: t.inventory.lowOnly,
+          pinOnly: t.inventory.pinOnly,
+          allSub: t.inventory.allSub,
+          noSub: t.inventory.noSub,
+        }}
+      />
+
+      {/* ----- ตัวกรองประวัติ: ร้านที่ซื้อ / ช่วงวันที่ / ประเภท ----- */}
       <form
         method="get"
         className="space-y-2 rounded-2xl border border-line bg-card p-3"
       >
-        {productId && <input type="hidden" name="product" value={productId} />}
-        {type && <input type="hidden" name="type" value={type} />}
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_auto]">
-          {!productId && (
-            <label className="relative block">
-              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted" />
-              <input
-                name="q"
-                defaultValue={q}
-                placeholder={s.searchProduct}
-                autoComplete="off"
-                className="w-full rounded-xl border border-line bg-card py-2 pl-9 pr-3 outline-none focus:border-brand"
-              />
-            </label>
-          )}
-          <select
-            name="supplier"
-            defaultValue={supplier}
-            className="rounded-xl border border-line bg-card px-3 py-2"
-          >
-            <option value="">{s.allSuppliers}</option>
-            {suppliers.map((x) => (
-              <option key={x} value={x}>
-                {x}
-              </option>
-            ))}
-          </select>
-        </div>
+        {Object.entries({
+          product: productId,
+          type: type ?? "",
+          q,
+          cat,
+          sub: subParam,
+          low: low ? "1" : "",
+          pin: pin ? "1" : "",
+        })
+          .filter(([, v]) => v)
+          .map(([k, v]) => (
+            <input key={k} type="hidden" name={k} value={v} />
+          ))}
         <div className="flex flex-wrap items-end gap-2">
+          <label className="min-w-40 flex-1 text-xs text-muted">
+            {s.supplier}
+            <select
+              name="supplier"
+              defaultValue={supplier}
+              className="mt-0.5 block w-full rounded-xl border border-line bg-card px-3 py-1.5 text-sm text-ink"
+            >
+              <option value="">{s.allSuppliers}</option>
+              {suppliers.map((x) => (
+                <option key={x} value={x}>
+                  {x}
+                </option>
+              ))}
+            </select>
+          </label>
           <label className="text-xs text-muted">
             {s.from}
             <input
@@ -321,7 +371,7 @@ export default async function HistoryPage({
           >
             {s.filter}
           </button>
-          {(q || supplier || from || to || type) && (
+          {(q || cat || low || pin || supplier || from || to || type) && (
             <Link
               prefetch={false}
               href={productId ? `${base}?product=${productId}` : base}
@@ -347,7 +397,7 @@ export default async function HistoryPage({
         timeZone={store.timeZone}
         currency={store.currency}
         linkBase={base}
-        showProduct={!productId}
+        showProduct={!focusId}
       />
     </div>
   );
