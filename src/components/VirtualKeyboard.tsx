@@ -110,10 +110,6 @@ export function VirtualKeyboard({
           ? "en"
           : lang,
     );
-    setTimeout(
-      () => el.scrollIntoView({ block: "center", behavior: "smooth" }),
-      50,
-    );
   };
 
   useEffect(() => {
@@ -150,52 +146,55 @@ export function VirtualKeyboard({
     };
   }, []);
 
-  // iOS: ตอนมีช่องพิมพ์โฟกัสอยู่ position:fixed ไม่ติดจอ (เลื่อนตามหน้า) → วางตำแหน่งเองทุกเฟรม
-  // ที่ขอบล่างของส่วนที่มองเห็น (visualViewport) ในพิกัดของหน้า → ติดล่างจอเสมอเหมือนคีย์บอร์ดระบบ
-  // เผื่อ 64px ล่างสุดให้แถบ ˄ ˅ ✓ ของ iOS (พื้นหลังยาวลงไปใต้แถบ ไม่มีช่องว่าง)
+  // ===== ล็อกหน้าไม่ให้เลื่อนระหว่างที่คีย์บอร์ดเปิด → คีย์บอร์ดนิ่ง 100% =====
+  // iOS: ตอนมีช่องพิมพ์โฟกัสอยู่ position:fixed จะเลื่อนตามหน้า → ตรึง body ไว้ (position:fixed; top:-y)
+  // หน้าเลื่อนไม่ได้ = คีย์บอร์ดไม่ขยับ; ระบบเลื่อนช่องที่พิมพ์ขึ้นมาให้เห็นเอง (ย้าย top ของ body)
+  // ปิดคีย์บอร์ด → ปลดล็อก แล้วกลับไปตำแหน่งเดิมของหน้า
+  // เผื่อ 64px ล่างสุดให้แถบ ˄ ˅ ✓ ของ iOS (พื้นหลังคีย์บอร์ดยาวลงไปใต้แถบ ไม่มีช่องว่าง)
   const lift = 64;
+  const lockY = useRef(0);
+  const isOpen = !!target;
   useEffect(() => {
-    if (!target) return;
-    let raf = 0;
-    let last = NaN;
-    const vv = window.visualViewport;
-    const put = () => {
-      const p = panel.current;
-      if (!p) return;
-      const bottom = vv
-        ? vv.pageTop + vv.height
-        : window.scrollY + window.innerHeight;
-      const top = Math.round(bottom - p.offsetHeight);
-      if (top !== last) {
-        p.style.transform = `translate3d(0, ${top}px, 0)`;
-        last = top;
-      }
+    if (!isOpen) return;
+    const b = document.body.style;
+    const prev = {
+      position: b.position,
+      top: b.top,
+      left: b.left,
+      right: b.right,
+      width: b.width,
     };
-    const loop = () => {
-      put();
-      raf = requestAnimationFrame(loop);
-    };
-    loop();
-    // เผื่อบางจังหวะ rAF หยุด (เลื่อนแบบ momentum) → วางใหม่ทันทีที่มี scroll/resize ด้วย
-    window.addEventListener("scroll", put, { passive: true });
-    vv?.addEventListener("scroll", put);
-    vv?.addEventListener("resize", put);
+    lockY.current = window.scrollY;
+    Object.assign(b, {
+      position: "fixed",
+      top: `-${lockY.current}px`,
+      left: "0",
+      right: "0",
+      width: "100%",
+    });
     return () => {
-      cancelAnimationFrame(raf);
-      window.removeEventListener("scroll", put);
-      vv?.removeEventListener("scroll", put);
-      vv?.removeEventListener("resize", put);
+      Object.assign(b, prev);
+      window.scrollTo(0, lockY.current);
     };
-  }, [target]);
+  }, [isOpen]);
 
-  // ดันเนื้อหาขึ้นไม่ให้คีย์บอร์ดบังช่อง
+  // เลื่อนช่องที่กำลังพิมพ์ให้อยู่เหนือคีย์บอร์ด (เฉพาะเมื่อโดนบัง/หลุดจอ)
   useEffect(() => {
     if (!target) return;
-    const h = panel.current?.offsetHeight ?? 0; // รวมส่วนที่เผื่อแถบ iOS แล้ว
-    document.body.style.paddingBottom = `${h}px`;
-    return () => {
-      document.body.style.paddingBottom = "";
-    };
+    const id = requestAnimationFrame(() => {
+      const kb = panel.current?.offsetHeight ?? 0;
+      const avail = window.innerHeight - kb; // ส่วนที่มองเห็นเหนือคีย์บอร์ด
+      const r = target.getBoundingClientRect();
+      if (r.top >= 8 && r.bottom <= avail - 8) return; // เห็นอยู่แล้ว ไม่ต้องขยับ
+      const max = Math.max(0, document.body.scrollHeight - avail);
+      const y = Math.min(
+        max,
+        Math.max(0, lockY.current + r.top + r.height / 2 - avail / 2),
+      );
+      lockY.current = y;
+      document.body.style.top = `-${y}px`;
+    });
+    return () => cancelAnimationFrame(id);
   }, [target, mode]);
 
   function insert(text: string) {
@@ -291,7 +290,7 @@ export function VirtualKeyboard({
       ref={panel}
       // พื้นหลังยาวถึงขอบล่างจอ (ใต้แถบ ˄ ˅ ✓ ของ iOS) → ไม่มีช่องว่างเห็นหน้าเว็บ ปุ่มอยู่เหนือแถบพอดี
       style={{ paddingBottom: `calc(${lift}px + env(safe-area-inset-bottom))` }}
-      className="absolute inset-x-0 top-0 z-[80] space-y-1.5 border-t border-line bg-surface p-1.5 shadow-[0_-8px_24px_rgba(0,0,0,0.12)]"
+      className="fixed inset-x-0 bottom-0 z-[80] space-y-1.5 border-t border-line bg-surface p-1.5 shadow-[0_-8px_24px_rgba(0,0,0,0.12)]"
       onPointerDown={keep}
     >
       {mode === "num" ? (
