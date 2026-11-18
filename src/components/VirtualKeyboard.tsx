@@ -183,7 +183,29 @@ export function VirtualKeyboard({
       right: "0",
       width: "100%",
     });
+    // ปัด/เลื่อนจอตรงที่ไม่ใช่คีย์บอร์ด (เกิน 12px) = ปิดคีย์บอร์ด → หน้ากลับมาเลื่อนได้
+    let start: { x: number; y: number } | null = null;
+    const onStart = (e: TouchEvent) => {
+      const t = e.touches[0];
+      start =
+        e.touches.length === 1 &&
+        !(e.target as Element | null)?.closest?.("[data-vkb]")
+          ? { x: t.clientX, y: t.clientY }
+          : null;
+    };
+    const onMove = (e: TouchEvent) => {
+      if (!start) return;
+      const t = e.touches[0];
+      if (Math.hypot(t.clientX - start.x, t.clientY - start.y) < 12) return;
+      start = null;
+      (document.activeElement as HTMLElement | null)?.blur?.();
+      setOpened(null);
+    };
+    document.addEventListener("touchstart", onStart, { passive: true });
+    document.addEventListener("touchmove", onMove, { passive: true });
     return () => {
+      document.removeEventListener("touchstart", onStart);
+      document.removeEventListener("touchmove", onMove);
       Object.assign(b, prev);
       window.scrollTo(0, lockY.current);
     };
