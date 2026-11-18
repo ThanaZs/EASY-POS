@@ -473,7 +473,19 @@
     "retake": "Retake",
     "use": "Use this photo",
     "close": "Close",
-    "hint": "Taken with the in-app camera only — cropped to 600×600 and compressed automatically"
+    "hint": "Taken with the in-app camera — crop/rotate/flip after shooting; saved as 600×600 automatically",
+    "editTitle": "Edit photo",
+    "lens": "Lens",
+    "flash": "Flash",
+    "flashNo": "This lens has no flash — try another lens",
+    "zoom": "Zoom",
+    "tilt": "Tilt",
+    "rotateLeft": "Rotate left",
+    "rotateRight": "Rotate right",
+    "flipH": "Flip H",
+    "flipV": "Flip V",
+    "reset": "Reset",
+    "cropHint": "Drag to move · pinch or zoom slider to crop"
   },
   "install": {
     "title": "Install EASY-POS on this device",

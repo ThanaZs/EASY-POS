@@ -103,12 +103,12 @@ function sharpness(
   return sq / n - mean * mean;
 }
 
-type Caps = MediaTrackCapabilities & {
+export type Caps = MediaTrackCapabilities & {
   torch?: boolean;
   focusMode?: string[];
   pointsOfInterest?: unknown;
 };
-type Track = MediaStreamTrack & { getCapabilities?: () => Caps };
+export type Track = MediaStreamTrack & { getCapabilities?: () => Caps };
 
 export type BarcodeCamera = {
   error: string | null;
@@ -129,7 +129,7 @@ export type BarcodeCamera = {
   switchCamera: () => void;
 };
 
-const CAM_KEY = "ep_cam_device";
+export const CAM_KEY = "ep_cam_device";
 const MAIN_CAM = /camera2 0,|camera 0,|main/i; // ชื่อกล้องหลักที่พบบ่อยบน Android
 const VIDEO = { width: { ideal: 1920 }, height: { ideal: 1080 } };
 const hasTorch = (st: MediaStream) => {
@@ -138,7 +138,7 @@ const hasTorch = (st: MediaStream) => {
 };
 
 /** รายชื่อกล้องหลัง (ตัดกล้องหน้าออก) — ใช้หลังได้รับอนุญาตกล้องแล้ว (ก่อนนั้นชื่อเป็นค่าว่าง) */
-async function backCameras(): Promise<MediaDeviceInfo[]> {
+export async function backCameras(): Promise<MediaDeviceInfo[]> {
   const all = (await navigator.mediaDevices.enumerateDevices()).filter(
     (d) => d.kind === "videoinput",
   );
@@ -150,7 +150,7 @@ async function backCameras(): Promise<MediaDeviceInfo[]> {
  * เปิดกล้องหลัง — มือถือหลายเลนส์ (เช่น Samsung) facingMode "environment" มักได้เลนส์มุมกว้าง/เทเล ที่ไม่มีไฟแฟลช
  * → ถ้ากล้องที่ได้ไม่มีไฟฉาย ลองกล้องหลังตัวอื่นทีละตัว เลือกตัวที่มีไฟ (มักเป็นกล้องหลัก "camera2 0") แล้วจำไว้ในเครื่อง
  */
-async function openBackCamera(): Promise<MediaStream> {
+export async function openBackCamera(): Promise<MediaStream> {
   const md = navigator.mediaDevices;
   let saved: string | null = null;
   try {

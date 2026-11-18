@@ -112,14 +112,8 @@ export function ProductPhotoField({
         <PhotoCapture
           onDone={useShot}
           onClose={() => setOpen(false)}
-          labels={{
-            title: t.title,
-            capture: t.capture,
-            retake: t.retake,
-            use: t.use,
-            close: t.close,
-            noCamera,
-          }}
+          t={t}
+          noCamera={noCamera}
         />
       )}
     </div>

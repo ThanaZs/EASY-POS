@@ -2,13 +2,21 @@
 
 import { useEffect, useRef, useState } from "react";
 import { ArrowBigUp, Delete } from "lucide-react";
-import { setInputValue } from "@/client/devices/scanner";
+import {
+  isScannerConnected,
+  setInputValue,
+  useScannerState,
+} from "@/client/devices/scanner";
 
 // ===== คีย์บอร์ดของ EASY-POS เอง =====
 // ปัญหา: iPhone/iPad ต่อเครื่องสแกน Bluetooth (เป็น "คีย์บอร์ดจริง") → iOS ซ่อนคีย์บอร์ดบนจอ แตะช่องแล้วพิมพ์ไม่ได้
 // เว็บสั่งให้คีย์บอร์ด iOS เด้งไม่ได้ → แตะช่องพิมพ์แล้วรอดูว่าจอหดไหม (คีย์บอร์ดระบบขึ้น)
 // ถ้าไม่หด = ไม่มีคีย์บอร์ดระบบ → เปิดคีย์บอร์ดนี้แทน (ตัวเลข / ไทย / อังกฤษ)
-// ใช้เฉพาะอุปกรณ์จอสัมผัส (คอมใช้คีย์บอร์ดจริงอยู่แล้ว)
+// ใช้เฉพาะ iPhone/iPad และเฉพาะตอนสถานะเครื่องสแกน = เชื่อมแล้ว (Android/คอม ไม่มีปัญหานี้ → ไม่ใช้เลย)
+
+const isIOS = () =>
+  /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+  (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
 
 type Mode = "num" | "th" | "en" | "sym";
 type Target = HTMLInputElement | HTMLTextAreaElement;
@@ -66,11 +74,18 @@ export function VirtualKeyboard({
 }: {
   labels: { done: string; space: string };
 }) {
-  const [target, setTarget] = useState<Target | null>(null);
+  const [rawTarget, setTarget] = useState<Target | null>(null);
   const [mode, setMode] = useState<Mode>("th");
   const [shift, setShift] = useState(false);
   const noSystemKeyboard = useRef(false); // เคยตรวจแล้วว่าไม่มีคีย์บอร์ดระบบ → ครั้งต่อไปเปิดทันที
   const panel = useRef<HTMLDivElement>(null);
+  const scannerOn = isScannerConnected(useScannerState());
+  const scannerRef = useRef(scannerOn);
+  useEffect(() => {
+    scannerRef.current = scannerOn;
+  }, [scannerOn]);
+  // เครื่องสแกนหลุด/รีเซ็ตสถานะ → ซ่อนคีย์บอร์ดของเรา
+  const target = scannerOn ? rawTarget : null;
 
   const open = (el: Target) => {
     setTarget(el);
@@ -96,13 +111,14 @@ export function VirtualKeyboard({
   };
 
   useEffect(() => {
-    if (!window.matchMedia("(pointer: coarse)").matches) return; // คอม/โน้ตบุ๊ก ไม่ต้องใช้
+    if (!isIOS()) return; // Android/คอม ไม่ต้องใช้
     const vv = window.visualViewport;
     let timer: ReturnType<typeof setTimeout> | undefined;
 
     const onFocusIn = (e: FocusEvent) => {
       const el = e.target;
       if (!isTypable(el)) return;
+      if (!scannerRef.current) return; // ยังไม่เห็นเครื่องสแกน → ใช้คีย์บอร์ดระบบตามปกติ
       if (panel.current?.contains(el)) return;
       clearTimeout(timer);
       if (noSystemKeyboard.current) return open(el);
@@ -152,9 +168,7 @@ export function VirtualKeyboard({
   useEffect(() => {
     if (!target) return;
     const vv = window.visualViewport;
-    const ios =
-      /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-      (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
+    const ios = isIOS();
     const update = () => {
       const covered = vv
         ? Math.max(0, window.innerHeight - (vv.offsetTop + vv.height))
