@@ -1,9 +1,6 @@
 import Link from "next/link";
 import { PageTitle } from "@/components/PageTitle";
-import {
-  FileSpreadsheet,
-  Plus,
-} from "lucide-react";
+import { FileSpreadsheet, Plus } from "lucide-react";
 import { can } from "@/core/domain/permissions";
 import { fill } from "@/core/lib/format";
 import { toEnglishLayout } from "@/core/lib/keyboard";
@@ -68,9 +65,19 @@ export default async function InventoryPage({
 
   return (
     <div className="space-y-4 pb-20 sm:pb-0">
-      <div className="flex items-center justify-between gap-3">
+      {/* มือถือ: ซ่อนแถวหัวข้อทั้งแถว (หัวข้ออยู่แถบบน, นำเข้า Excel ใช้บนคอม, เพิ่มสินค้า = ปุ่ม + ลอย) */}
+      {can(member, "products.create") && (
+        <Link
+          prefetch={false}
+          href={`${base}/new`}
+          aria-label={t.inventory.add}
+          className="fixed bottom-[calc(1.25rem+env(safe-area-inset-bottom))] right-5 z-40 grid size-14 place-items-center rounded-full bg-brand text-white shadow-lg shadow-black/25 transition active:scale-95 sm:hidden"
+        >
+          <Plus className="size-7" />
+        </Link>
+      )}
+      <div className="hidden items-center justify-between gap-3 sm:flex">
         <PageTitle title={t.store.modules.inventory} />
-        {/* มือถือ: ปุ่มไอคอนล้วน (ประหยัดที่) — จอใหญ่: ไอคอน+ข้อความ; เพิ่มสินค้าบนมือถือ = ปุ่ม + ลอยมุมล่างขวา */}
         <div className="flex flex-wrap justify-end gap-2">
           {can(member, "products.create") && (
             <>
@@ -79,10 +86,9 @@ export default async function InventoryPage({
                 href={`${base}/import`}
                 aria-label={t.import.button}
                 title={t.import.button}
-                className="inline-flex size-10 items-center justify-center gap-1 rounded-xl border border-line bg-card text-sm font-medium hover:border-brand sm:size-auto sm:px-3 sm:py-2"
+                className="inline-flex items-center gap-1 rounded-xl border border-line bg-card px-3 py-2 text-sm font-medium hover:border-brand"
               >
-                <FileSpreadsheet className="size-5 sm:size-4" />
-                <span className="hidden sm:inline">{t.import.button}</span>
+                <FileSpreadsheet className="size-4" /> {t.import.button}
               </Link>
               <Link
                 prefetch={false}
@@ -90,14 +96,6 @@ export default async function InventoryPage({
                 className="hidden items-center gap-1 rounded-xl bg-brand px-3 py-2 text-sm font-semibold text-white hover:opacity-90 sm:inline-flex"
               >
                 <Plus className="size-4" /> {t.inventory.add}
-              </Link>
-              <Link
-                prefetch={false}
-                href={`${base}/new`}
-                aria-label={t.inventory.add}
-                className="fixed bottom-[calc(1.25rem+env(safe-area-inset-bottom))] right-5 z-40 grid size-14 place-items-center rounded-full bg-brand text-white shadow-lg shadow-black/25 transition active:scale-95 sm:hidden"
-              >
-                <Plus className="size-7" />
               </Link>
             </>
           )}
