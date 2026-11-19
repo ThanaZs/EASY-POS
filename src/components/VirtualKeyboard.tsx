@@ -2,42 +2,38 @@
 
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
-import {
-  ArrowBigUp,
-  Check,
-  ChevronDown,
-  ChevronUp,
-  Delete,
-} from "lucide-react";
+import { ArrowBigUp, Delete, Globe } from "lucide-react";
 import { setInputValue } from "@/client/devices/scanner";
 
-// ===== คีย์บอร์ดสำรองของ EASY-POS (เฉพาะ iPhone/iPad) =====
-// ปัญหา: iPhone/iPad ต่อเครื่องสแกน Bluetooth (เป็น "คีย์บอร์ดจริง") → iOS ซ่อนคีย์บอร์ดบนจอ แตะช่องแล้วพิมพ์ไม่ได้
-// แก้ (ใช้คีย์บอร์ดของ iPhone ก่อนเสมอ): แตะช่องพิมพ์ → รอดูว่าคีย์บอร์ดของ iPhone ขึ้นไหม (จอที่มองเห็นหดลง)
-//   ขึ้น = ใช้ของ iPhone ตามปกติ (ไม่ทำอะไร) / ไม่ขึ้น = มีคีย์บอร์ดจริงต่ออยู่ → เปิดคีย์บอร์ดนี้แทน
-// ไม่ต้องพึ่งสถานะเครื่องสแกน (ต่อ Bluetooth แล้วแต่ยังไม่ยิง ก็ทำงาน); Android/คอม ไม่ใช้เลย
+// ===== คีย์บอร์ดของ EASY-POS (iPhone/iPad ใช้ตัวนี้ทุกครั้ง) =====
+// เหตุผล: ต่อเครื่องสแกน Bluetooth (= คีย์บอร์ดจริง) แล้ว iOS ซ่อนคีย์บอร์ดบนจอ, และการสลับไปมาระหว่าง
+// คีย์บอร์ด iPhone/คีย์บอร์ดเว็บทำให้ซ้อนกัน → ผู้ใช้เลือก "ใช้คีย์บอร์ดเว็บหมดเลย" บน iPhone
+// - ปิดคีย์บอร์ดระบบด้วย inputmode=none (ตั้งตั้งแต่ตอนแตะ ก่อนโฟกัส) → แถบ ˄ ˅ ✓ ของ iOS หายไปด้วย
+// - หน้าตา/ตำแหน่งปุ่มเหมือนคีย์บอร์ด iPhone (ไทย เกษมณี / ABC / 123 / #+= / แป้นตัวเลข)
+// - กดปุ่มมีป้ายตัวอักษรเด้งเหนือนิ้ว, กดค้างลบ = ลบรัว, 🌐 สลับไทย/อังกฤษ
+// - ปิด: ปุ่ม "เสร็จ" หรือปัดจอนอกคีย์บอร์ด; Android/คอม ไม่ใช้เลย
 
 const isIOS = () =>
   /iPad|iPhone|iPod/.test(navigator.userAgent) ||
   (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
 
-type Mode = "num" | "th" | "en" | "sym";
+type Mode = "num" | "th" | "en" | "sym" | "sym2";
 type Target = HTMLInputElement | HTMLTextAreaElement;
 
+// ไทย (เกษมณี) ตามคีย์บอร์ด iPhone
 const TH = [
-  ["ๅ", "/", "-", "ภ", "ถ", "ุ", "ึ", "ค", "ต", "จ", "ข", "ช"],
+  ["ๅ", "/", "_", "ภ", "ถ", "ุ", "ึ", "ค", "ต", "จ", "ข", "ช"],
   ["ๆ", "ไ", "ำ", "พ", "ะ", "ั", "ี", "ร", "น", "ย", "บ", "ล"],
-  ["ฟ", "ห", "ก", "ด", "เ", "้", "่", "า", "ส", "ว", "ง"],
+  ["ฟ", "ห", "ก", "ด", "เ", "้", "่", "า", "ส", "ว", "ง", "ฃ"],
   ["ผ", "ป", "แ", "อ", "ิ", "ื", "ท", "ม", "ใ", "ฝ"],
 ];
 const TH_SHIFT = [
   ["+", "๑", "๒", "๓", "๔", "ู", "฿", "๕", "๖", "๗", "๘", "๙"],
-  ["๐", '"', "ฎ", "ฑ", "ธ", "ํ", "๊", "ณ", "ฯ", "ญ", "ฐ", "ฃ"],
-  ["ฤ", "ฆ", "ฏ", "โ", "ฌ", "็", "๋", "ษ", "ศ", "ซ", "ฅ"],
+  ["๐", '"', "ฎ", "ฑ", "ธ", "ํ", "๊", "ณ", "ฯ", "ญ", "ฐ", ","],
+  ["ฤ", "ฆ", "ฏ", "โ", "ฌ", "็", "๋", "ษ", "ศ", "ซ", ".", "ฅ"],
   ["(", ")", "ฉ", "ฮ", "ฺ", "์", "?", "ฒ", "ฬ", "ฦ"],
 ];
 const EN = [
-  ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"],
   ["q", "w", "e", "r", "t", "y", "u", "i", "o", "p"],
   ["a", "s", "d", "f", "g", "h", "j", "k", "l"],
   ["z", "x", "c", "v", "b", "n", "m"],
@@ -45,8 +41,12 @@ const EN = [
 const SYM = [
   ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"],
   ["-", "/", ":", ";", "(", ")", "฿", "&", "@", '"'],
-  [".", ",", "?", "!", "'", "*", "#", "%", "+", "="],
-  ["_", "\\", "<", ">", "[", "]", "{", "}"],
+  [".", ",", "?", "!", "'"],
+];
+const SYM2 = [
+  ["[", "]", "{", "}", "#", "%", "^", "*", "+", "="],
+  ["_", "\\", "|", "~", "<", ">", "$", "€", "£", "•"],
+  [".", ",", "?", "!", "'"],
 ];
 
 const TEXT_TYPES = new Set([
@@ -65,17 +65,32 @@ const isTypable = (el: EventTarget | null): el is Target =>
     !el.readOnly &&
     !el.disabled) ||
   (el instanceof HTMLTextAreaElement && !el.readOnly && !el.disabled);
+// ช่องที่ถูกปิดคีย์บอร์ดระบบ (inputmode=none) จำค่าเดิมไว้ใน data-vkb-im → ใช้เลือกแป้นตัวเลข
+const origMode = (el: Target) => el.dataset.vkbIm ?? el.inputMode;
 const isNumeric = (el: Target) =>
   el instanceof HTMLInputElement &&
   (el.type === "number" ||
-    ["numeric", "decimal", "tel"].includes(el.inputMode));
+    ["numeric", "decimal", "tel"].includes(origMode(el)));
+/** ปิดคีย์บอร์ดของ iOS สำหรับช่องนี้ (ใช้ของเราแทน) */
+const suppressSystem = (el: Target) => {
+  if (el.inputMode === "none") return;
+  el.dataset.vkbIm = el.inputMode;
+  el.inputMode = "none";
+};
 
 const LANG_KEY = "ep_vkb_lang";
+
+// สีแบบคีย์บอร์ด iPhone (สว่าง/มืด)
+const BG = "bg-[#d1d4da] dark:bg-[#2b2b2e]";
+const KEY =
+  "bg-white text-black dark:bg-[#6b6b70] dark:text-white active:bg-[#c3c7cf] dark:active:bg-[#4a4a4e]";
+const FN =
+  "bg-[#acb1bb] text-black dark:bg-[#474749] dark:text-white active:bg-white dark:active:bg-[#6b6b70]";
 
 export function VirtualKeyboard({
   labels,
 }: {
-  labels: { done: string; space: string; prev: string; next: string };
+  labels: { done: string; space: string };
 }) {
   const pathname = usePathname();
   const [opened, setOpened] = useState<{ el: Target; path: string } | null>(
@@ -83,9 +98,10 @@ export function VirtualKeyboard({
   );
   const [mode, setMode] = useState<Mode>("th");
   const [shift, setShift] = useState(false);
-  const [lift, setLift] = useState(0); // เว้นที่ให้แถบเล็กของ iOS ด้านล่าง
+  const [pressed, setPressed] = useState<string | null>(null); // ป้ายตัวอักษรเด้งเหนือนิ้ว
+  const [lift, setLift] = useState(0); // เว้นที่ให้แถบเล็กของ iOS ตอนต่อเครื่องสแกน
   const panel = useRef<HTMLDivElement>(null);
-  const openRef = useRef(false);
+  const repeat = useRef<ReturnType<typeof setTimeout>>(undefined);
   // เปลี่ยนหน้า / ช่องถูกลบออกจากหน้า → ไม่แสดงคีย์บอร์ดค้างบนหน้าอื่น
   const target =
     opened && opened.path === pathname && opened.el.isConnected
@@ -115,32 +131,31 @@ export function VirtualKeyboard({
 
   useEffect(() => {
     if (!isIOS()) return; // Android/คอม ไม่ต้องใช้
-    let check: ReturnType<typeof setTimeout> | undefined;
     const vv = window.visualViewport;
-    const visible = () => (vv ? vv.height * vv.scale : window.innerHeight);
-    // ความสูงจอตอน "ไม่มีช่องพิมพ์โฟกัส" (= ไม่มีคีย์บอร์ด) — ใช้เทียบว่าคีย์บอร์ดของ iPhone บังไปเท่าไร
-    // (บางเครื่อง/โหมดแอป window.innerHeight หดตามคีย์บอร์ดด้วย → เทียบกับ innerHeight อย่างเดียวไม่ได้ เคยทำให้คีย์บอร์ดซ้อน)
-    let base = visible();
-    /** ส่วนล่างของจอที่ถูกบัง (คีย์บอร์ดของ iPhone / แถบเล็กของ iOS ตอนต่อคีย์บอร์ดจริง) */
-    const covered = () =>
-      Math.max(
-        0,
-        base - visible(),
-        vv ? window.innerHeight - visible() - vv.offsetTop : 0,
+    // แถบเล็กของ iOS ตอนต่อคีย์บอร์ดจริง (เครื่องสแกน) — วัดส่วนที่ถูกบังล่างจอ แล้วยกคีย์บอร์ดขึ้นเท่านั้น
+    const measure = () =>
+      setLift(
+        vv
+          ? Math.min(
+              120,
+              Math.max(
+                0,
+                window.innerHeight - vv.height * vv.scale - vv.offsetTop,
+              ),
+            )
+          : 0,
       );
-    /** คีย์บอร์ดของ iPhone ขึ้นอยู่ (บังจอเกิน 150px — แถบเล็กตอนต่อเครื่องสแกนสูงแค่ ~50px) */
-    const nativeUp = () => covered() > 150;
+    // ปิดคีย์บอร์ดระบบตั้งแต่ตอนแตะ (ก่อนโฟกัส) — ตั้งหลังโฟกัสแล้ว iOS อาจเด้งคีย์บอร์ดตัวเองขึ้นมาก่อน
+    const onTouch = (e: Event) => {
+      const el = e.target;
+      if (isTypable(el) && !panel.current?.contains(el)) suppressSystem(el);
+    };
     const onFocusIn = (e: FocusEvent) => {
       const el = e.target;
       if (!isTypable(el) || panel.current?.contains(el)) return;
-      if (openRef.current) return open(el); // ของเราเปิดอยู่ (กด ˄ ˅ ย้ายช่อง) → ใช้ต่อ
-      // รอคีย์บอร์ดของ iPhone เลื่อนขึ้น (~0.3 วิ) แล้วดูว่าขึ้นจริงไหม
-      clearTimeout(check);
-      check = setTimeout(() => {
-        if (document.activeElement !== el || nativeUp()) return;
-        setLift(covered());
-        open(el);
-      }, 650);
+      suppressSystem(el);
+      open(el);
+      setTimeout(measure, 400);
     };
     const onFocusOut = (e: FocusEvent) => {
       const next = e.relatedTarget;
@@ -150,37 +165,26 @@ export function VirtualKeyboard({
         if (!isTypable(document.activeElement)) setTarget(null);
       }, 120);
     };
-    // คีย์บอร์ดของ iPhone โผล่ขึ้นมาทีหลัง (ถอดเครื่องสแกน) → ปิดของเรา ไม่ให้ซ้อน
-    const onResize = () => {
-      // ไม่มีช่องโฟกัส = ไม่มีคีย์บอร์ด → จำความสูงเต็มจอ (หมุนจอ/เปลี่ยนขนาด)
-      if (!isTypable(document.activeElement)) base = visible();
-      if (!openRef.current) return;
-      if (nativeUp()) setOpened(null);
-      else setLift(covered());
-    };
-    vv?.addEventListener("resize", onResize);
-    window.addEventListener("resize", onResize);
+    document.addEventListener("touchstart", onTouch, {
+      capture: true,
+      passive: true,
+    });
     document.addEventListener("focusin", onFocusIn);
     document.addEventListener("focusout", onFocusOut);
+    vv?.addEventListener("resize", measure);
     return () => {
-      clearTimeout(check);
-      vv?.removeEventListener("resize", onResize);
-      window.removeEventListener("resize", onResize);
+      document.removeEventListener("touchstart", onTouch, { capture: true });
       document.removeEventListener("focusin", onFocusIn);
       document.removeEventListener("focusout", onFocusOut);
+      vv?.removeEventListener("resize", measure);
     };
   }, []);
 
   // ===== ล็อกหน้าไม่ให้เลื่อนระหว่างที่คีย์บอร์ดเปิด → คีย์บอร์ดนิ่ง 100% =====
   // iOS: ตอนมีช่องพิมพ์โฟกัสอยู่ position:fixed จะเลื่อนตามหน้า → ตรึง body ไว้ (position:fixed; top:-y)
-  // หน้าเลื่อนไม่ได้ = คีย์บอร์ดไม่ขยับ; ระบบเลื่อนช่องที่พิมพ์ขึ้นมาให้เห็นเอง (ย้าย top ของ body)
   // ปิดคีย์บอร์ด → ปลดล็อก แล้วกลับไปตำแหน่งเดิมของหน้า
-  // แถบเล็กของ iOS (ตอนต่อเครื่องสแกน) อยู่ล่างสุด → วัดความสูงจริงจาก visualViewport แล้วเว้นที่ให้ (lift)
   const lockY = useRef(0);
   const isOpen = !!target;
-  useEffect(() => {
-    openRef.current = isOpen;
-  }, [isOpen]);
   useEffect(() => {
     if (!isOpen) return;
     const b = document.body.style;
@@ -245,6 +249,7 @@ export function VirtualKeyboard({
     });
     return () => cancelAnimationFrame(id);
   }, [target, mode]);
+  useEffect(() => () => clearTimeout(repeat.current), []);
 
   function insert(text: string) {
     const el = target;
@@ -305,26 +310,6 @@ export function VirtualKeyboard({
     }
     setTarget(null);
   }
-  /** ˄ ˅ ไปช่องพิมพ์ก่อนหน้า/ถัดไปในหน้า (แทนแถบของ iOS ที่หายไปเมื่อปิดคีย์บอร์ดระบบ) */
-  const fields = () =>
-    [...document.querySelectorAll<Target>("input, textarea")].filter(
-      (el) =>
-        isTypable(el) &&
-        el.getClientRects().length > 0 &&
-        !el.closest("[data-vkb]"),
-    );
-  const step = (dir: 1 | -1) => {
-    if (!target) return;
-    const list = fields();
-    const next = list[list.indexOf(target) + dir];
-    if (next) next.focus();
-  };
-  const navState = (() => {
-    if (!target) return { prev: false, next: false };
-    const list = fields();
-    const i = list.indexOf(target);
-    return { prev: i > 0, next: i >= 0 && i < list.length - 1 };
-  })();
   const setLang = (m: "th" | "en") => {
     setMode(m);
     try {
@@ -336,128 +321,191 @@ export function VirtualKeyboard({
 
   // ป้องกันปุ่มแย่งโฟกัส (ช่องยังโฟกัสอยู่ เคอร์เซอร์ไม่หาย)
   const keep = (e: React.PointerEvent | React.MouseEvent) => e.preventDefault();
-  const key = (label: React.ReactNode, onPress: () => void, cls = "") => (
+
+  /** ปุ่มตัวอักษร: กดแล้วมีป้ายตัวอักษรใหญ่เด้งเหนือนิ้ว (แบบ iPhone) */
+  const charKey = (ch: string, id: string) => (
+    <button
+      key={id}
+      type="button"
+      onPointerDown={(e) => {
+        keep(e);
+        setPressed(id);
+      }}
+      onPointerUp={() => setPressed(null)}
+      onPointerLeave={() => setPressed((p) => (p === id ? null : p))}
+      onPointerCancel={() => setPressed(null)}
+      onMouseDown={keep}
+      onClick={() => insert(ch)}
+      className={`relative h-[42px] min-w-0 flex-1 select-none rounded-[5px] text-[21px] shadow-[0_1px_0_rgba(0,0,0,0.35)] ${KEY}`}
+    >
+      {ch}
+      {pressed === id && (
+        <span className="pointer-events-none absolute bottom-[calc(100%+4px)] left-1/2 grid h-[52px] min-w-[46px] -translate-x-1/2 place-items-center rounded-lg bg-white px-2 text-[30px] text-black shadow-[0_2px_8px_rgba(0,0,0,0.35)] dark:bg-[#6b6b70] dark:text-white">
+          {ch}
+        </span>
+      )}
+    </button>
+  );
+  /** ปุ่มคำสั่ง (shift, ลบ, 123, 🌐, เสร็จ) */
+  const fnKey = (
+    label: React.ReactNode,
+    onPress: () => void,
+    cls = "",
+    aria?: string,
+  ) => (
     <button
       type="button"
       onPointerDown={keep}
       onMouseDown={keep}
       onClick={onPress}
-      className={`h-11 min-w-0 flex-1 select-none rounded-lg text-lg shadow-sm transition active:scale-95 ${
-        cls.includes("bg-") ? "" : "bg-card text-ink active:bg-brand-soft" // ปุ่มสี (เสร็จ) ไม่ใช้พื้นการ์ด
-      } ${cls}`}
+      aria-label={aria}
+      className={`grid h-[42px] min-w-0 select-none place-items-center rounded-[5px] text-[15px] shadow-[0_1px_0_rgba(0,0,0,0.35)] ${cls.includes("bg-") ? "" : FN} ${cls}`}
     >
       {label}
+    </button>
+  );
+  /** ปุ่มลบ: กดค้าง = ลบรัว */
+  const delKey = (cls: string) => (
+    <button
+      type="button"
+      aria-label="delete"
+      onPointerDown={(e) => {
+        keep(e);
+        backspace();
+        const loop = (ms: number) => {
+          repeat.current = setTimeout(() => {
+            backspace();
+            loop(70);
+          }, ms);
+        };
+        loop(450);
+      }}
+      onPointerUp={() => clearTimeout(repeat.current)}
+      onPointerLeave={() => clearTimeout(repeat.current)}
+      onPointerCancel={() => clearTimeout(repeat.current)}
+      onMouseDown={keep}
+      className={`grid h-[42px] min-w-0 select-none place-items-center rounded-[5px] shadow-[0_1px_0_rgba(0,0,0,0.35)] ${FN} ${cls}`}
+    >
+      <Delete className="size-6" strokeWidth={1.75} />
     </button>
   );
 
   if (!target) return null;
 
+  const isLetters = mode === "th" || mode === "en";
   const rows =
-    mode === "th" ? (shift ? TH_SHIFT : TH) : mode === "en" ? EN : SYM;
+    mode === "th"
+      ? shift
+        ? TH_SHIFT
+        : TH
+      : mode === "en"
+        ? EN
+        : mode === "sym"
+          ? SYM
+          : SYM2;
+  const doneKey = fnKey(
+    labels.done,
+    done,
+    "flex-[2.4] bg-[#007aff] font-semibold text-white active:bg-[#0062cc]",
+  );
+
   return (
     <div
       ref={panel}
       data-vkb
-      // พื้นหลังยาวถึงขอบล่างจอ; เว้นที่ให้แถบเล็กของ iOS เท่าที่วัดได้จริง
       style={{
-        paddingBottom: `calc(${lift}px + env(safe-area-inset-bottom))`,
+        paddingBottom: `calc(${lift}px + max(env(safe-area-inset-bottom), 6px))`,
       }}
-      className="fixed inset-x-0 bottom-0 z-[80] space-y-1.5 border-t border-line bg-surface p-1.5 shadow-[0_-8px_24px_rgba(0,0,0,0.12)]"
+      className={`fixed inset-x-0 bottom-0 z-[80] select-none px-[3px] pt-2 ${BG}`}
       onPointerDown={keep}
     >
-      {/* แถบ ˄ ˅ เสร็จ ✓ (ของเราเอง อยู่บนคีย์บอร์ดเสมอ) */}
-      <div className="mx-auto flex max-w-2xl items-center gap-1">
-        {(
-          [
-            [-1, ChevronUp, navState.prev],
-            [1, ChevronDown, navState.next],
-          ] as const
-        ).map(([dir, Icon, ok]) => (
-          <button
-            key={dir}
-            type="button"
-            onPointerDown={keep}
-            onMouseDown={keep}
-            onClick={() => step(dir)}
-            disabled={!ok}
-            aria-label={dir < 0 ? labels.prev : labels.next}
-            className="grid h-9 w-12 place-items-center rounded-lg text-ink active:bg-brand-soft disabled:opacity-30"
-          >
-            <Icon className="size-6" />
-          </button>
-        ))}
-        <span className="flex-1" />
-        <button
-          type="button"
-          onPointerDown={keep}
-          onMouseDown={keep}
-          onClick={done}
-          className="flex h-9 items-center gap-1 rounded-lg px-3 font-semibold text-brand-ink active:bg-brand-soft"
-        >
-          {labels.done} <Check className="size-5" />
-        </button>
-      </div>
       {mode === "num" ? (
-        <div className="mx-auto grid max-w-md grid-cols-3 gap-1.5">
-          {["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((d) => (
-            <div key={d} className="flex">
-              {key(d, () => insert(d), "h-12 text-2xl")}
-            </div>
-          ))}
-          <div className="flex">
-            {key(".", () => insert("."), "h-12 text-2xl")}
-          </div>
-          <div className="flex">
-            {key("0", () => insert("0"), "h-12 text-2xl")}
-          </div>
-          <div className="flex">
-            {key(<Delete className="mx-auto size-6" />, backspace, "h-12")}
-          </div>
+        // แป้นตัวเลข (ราคา/จำนวน) แบบ iPhone
+        <div className="mx-auto grid max-w-md grid-cols-3 gap-[6px] px-1">
+          {["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((d) =>
+            charKey(d, `n${d}`),
+          )}
+          {charKey(".", "n.")}
+          {charKey("0", "n0")}
+          {delKey("bg-transparent shadow-none dark:bg-transparent")}
+          <div className="col-span-3 flex">{doneKey}</div>
         </div>
       ) : (
-        <div className="mx-auto max-w-2xl space-y-1.5">
-          {rows.map((row, i) => (
-            <div key={i} className="flex gap-1">
-              {i === rows.length - 1 &&
-                mode !== "sym" &&
-                key(
-                  <ArrowBigUp
-                    className={`mx-auto size-5 ${shift ? "fill-current" : ""}`}
-                  />,
-                  () => setShift((s) => !s),
-                  "flex-[1.5]",
-                )}
-              {row.map((c) => {
-                const ch = mode === "en" && shift ? c.toUpperCase() : c;
-                return (
-                  <div key={c} className="flex min-w-0 flex-1">
-                    {key(ch, () => insert(ch))}
-                  </div>
-                );
-              })}
-              {i === rows.length - 1 &&
-                key(
-                  <Delete className="mx-auto size-5" />,
-                  backspace,
-                  "flex-[1.5]",
-                )}
-            </div>
-          ))}
-          <div className="flex gap-1">
-            {key(
-              mode === "sym" ? "กขค" : "?123",
-              () => setMode(mode === "sym" ? "th" : "sym"),
-              "flex-[1.5] text-sm",
+        <div className="mx-auto max-w-2xl space-y-[11px]">
+          {rows.map((row, i) => {
+            const last = i === rows.length - 1;
+            return (
+              <div
+                key={i}
+                className={`flex gap-[5px] ${
+                  // แถวที่ปุ่มน้อยกว่าแถวบน → เว้นข้างให้อยู่กลาง (แบบ iPhone)
+                  mode === "en" && i === 1 ? "px-[5%]" : ""
+                }`}
+              >
+                {last &&
+                  (isLetters
+                    ? fnKey(
+                        <ArrowBigUp
+                          className={`size-6 ${shift ? "fill-current" : ""}`}
+                          strokeWidth={1.5}
+                        />,
+                        () => setShift((s) => !s),
+                        `flex-[1.4] ${shift ? "bg-white text-black dark:bg-white dark:text-black" : ""}`,
+                        "shift",
+                      )
+                    : fnKey(
+                        mode === "sym" ? "#+=" : "123",
+                        () => setMode(mode === "sym" ? "sym2" : "sym"),
+                        "flex-[1.4]",
+                      ))}
+                {last && !isLetters && <span className="w-1" />}
+                {row.map((c, j) => {
+                  const ch = mode === "en" && shift ? c.toUpperCase() : c;
+                  return charKey(ch, `${mode}${i}-${j}`);
+                })}
+                {last && !isLetters && <span className="w-1" />}
+                {last && delKey("flex-[1.4]")}
+              </div>
+            );
+          })}
+          {/* แถวล่าง: 123 | 🌐 | เว้นวรรค | เสร็จ */}
+          <div className="flex gap-[5px]">
+            {fnKey(
+              isLetters ? "123" : localLangLabel(),
+              () => (isLetters ? setMode("sym") : setMode(lastLang())),
+              "flex-[1.3]",
             )}
-            {key(
-              mode === "en" ? "ไทย" : "EN",
+            {fnKey(
+              <Globe className="size-5" strokeWidth={1.75} />,
               () => setLang(mode === "en" ? "th" : "en"),
-              "flex-[1.2] text-sm",
+              "flex-[1.1]",
+              "language",
             )}
-            {key(labels.space, () => insert(" "), "flex-[6] text-sm")}
+            <button
+              type="button"
+              onPointerDown={keep}
+              onMouseDown={keep}
+              onClick={() => insert(" ")}
+              className={`h-[42px] min-w-0 flex-[5] select-none rounded-[5px] text-[15px] shadow-[0_1px_0_rgba(0,0,0,0.35)] ${KEY}`}
+            >
+              {mode === "en" ? "space" : labels.space}
+            </button>
+            {doneKey}
           </div>
         </div>
       )}
     </div>
   );
+
+  /** ภาษาล่าสุดที่ใช้ (กลับจากหน้าสัญลักษณ์) */
+  function lastLang(): "th" | "en" {
+    try {
+      return localStorage.getItem(LANG_KEY) === "en" ? "en" : "th";
+    } catch {
+      return "th";
+    }
+  }
+  function localLangLabel() {
+    return lastLang() === "en" ? "ABC" : "กขค";
+  }
 }
