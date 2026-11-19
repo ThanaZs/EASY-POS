@@ -1,4 +1,5 @@
 import { Alert } from "@/components/Alert";
+import { PageTitle } from "@/components/PageTitle";
 import { Card, Field, PrimaryButton } from "@/components/Field";
 import { Select } from "@/components/Select";
 import { can } from "@/core/domain/permissions";
@@ -46,7 +47,7 @@ export default async function ReceivePage({
 
   return (
     <div className="mx-auto max-w-3xl space-y-4">
-      <h1 className="text-xl font-bold">{t.store.modules.receive}</h1>
+      <PageTitle title={t.store.modules.receive} />
       {tracked.length === 0 ? (
         <p className="rounded-2xl border border-dashed border-line bg-card p-8 text-center text-muted">
           {t.stock.noProducts}

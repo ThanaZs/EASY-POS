@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PageTitle } from "@/components/PageTitle";
 import { notFound } from "next/navigation";
 import {
   ArrowDown,
@@ -421,7 +422,7 @@ export default async function HistoryPage({
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-xl font-bold">{t.store.modules.history}</h1>
+        <PageTitle title={t.store.modules.history} />
         <p className="text-xs text-muted">{s.historyHint}</p>
       </div>
 
@@ -557,10 +558,8 @@ export default async function HistoryPage({
                           </b>
                         )}
                         <span className="text-muted">
-                          {lb.unitCostMinor != null ? " · " : ""}
-                          {[lb.supplier, day(dayOf(lb))]
-                            .filter(Boolean)
-                            .join(" · ")}
+                          {lb.unitCostMinor != null && lb.supplier ? " · " : ""}
+                          {lb.supplier}
                         </span>
                       </p>
                     ) : (
@@ -569,12 +568,22 @@ export default async function HistoryPage({
                       </p>
                     )}
                   </div>
-                  <span className="hidden w-44 shrink-0 truncate text-[13px] text-muted md:block">
+                  {/* ขวาสุด = วันที่ซื้อล่าสุด; มือถือ: วันที่ / คงเหลือ ซ้อนกัน */}
+                  <span className="flex shrink-0 flex-col items-end gap-0.5 text-[13px] md:hidden">
+                    <span className="tabular-nums text-muted">
+                      {lb ? day(dayOf(lb)) : "—"}
+                    </span>
+                    <StockText p={p} t={t} />
+                  </span>
+                  <span className="hidden w-40 shrink-0 truncate text-[13px] text-muted md:block">
                     {[p.category, p.subcategory].filter(Boolean).join(" › ") ||
                       "—"}
                   </span>
-                  <span className="shrink-0 text-right text-[13px] md:w-44">
+                  <span className="hidden w-32 shrink-0 text-right text-[13px] md:block">
                     <StockText p={p} t={t} />
+                  </span>
+                  <span className="hidden w-28 shrink-0 text-right text-[13px] tabular-nums text-muted md:block">
+                    {lb ? day(dayOf(lb)) : "—"}
                   </span>
                 </Link>
               </li>

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PageTitle } from "@/components/PageTitle";
 import { Users } from "lucide-react";
 import { DateRangeFilter } from "@/components/DateRangeFilter";
 import { todayIn } from "@/core/lib/format";
@@ -50,7 +51,7 @@ export default async function ActivityPage({
 
   return (
     <div className="mx-auto max-w-3xl space-y-4">
-      <h1 className="text-xl font-bold">{t.store.modules.settings}</h1>
+      <PageTitle title={t.store.modules.settings} />
       <SettingsTabs
         locale={locale}
         storeId={storeId}

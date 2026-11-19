@@ -1,4 +1,5 @@
 import { Alert, pickMessage } from "@/components/Alert";
+import { PageTitle } from "@/components/PageTitle";
 import { Card, Field, PrimaryButton } from "@/components/Field";
 import { Select, timeZoneOptions } from "@/components/Select";
 import { localeLabels, locales } from "@/i18n/config";
@@ -43,7 +44,7 @@ export default async function AccountPage({
 
   return (
     <div className="mx-auto max-w-lg space-y-4">
-      <h1 className="text-xl font-bold">{t.hub.account}</h1>
+      <PageTitle title={t.hub.account} />
       <Card>
         <form action={saveAccountAction} className="space-y-4">
           <input type="hidden" name="locale" value={locale} />

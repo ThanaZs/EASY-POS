@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PageTitle } from "@/components/PageTitle";
 import { ReceiptText } from "lucide-react";
 import { SubTabs } from "@/components/SubTabs";
 import {
@@ -148,7 +149,7 @@ export default async function OverviewPage({
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between gap-3">
-        <h1 className="text-xl font-bold">{t.store.modules.overview}</h1>
+        <PageTitle title={t.store.modules.overview} />
         <Link
           prefetch={false}
           href={`${base}/sales`}

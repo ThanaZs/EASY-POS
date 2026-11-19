@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
+  ArrowLeft,
   ChevronDown,
   KeyRound,
   LayoutGrid,
@@ -22,6 +23,7 @@ import {
 import { LAST_STORE_COOKIE } from "@/core/lib/last-store";
 import type { Locale } from "@/i18n/config";
 import { LanguageSwitcher } from "./LanguageSwitcher";
+import { PageTitleContext } from "./PageTitle";
 import { ThemeToggle } from "./ThemeToggle";
 
 export type ShellNav = {
@@ -72,6 +74,9 @@ export function AppShell({
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [picker, setPicker] = useState(!store); // ยังไม่ได้เลือกร้าน → เปิดรายชื่อร้านไว้เลย
+  const [page, setPage] = useState<{ text: string; back?: string } | null>(
+    null,
+  ); // หัวข้อหน้าจาก <PageTitle> (มือถือแสดงบนแถบบน)
   const hub = `/${locale}/hub`;
   // เปลี่ยนหน้า → ปิดเมนู (มือถือ) + พับรายชื่อร้าน
   const storeId = store?.id;
@@ -197,27 +202,32 @@ export function AppShell({
       </aside>
 
       <header className="sticky top-0 z-20 flex h-12 items-center gap-1 border-b border-line bg-card/90 px-1.5 backdrop-blur lg:hidden print:hidden">
-        <button
-          type="button"
-          onClick={() => setOpen(true)}
-          aria-label={t.menu}
-          className="grid size-10 shrink-0 place-items-center rounded-xl text-ink active:bg-surface"
-        >
-          <Menu className="size-6" />
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            setPicker(true);
-            setOpen(true);
-          }}
-          className="flex min-w-0 flex-1 items-center gap-1 text-left font-bold"
-        >
-          <span className="truncate">{store?.name ?? "EASY-POS"}</span>
-          {stores.length > 1 && (
-            <ChevronDown className="size-4 shrink-0 text-muted" />
-          )}
-        </button>
+        {page?.back ? (
+          <Link
+            prefetch={false}
+            href={page.back}
+            aria-label="back"
+            className="grid size-10 shrink-0 place-items-center rounded-xl text-ink active:bg-surface"
+          >
+            <ArrowLeft className="size-6" />
+          </Link>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            aria-label={t.menu}
+            className="grid size-10 shrink-0 place-items-center rounded-xl text-ink active:bg-surface"
+          >
+            <Menu className="size-6" />
+          </button>
+        )}
+        {/* หัวข้อหน้า (แทนชื่อร้าน) — หน้าไม่มีหัวข้อ = ชื่อเมนูที่เปิดอยู่ / ชื่อร้าน */}
+        <span className="min-w-0 flex-1 truncate text-[17px] font-bold">
+          {page?.text ??
+            nav.find((n) => n.match.some(under))?.label ??
+            store?.name ??
+            "EASY-POS"}
+        </span>
         <div className="flex shrink-0 items-center gap-1.5 pr-1">
           <ThemeToggle initial={theme} labels={t.theme} />
           <LanguageSwitcher current={locale} />
@@ -245,7 +255,11 @@ export function AppShell({
         </div>
       )}
 
-      <main className="mx-auto max-w-6xl px-4 py-4 lg:py-6">{children}</main>
+      <main className="mx-auto max-w-6xl px-4 py-4 lg:py-6">
+        <PageTitleContext.Provider value={setPage}>
+          {children}
+        </PageTitleContext.Provider>
+      </main>
     </div>
   );
 }

@@ -1,27 +1,36 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Camera } from "lucide-react";
+import { Camera, QrCode } from "lucide-react";
 import { toEnglishLayout, useBarcodeScanner } from "@/client/devices/scanner";
 import { CameraScanner } from "@/components/CameraScanner";
-import { ScannerStatus } from "@/components/devices/ScannerStatus";
 import { fill } from "@/core/lib/format";
 import type { Dictionary } from "@/i18n/dictionary";
 import { CatalogLookup } from "./CatalogLookup";
 
+/** รหัสภายในร้าน (EAN-13 ขึ้นต้น 2 = ใช้ในร้าน ไม่ชนบาร์โค้ดสินค้าจริง) — สแกน/พิมพ์เป็นบาร์โค้ด/QR ได้ */
+function makeCode(): string {
+  const d = [2, ...crypto.getRandomValues(new Uint8Array(11)).map((x) => x % 10)];
+  const sum = d.reduce((a, n, i) => a + n * (i % 2 ? 3 : 1), 0);
+  return d.join("") + ((10 - (sum % 10)) % 10);
+}
+
 /**
- * ช่องบาร์โค้ด:
+ * ช่องบาร์โค้ด / รหัสสินค้า (รวม SKU):
  * - ยิงเครื่องสแกนตอนไหนก็ได้ (ไม่ต้องคลิกช่องก่อน, คีย์บอร์ดภาษาไทยก็ได้) → กรอกให้อัตโนมัติ
  * - หรือกดปุ่มกล้อง
+ * - สินค้าไม่มีบาร์โค้ด → กด "สร้างรหัส" ได้รหัสของร้านเอง
  */
 export function BarcodeField({
   label,
+  genLabel,
   defaultValue,
   scan,
   devices,
   lookup,
 }: {
   label: string;
+  genLabel: string;
   defaultValue: string;
   scan: Dictionary["scan"];
   devices: Dictionary["devices"];
@@ -40,13 +49,10 @@ export function BarcodeField({
   useBarcodeScanner(fillCode);
 
   return (
-    <div className="space-y-1 sm:col-span-2">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <label htmlFor="barcode" className="text-sm text-muted">
-          {label}
-        </label>
-        <ScannerStatus t={devices} />
-      </div>
+    <div className="col-span-2 space-y-1">
+      <label htmlFor="barcode" className="text-sm text-muted">
+        {label}
+      </label>
       <span className="flex gap-2">
         <input
           ref={inputRef}
@@ -62,7 +68,7 @@ export function BarcodeField({
           autoComplete="off"
           inputMode="text"
           lang="en"
-          className={`w-full rounded-xl border bg-card px-3 py-2.5 font-mono outline-none transition focus:border-brand focus:ring-2 focus:ring-brand-soft ${
+          className={`w-full min-w-0 rounded-xl border bg-card px-3 py-2.5 font-mono outline-none transition focus:border-brand focus:ring-2 focus:ring-brand-soft ${
             flash
               ? "border-emerald-500 ring-2 ring-emerald-200 dark:ring-emerald-900"
               : "border-line"
@@ -71,11 +77,23 @@ export function BarcodeField({
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="grid w-12 shrink-0 place-items-center rounded-xl border border-line hover:border-brand"
+          className="grid w-11 shrink-0 place-items-center rounded-xl border border-line hover:border-brand"
           aria-label={scan.button}
           title={scan.button}
         >
           <Camera className="size-5" />
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setValue(makeCode());
+            setFlash("");
+          }}
+          className="grid w-11 shrink-0 place-items-center rounded-xl border border-line hover:border-brand"
+          aria-label={genLabel}
+          title={genLabel}
+        >
+          <QrCode className="size-5" />
         </button>
       </span>
       {flash && (

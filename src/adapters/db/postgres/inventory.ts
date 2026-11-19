@@ -155,6 +155,17 @@ export function productRepo(): ProductRepo {
         .orderBy(asc(products.category));
       return rows.map((r) => r.c!).filter(Boolean);
     },
+    async units(storeId) {
+      const rows = await db
+        .selectDistinct({ u: products.unit, p: products.packUnit })
+        .from(products)
+        .where(and(eq(products.storeId, storeId), eq(products.isActive, true)));
+      const uniq = (xs: Array<string | null>) =>
+        [...new Set(xs.map((x) => x?.trim()).filter((x): x is string => !!x))].sort((a, b) =>
+          a.localeCompare(b, "th"),
+        );
+      return { units: uniq(rows.map((r) => r.u)), packUnits: uniq(rows.map((r) => r.p)) };
+    },
     async categoryTree(storeId) {
       const rows = await db
         .selectDistinct({ c: products.category, s: products.subcategory })

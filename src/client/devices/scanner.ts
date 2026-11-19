@@ -49,7 +49,7 @@ type KeyChar = { ch: string; raw: string | null };
 function charFromEvent(e: KeyboardEvent): KeyChar | null {
   const byCode = e.code ? charFromCode(e.code, e.shiftKey) : null;
   if (byCode !== null) return { ch: byCode, raw: null };
-  if (e.key.length !== 1) return null;
+  if (!e.key || e.key.length !== 1) return null; // autofill ส่ง keydown ไม่มี key
   if (/^[\x20-\x7e]$/.test(e.key)) return { ch: e.key, raw: e.key };
   const en = TH_TO_EN.get(e.key);
   return en ? { ch: en, raw: e.key } : null;

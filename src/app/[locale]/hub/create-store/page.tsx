@@ -1,4 +1,5 @@
 import { Card, Field, PrimaryButton } from "@/components/Field";
+import { PageTitle } from "@/components/PageTitle";
 import { currencyOptions, Select, timeZoneOptions } from "@/components/Select";
 import { loadLocale } from "@/i18n/page";
 import { requireUser } from "@/server/session";
@@ -12,7 +13,7 @@ export default async function CreateStorePage({
 
   return (
     <div className="mx-auto max-w-lg">
-      <h1 className="mb-4 mt-2 text-xl font-bold">{t.hub.createStore}</h1>
+      <PageTitle title={t.hub.createStore} className="mb-4" />
       <Card>
         <form action={createStoreAction} className="space-y-4">
           <input type="hidden" name="locale" value={locale} />

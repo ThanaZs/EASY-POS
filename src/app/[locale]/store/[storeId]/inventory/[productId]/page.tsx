@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PageTitle } from "@/components/PageTitle";
 import { notFound } from "next/navigation";
 import { can } from "@/core/domain/permissions";
 import { loadLocale } from "@/i18n/page";
@@ -25,22 +26,23 @@ export default async function EditProductPage({
   );
   if (!UUID.test(productId)) notFound();
   const repos = await getRepositories();
-  const [product, categories, history] = await Promise.all([
+  const [product, categories, history, units] = await Promise.all([
     repos.products.findById(storeId, productId),
     repos.products.categoryTree(storeId),
     repos.audit.list(storeId, { entityId: productId, limit: 30 }),
+    repos.products.units(storeId),
   ]);
   if (!product || !product.isActive) notFound();
   const storage = await getStorage();
 
   return (
     <div className="mx-auto max-w-2xl space-y-4">
-      <BackLink
+      <BackLink mobileHidden
         href={`/${locale}/store/${storeId}/inventory`}
         label={t.store.modules.inventory}
       />
       <div className="flex items-center justify-between gap-3">
-        <h1 className="text-xl font-bold">{t.inventory.edit}</h1>
+        <PageTitle title={t.inventory.edit} back={`/${locale}/store/${storeId}/inventory`} />
         <StockBadge p={product} t={t} />
       </div>
       <ProductForm
@@ -49,6 +51,7 @@ export default async function EditProductPage({
         store={store}
         product={product}
         categoryTree={categories}
+        units={units}
         error={(await searchParams).error}
         photoEnabled={storage !== null}
         photoUrl={

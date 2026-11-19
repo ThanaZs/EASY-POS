@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PageTitle } from "@/components/PageTitle";
 import { ChevronRight } from "lucide-react";
 import { fill, formatDateTime, formatMoney, todayIn } from "@/core/lib/format";
 import { loadLocale } from "@/i18n/page";
@@ -34,11 +35,11 @@ export default async function SalesPage({
 
   return (
     <div className="mx-auto max-w-3xl space-y-4">
-      <BackLink
+      <BackLink mobileHidden
         href={`/${locale}/store/${storeId}/overview`}
         label={t.store.backSales}
       />
-      <h1 className="text-xl font-bold">{t.store.tabs.bills}</h1>
+      <PageTitle title={t.store.tabs.bills} back={`/${locale}/store/${storeId}/overview`} />
       <DateRangeFilter from={from} to={to} today={today} labels={t.range} />
       <div className="flex items-baseline justify-between rounded-2xl border border-line bg-card p-4">
         <span className="text-muted">

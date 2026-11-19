@@ -1,4 +1,5 @@
 import { loadLocale } from "@/i18n/page";
+import { PageTitle } from "@/components/PageTitle";
 import { requireStoreAccess } from "@/server/session";
 import { BackLink } from "../../BackLink";
 import { ImportClient } from "./ImportClient";
@@ -10,8 +11,8 @@ export default async function ImportPage({ params }: PageProps<"/[locale]/store/
   await requireStoreAccess(locale, storeId, "products.create");
   return (
     <div className="mx-auto max-w-3xl space-y-4">
-      <BackLink href={`/${locale}/store/${storeId}/inventory`} label={t.store.modules.inventory} />
-      <h1 className="text-xl font-bold">{t.import.title}</h1>
+      <BackLink mobileHidden href={`/${locale}/store/${storeId}/inventory`} label={t.store.modules.inventory} />
+      <PageTitle title={t.import.title} back={`/${locale}/store/${storeId}/inventory`} />
       <p className="text-sm text-muted">{t.import.intro}</p>
       <ImportClient locale={locale} storeId={storeId} t={t.import} />
     </div>

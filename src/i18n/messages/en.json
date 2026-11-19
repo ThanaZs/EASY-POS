@@ -224,7 +224,12 @@
       "stockAsc": "Stock low→high",
       "stockDesc": "Stock high→low",
       "bought": "Last purchased"
-    }
+    },
+    "codeLabel": "Barcode / product code",
+    "genCode": "Generate a code (no barcode)",
+    "more": "More options",
+    "moreHint": "Unit · sell by case · expiry · note",
+    "packPriceAuto": "Auto"
   },
   "stock": {
     "product": "Product",

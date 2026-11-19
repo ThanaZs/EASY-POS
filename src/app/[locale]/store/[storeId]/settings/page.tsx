@@ -1,4 +1,5 @@
 import { Alert } from "@/components/Alert";
+import { PageTitle } from "@/components/PageTitle";
 import { Card, Field, PrimaryButton } from "@/components/Field";
 import { Select, timeZoneOptions } from "@/components/Select";
 import { loadLocale } from "@/i18n/page";
@@ -25,7 +26,7 @@ export default async function SettingsPage({
 
   return (
     <div className="mx-auto max-w-xl space-y-4">
-      <h1 className="text-xl font-bold">{t.store.modules.settings}</h1>
+      <PageTitle title={t.store.modules.settings} />
       <SettingsTabs
         locale={locale}
         storeId={storeId}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Camera, ImageOff, Trash2 } from "lucide-react";
+import { Camera, Trash2 } from "lucide-react";
 import { PhotoCapture } from "@/components/PhotoCapture";
 import type { Dictionary } from "@/i18n/dictionary";
 import { CATALOG_FILL, type CatalogFillDetail } from "./CatalogLookup";
@@ -64,38 +64,35 @@ export function ProductPhotoField({
 
   const shown = preview ?? (removed ? null : (catalog?.url ?? currentUrl));
 
+  // แบบกะทัดรัด: ช่องรูปสี่เหลี่ยม แตะ = ถ่ายรูป (อยู่บนสุดของฟอร์ม คู่กับชื่อสินค้า)
   return (
-    <div className="space-y-2 sm:col-span-2">
-      <span className="text-sm text-muted">{t.title}</span>
-      <div className="flex items-center gap-4">
-        <div className="grid size-28 shrink-0 place-items-center overflow-hidden rounded-2xl border border-line bg-surface">
-          {shown ? (
-            // eslint-disable-next-line @next/next/no-img-element -- รูปจาก storage / blob (ไม่ใช้ Image Optimization เพื่อไม่กินโควตา)
-            <img src={shown} alt="" className="size-full object-cover" />
-          ) : (
-            <ImageOff className="size-8 text-muted" />
-          )}
-        </div>
-        <div className="space-y-2">
-          <button
-            type="button"
-            onClick={() => setOpen(true)}
-            className="flex items-center gap-2 rounded-xl bg-brand px-4 py-2 font-semibold text-white"
-          >
-            <Camera className="size-4" /> {shown ? t.change : t.take}
-          </button>
-          {shown && (
-            <button
-              type="button"
-              onClick={remove}
-              className="flex items-center gap-2 text-sm text-rose-600 hover:underline"
-            >
-              <Trash2 className="size-4" /> {t.remove}
-            </button>
-          )}
-          <p className="text-xs text-muted">{t.hint}</p>
-        </div>
-      </div>
+    <div className="relative shrink-0">
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        aria-label={shown ? t.change : t.take}
+        className="grid size-[5.5rem] place-items-center overflow-hidden rounded-2xl border border-dashed border-line bg-surface text-muted transition active:scale-95 hover:border-brand"
+      >
+        {shown ? (
+          // eslint-disable-next-line @next/next/no-img-element -- รูปจาก storage / blob (ไม่ใช้ Image Optimization เพื่อไม่กินโควตา)
+          <img src={shown} alt="" className="size-full object-cover" />
+        ) : (
+          <span className="flex flex-col items-center gap-1 text-xs">
+            <Camera className="size-6" />
+            {t.take}
+          </span>
+        )}
+      </button>
+      {shown && (
+        <button
+          type="button"
+          onClick={remove}
+          aria-label={t.remove}
+          className="absolute -right-1.5 -top-1.5 grid size-7 place-items-center rounded-full border border-line bg-card text-rose-600 shadow"
+        >
+          <Trash2 className="size-3.5" />
+        </button>
+      )}
       <input
         ref={fileRef}
         type="file"

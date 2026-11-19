@@ -37,22 +37,16 @@ export function StockBadge({ p, t }: { p: Product; t: Dictionary }) {
   );
 }
 
-/** แบบตัวอักษรล้วน (ใช้ในรายการสินค้า — เด่นที่ตัวสินค้า ไม่ใช่ป้าย): "7 ชิ้น" / ส้ม "2 ชิ้น · ใกล้หมด" / แดง "0 ชิ้น · หมด" */
+/** แบบตัวอักษรล้วน (ในรายการสินค้า): ปกติ = "7 ชิ้น" สีเทา / ใกล้หมด = "ใกล้หมด" ส้ม / หมด = "หมด" แดง (ไม่บอกจำนวน, ไม่บอกลัง) */
 export function StockText({ p, t }: { p: Product; t: Dictionary }) {
   if (!p.trackStock) return <span className="text-muted">{t.inventory.noTrack}</span>;
-  const out = p.stockQty <= 0;
-  const low = !out && p.stockQty <= p.lowStockThreshold;
-  const packs = p.packSize && p.stockQty > 0 ? Math.floor(p.stockQty / p.packSize) : 0;
-  const rest = p.packSize ? p.stockQty % p.packSize : 0;
+  if (p.stockQty <= 0)
+    return <span className="font-semibold text-rose-600 dark:text-rose-400">{t.inventory.out}</span>;
+  if (p.stockQty <= p.lowStockThreshold)
+    return <span className="font-semibold text-amber-600 dark:text-amber-400">{t.inventory.low}</span>;
   return (
-    <span
-      className={`tabular-nums ${
-        out ? "font-semibold text-rose-600 dark:text-rose-400" : low ? "font-semibold text-amber-600 dark:text-amber-400" : "text-muted"
-      }`}
-    >
+    <span className="tabular-nums text-muted">
       {p.stockQty} {p.unit}
-      {packs > 0 && ` (${packs} ${p.packUnit}${rest > 0 ? ` ${rest} ${p.unit}` : ""})`}
-      {out ? ` · ${t.inventory.out}` : low ? ` · ${t.inventory.low}` : ""}
     </span>
   );
 }

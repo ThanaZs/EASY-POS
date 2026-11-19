@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PageTitle } from "@/components/PageTitle";
 import { Alert } from "@/components/Alert";
 import { ChevronRight, KeyRound, PlusSquare, Store } from "lucide-react";
 import { StoreDangerDialog } from "../../store/[storeId]/StoreDangerDialog";
@@ -17,7 +18,7 @@ export default async function MyStoresPage({
 
   return (
     <div className="mx-auto max-w-2xl">
-      <h1 className="mb-4 text-xl font-bold">{t.hub.myStores}</h1>
+      <PageTitle title={t.hub.myStores} className="mb-4" />
       {(done === "deleted" || done === "left") && (
         <div className="mb-4">
           <Alert kind="success">{t.danger[done]}</Alert>

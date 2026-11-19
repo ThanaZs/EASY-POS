@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { toEnglishLayout } from "@/core/lib/keyboard";
 import { fill } from "@/core/lib/format";
+import { UnitField } from "./UnitField";
 
 type Labels = {
   enable: string;
@@ -11,6 +12,7 @@ type Labels = {
   packSize: string;
   packPrice: string;
   packPriceHint: string;
+  packPriceAuto: string;
   packBarcode: string;
 };
 
@@ -20,6 +22,7 @@ export function PackFields({
   baseUnit,
   currency,
   labels,
+  unitOptions,
 }: {
   defaults: {
     packUnit: string | null;
@@ -30,6 +33,7 @@ export function PackFields({
   baseUnit: string;
   currency: string;
   labels: Labels;
+  unitOptions: string[];
 }) {
   const [on, setOn] = useState(!!defaults.packSize);
   const [unit, setUnit] = useState(defaults.packUnit ?? "ลัง");
@@ -38,7 +42,7 @@ export function PackFields({
     "w-full rounded-xl border border-line bg-card px-3 py-2.5 outline-none focus:border-brand focus:ring-2 focus:ring-brand-soft";
 
   return (
-    <fieldset className="space-y-3 rounded-2xl border border-line p-4 sm:col-span-2">
+    <div className="col-span-2 space-y-3">
       <label className="flex items-center gap-2 font-medium">
         <input
           type="checkbox"
@@ -49,20 +53,16 @@ export function PackFields({
         />
         {labels.enable}
       </label>
-      <p className="text-xs text-muted">{labels.hint}</p>
       {on && (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <label className="block space-y-1">
-            <span className="text-sm text-muted">{labels.packUnit}</span>
-            <input
-              name="packUnit"
-              value={unit}
-              onChange={(e) => setUnit(e.target.value)}
-              maxLength={20}
-              required
-              className={cls}
-            />
-          </label>
+        <div className="grid grid-cols-2 gap-3 rounded-xl bg-surface p-3">
+          <UnitField
+            name="packUnit"
+            label={labels.packUnit}
+            value={unit}
+            onChange={setUnit}
+            options={unitOptions}
+            required
+          />
           <label className="block space-y-1">
             <span className="text-sm text-muted">
               {fill(labels.packSize, { unit: unit || "ลัง", base: baseUnit })}
@@ -85,14 +85,11 @@ export function PackFields({
               name="packPrice"
               defaultValue={defaults.packPrice}
               inputMode="decimal"
-              placeholder="—"
+              placeholder={labels.packPriceAuto}
               className={cls}
             />
-            <span className="block text-xs text-muted">
-              {labels.packPriceHint}
-            </span>
           </label>
-          <label className="block space-y-1">
+          <label className="col-span-2 block space-y-1">
             <span className="text-sm text-muted">{labels.packBarcode}</span>
             <input
               name="packBarcode"
@@ -105,6 +102,6 @@ export function PackFields({
           </label>
         </div>
       )}
-    </fieldset>
+    </div>
   );
 }

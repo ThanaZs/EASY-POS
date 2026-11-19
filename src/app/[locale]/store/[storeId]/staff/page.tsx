@@ -1,4 +1,5 @@
 import { Trash2 } from "lucide-react";
+import { PageTitle } from "@/components/PageTitle";
 import { ConfirmSubmit } from "@/components/ConfirmSubmit";
 import { Card, Field, PrimaryButton } from "@/components/Field";
 import { fill } from "@/core/lib/format";
@@ -45,7 +46,7 @@ export default async function StaffPage({
 
   return (
     <div className="space-y-6">
-      <h1 className="text-xl font-bold">{t.store.modules.settings}</h1>
+      <PageTitle title={t.store.modules.settings} />
       <SettingsTabs
         locale={locale}
         storeId={storeId}

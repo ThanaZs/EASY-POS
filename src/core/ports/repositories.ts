@@ -116,6 +116,8 @@ export interface ProductRepo {
   categories(storeId: ID): Promise<string[]>;
   /** หมวดหลัก + หมวดย่อยที่เคยใช้ (ให้เลือกในฟอร์ม/กรองหน้าขาย) */
   categoryTree(storeId: ID): Promise<CategoryNode[]>;
+  /** หน่วยที่ร้านเคยใช้ (หน่วยขาย + หน่วยแพ็ก/ลัง) — ไว้เป็นตัวเลือกในฟอร์มสินค้า */
+  units(storeId: ID): Promise<{ units: string[]; packUnits: string[] }>;
   /** นำเข้าจากไฟล์ — บาร์โค้ดซ้ำ = อัปเดต, ไม่ซ้ำ/ไม่มีบาร์โค้ด = สร้างใหม่ (ใน transaction) */
   importRows(
     storeId: ID,

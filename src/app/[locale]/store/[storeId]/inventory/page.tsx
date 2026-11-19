@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PageTitle } from "@/components/PageTitle";
 import {
   FileSpreadsheet,
   ImageOff,
@@ -71,7 +72,7 @@ export default async function InventoryPage({
   return (
     <div className="space-y-4 pb-20 sm:pb-0">
       <div className="flex items-center justify-between gap-3">
-        <h1 className="text-xl font-bold">{t.store.modules.inventory}</h1>
+        <PageTitle title={t.store.modules.inventory} />
         {/* มือถือ: ปุ่มไอคอนล้วน (ประหยัดที่) — จอใหญ่: ไอคอน+ข้อความ; เพิ่มสินค้าบนมือถือ = ปุ่ม + ลอยมุมล่างขวา */}
         <div className="flex flex-wrap justify-end gap-2">
           {can(member, "products.create") && (
