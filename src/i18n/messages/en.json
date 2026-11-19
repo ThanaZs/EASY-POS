@@ -231,7 +231,23 @@
     "moreHint": "Unit · sell by case · expiry · note",
     "packPriceAuto": "Auto",
     "addUnit": "+ Add new unit…",
-    "newUnitPlaceholder": "Type a unit name"
+    "newUnitPlaceholder": "Type a unit name",
+    "bulk": {
+      "select": "Select",
+      "cancel": "Cancel",
+      "selected": "{n} selected",
+      "selectAll": "Select all ({n})",
+      "clearAll": "Clear selection",
+      "editPrice": "Edit price",
+      "title": "Edit price of {n} items",
+      "modeSet": "Set to",
+      "modeInc": "Increase",
+      "modeDec": "Decrease",
+      "amount": "Amount",
+      "more": "and {n} more",
+      "save": "Save {n} items",
+      "invalid": "Enter a valid number"
+    }
   },
   "stock": {
     "product": "Product",

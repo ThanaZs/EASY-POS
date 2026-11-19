@@ -38,12 +38,18 @@ export function StockBadge({ p, t }: { p: Product; t: Dictionary }) {
 }
 
 /** แบบตัวอักษรล้วน (ในรายการสินค้า): ปกติ = "7 ชิ้น" สีเทา / ใกล้หมด = "ใกล้หมด" ส้ม / หมด = "หมด" แดง (ไม่บอกจำนวน, ไม่บอกลัง) */
-export function StockText({ p, t }: { p: Product; t: Dictionary }) {
-  if (!p.trackStock) return <span className="text-muted">{t.inventory.noTrack}</span>;
+export function StockText({
+  p,
+  t,
+}: {
+  p: Pick<Product, "trackStock" | "stockQty" | "lowStockThreshold" | "unit">;
+  t: { noTrack: string; out: string; low: string };
+}) {
+  if (!p.trackStock) return <span className="text-muted">{t.noTrack}</span>;
   if (p.stockQty <= 0)
-    return <span className="font-semibold text-rose-600 dark:text-rose-400">{t.inventory.out}</span>;
+    return <span className="font-semibold text-rose-600 dark:text-rose-400">{t.out}</span>;
   if (p.stockQty <= p.lowStockThreshold)
-    return <span className="font-semibold text-amber-600 dark:text-amber-400">{t.inventory.low}</span>;
+    return <span className="font-semibold text-amber-600 dark:text-amber-400">{t.low}</span>;
   return (
     <span className="tabular-nums text-muted">
       {p.stockQty} {p.unit}

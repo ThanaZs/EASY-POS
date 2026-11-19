@@ -301,3 +301,53 @@ export async function togglePinAction(form: FormData) {
   // อยู่หน้าเดิม (ตัวกรองเดิม) แค่ให้รายการโหลดใหม่ → ปักหมุดขึ้นบนสุดทันที
   refresh();
 }
+
+/**
+ * แก้ราคาหลายสินค้าพร้อมกัน (เลือกในคลังสินค้า): ตั้งเป็นราคาเดียว / เพิ่ม / ลด (เป็นบาทหรือ %)
+ * คำนวณจากค่าใน DB ปัจจุบัน — ราคาติดลบ = 0; บันทึกประวัติการแก้ไขทีละสินค้า
+ */
+export async function bulkPriceAction(input: {
+  locale: string;
+  storeId: string;
+  ids: string[];
+  field: "price" | "cost";
+  mode: "set" | "inc" | "dec";
+  unit: "money" | "pct";
+  value: string;
+}): Promise<{ ok: true; n: number } | { ok: false; error: "invalid" | "none" }> {
+  const locale = isLocale(input.locale) ? input.locale : defaultLocale;
+  const { storeId } = input;
+  const { store, user } = await requireStoreAccess(locale, storeId, "products.edit");
+  const ids = [...new Set(input.ids)].slice(0, 2000);
+  if (ids.length === 0) return { ok: false, error: "none" };
+  const pct = input.mode !== "set" && input.unit === "pct";
+  const raw = String(input.value ?? "").replace(/[,\s]/g, "");
+  const num = pct ? (/^\d+(\.\d{1,2})?$/.test(raw) ? Number(raw) : null) : parseMoney(raw, store.currency);
+  if (num === null || raw === "" || (pct && num > 1000)) return { ok: false, error: "invalid" };
+  const key = input.field === "cost" ? "costMinor" : "priceMinor";
+  const sign = input.mode === "dec" ? -1 : 1;
+  const next = (old: number) =>
+    Math.max(
+      0,
+      input.mode === "set" ? num : pct ? Math.round((old * (1 + (sign * num) / 100)) / 100) * 100 : old + sign * num, // % → ปัดเป็นบาทเต็ม
+    );
+
+  const repos = await getRepositories();
+  let n = 0;
+  for (const id of ids) {
+    const p = await repos.products.findById(storeId, id);
+    if (!p || !p.isActive) continue;
+    const value = next(p[key]);
+    if (value === p[key]) continue;
+    await repos.products.update(storeId, id, { [key]: value });
+    await audit(storeId, user, "product.update", {
+      entityType: "product",
+      entityId: id,
+      entityName: p.name,
+      changes: { [key]: [p[key], value] },
+    });
+    n++;
+  }
+  refresh();
+  return { ok: true, n };
+}

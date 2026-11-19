@@ -231,7 +231,23 @@
     "moreHint": "หน่วย · ขายยกลัง · วันหมดอายุ · หมายเหตุ",
     "packPriceAuto": "อัตโนมัติ",
     "addUnit": "+ เพิ่มหน่วยใหม่…",
-    "newUnitPlaceholder": "พิมพ์ชื่อหน่วย"
+    "newUnitPlaceholder": "พิมพ์ชื่อหน่วย",
+    "bulk": {
+      "select": "เลือก",
+      "cancel": "ยกเลิก",
+      "selected": "เลือกแล้ว {n} รายการ",
+      "selectAll": "เลือกทั้งหมด ({n})",
+      "clearAll": "ไม่เลือกเลย",
+      "editPrice": "แก้ราคา",
+      "title": "แก้ราคา {n} รายการ",
+      "modeSet": "ตั้งเป็น",
+      "modeInc": "เพิ่ม",
+      "modeDec": "ลด",
+      "amount": "จำนวน",
+      "more": "และอีก {n} รายการ",
+      "save": "บันทึก {n} รายการ",
+      "invalid": "ใส่ตัวเลขให้ถูกต้อง"
+    }
   },
   "stock": {
     "product": "สินค้า",

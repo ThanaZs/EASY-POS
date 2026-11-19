@@ -2,21 +2,18 @@ import Link from "next/link";
 import { PageTitle } from "@/components/PageTitle";
 import {
   FileSpreadsheet,
-  ImageOff,
-  Pin,
   Plus,
 } from "lucide-react";
 import { can } from "@/core/domain/permissions";
-import { fill, formatMoney } from "@/core/lib/format";
+import { fill } from "@/core/lib/format";
 import { toEnglishLayout } from "@/core/lib/keyboard";
 import { loadLocale } from "@/i18n/page";
 import { getRepositories, getStorage } from "@/server/container";
 import { restoreFilters } from "@/server/filters";
 import { requireStoreAccess } from "@/server/session";
-import { togglePinAction } from "./actions";
 import { InventoryFilters, NO_SUB } from "./InventoryFilters";
 import { SortMenu } from "./SortMenu";
-import { StockText } from "./StockBadge";
+import { ProductList } from "./ProductList";
 import { parseSort, sortProducts } from "./sort";
 
 export default async function InventoryPage({
@@ -125,122 +122,58 @@ export default async function InventoryPage({
         }}
       />
 
-      <div className="flex items-center justify-between gap-2">
-        <p className="text-xs text-muted">
-          {fill(t.inventory.count, { n: items.length })}
-        </p>
-        <SortMenu
-          value={sort}
-          label={so.label}
-          options={[
-            ["", so.name],
-            ["new", so.new],
-            ["priceDesc", so.priceDesc],
-            ["priceAsc", so.priceAsc],
-            ["stockAsc", so.stockAsc],
-            ["stockDesc", so.stockDesc],
-          ]}
-        />
-      </div>
-      {items.length === 0 ? (
-        <p className="rounded-2xl border border-dashed border-line bg-card p-8 text-center text-muted">
-          {t.inventory.empty}
-        </p>
-      ) : (
-        // แถวละ 1 สินค้า เลื่อนทั้งหน้า (ไม่มีกล่องเลื่อนแยก) — จอกว้างแยกคอลัมน์ หมวด / คงเหลือ / ราคา
-        <ul className="overflow-hidden rounded-2xl border border-line bg-card">
-          {items.map((p) => {
-            // เน้นตัวสินค้า: รูป + ชื่อ + (คงเหลือ · หมวด) | ราคา — บาร์โค้ดดูได้ในหน้าสินค้า
-            const catPath =
-              [p.category, p.subcategory].filter(Boolean).join(" › ") || "—";
-            const body = (
-              <>
-                {storage && (
-                  <span className="grid size-12 shrink-0 place-items-center overflow-hidden rounded-xl bg-surface">
-                    {p.imagePath ? (
-                      // eslint-disable-next-line @next/next/no-img-element -- รูปจาก storage
-                      <img
-                        src={storage.publicUrl(p.imagePath)}
-                        alt=""
-                        loading="lazy"
-                        decoding="async"
-                        className="size-full object-cover"
-                      />
-                    ) : (
-                      <ImageOff className="size-4 text-line" />
-                    )}
-                  </span>
-                )}
-                <div className="min-w-0 flex-1">
-                  <p className="line-clamp-2 text-[15px] font-medium leading-snug">
-                    {p.name}
-                  </p>
-                  <p className="mt-0.5 truncate text-[13px] text-muted">
-                    <span className="md:hidden">
-                      <StockText p={p} t={t} />
-                      {" · "}
-                    </span>
-                    {catPath}
-                  </p>
-                </div>
-                <span className="hidden w-44 shrink-0 text-right text-sm md:block">
-                  <StockText p={p} t={t} />
-                </span>
-                <span className="shrink-0 text-right text-base font-semibold tabular-nums md:w-28">
-                  {formatMoney(p.priceMinor, store.currency, locale)}
-                </span>
-              </>
-            );
-            return (
-              <li key={p.id} className="flex items-center border-b border-line last:border-b-0">
-                {canEdit ? (
-                  <form action={togglePinAction} className="shrink-0">
-                    <input type="hidden" name="locale" value={locale} />
-                    <input type="hidden" name="storeId" value={storeId} />
-                    <input type="hidden" name="productId" value={p.id} />
-                    <input
-                      type="hidden"
-                      name="pinned"
-                      value={p.pinned ? "0" : "1"}
-                    />
-                    <button
-                      type="submit"
-                      aria-label={
-                        p.pinned ? t.inventory.unpin : t.inventory.pin
-                      }
-                      title={p.pinned ? t.inventory.unpin : t.inventory.pin}
-                      className={`grid h-16 w-10 place-items-center transition active:scale-90 ${
-                        p.pinned ? "text-brand" : "text-line hover:text-muted"
-                      }`}
-                    >
-                      <Pin
-                        className={`size-4 ${p.pinned ? "fill-current" : ""}`}
-                      />
-                    </button>
-                  </form>
-                ) : (
-                  p.pinned && (
-                    <Pin className="mx-2.5 size-4 shrink-0 fill-current text-brand" />
-                  )
-                )}
-                {canEdit ? (
-                  <Link
-                    prefetch={false}
-                    href={`${base}/${p.id}`}
-                    className="flex min-w-0 flex-1 items-center gap-3 py-2.5 pr-4 row-hover"
-                  >
-                    {body}
-                  </Link>
-                ) : (
-                  <div className="flex min-w-0 flex-1 items-center gap-3 py-2.5 pl-4 pr-4">
-                    {body}
-                  </div>
-                )}
-              </li>
-            );
-          })}
-        </ul>
-      )}
+      <ProductList
+        rows={items.map((p) => ({
+          id: p.id,
+          name: p.name,
+          img: p.imagePath && storage ? storage.publicUrl(p.imagePath) : null,
+          catPath:
+            [p.category, p.subcategory].filter(Boolean).join(" › ") || "—",
+          priceMinor: p.priceMinor,
+          costMinor: p.costMinor,
+          pinned: p.pinned,
+          stock: {
+            trackStock: p.trackStock,
+            stockQty: p.stockQty,
+            lowStockThreshold: p.lowStockThreshold,
+            unit: p.unit,
+          },
+        }))}
+        locale={locale}
+        storeId={storeId}
+        currency={store.currency}
+        base={base}
+        canEdit={canEdit}
+        showImages={!!storage}
+        countText={fill(t.inventory.count, { n: items.length })}
+        sortMenu={
+          <SortMenu
+            value={sort}
+            label={so.label}
+            options={[
+              ["", so.name],
+              ["new", so.new],
+              ["priceDesc", so.priceDesc],
+              ["priceAsc", so.priceAsc],
+              ["stockAsc", so.stockAsc],
+              ["stockDesc", so.stockDesc],
+            ]}
+          />
+        }
+        t={{
+          ...t.inventory.bulk,
+          empty: t.inventory.empty,
+          pin: t.inventory.pin,
+          unpin: t.inventory.unpin,
+          price: t.inventory.price,
+          cost: t.inventory.cost,
+        }}
+        stockT={{
+          noTrack: t.inventory.noTrack,
+          out: t.inventory.out,
+          low: t.inventory.low,
+        }}
+      />
     </div>
   );
 }

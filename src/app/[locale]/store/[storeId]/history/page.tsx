@@ -573,14 +573,14 @@ export default async function HistoryPage({
                     <span className="tabular-nums text-muted">
                       {lb ? day(dayOf(lb)) : "—"}
                     </span>
-                    <StockText p={p} t={t} />
+                    <StockText p={p} t={t.inventory} />
                   </span>
                   <span className="hidden w-40 shrink-0 truncate text-[13px] text-muted md:block">
                     {[p.category, p.subcategory].filter(Boolean).join(" › ") ||
                       "—"}
                   </span>
                   <span className="hidden w-32 shrink-0 text-right text-[13px] md:block">
-                    <StockText p={p} t={t} />
+                    <StockText p={p} t={t.inventory} />
                   </span>
                   <span className="hidden w-28 shrink-0 text-right text-[13px] tabular-nums text-muted md:block">
                     {lb ? day(dayOf(lb)) : "—"}
