@@ -4,7 +4,6 @@ import { useMemo, useRef, useState } from "react";
 import { Camera, ImageOff, Pin, Search, X } from "lucide-react";
 import { toEnglishLayout, useBarcodeScanner } from "@/client/devices/scanner";
 import { CameraScanner } from "@/components/CameraScanner";
-import { ScannerStatus } from "@/components/devices/ScannerStatus";
 import { fill } from "@/core/lib/format";
 import type { Dictionary } from "@/i18n/dictionary";
 
@@ -24,12 +23,13 @@ export type PickProduct = {
   pinned: boolean;
 };
 
-const NO_SUB = "\u0000none";
+const MAX = 8;
 
 /**
- * หน้ารับเข้า/เบิก/ปรับยอด — เลือกสินค้า:
- * 1) ช่องบาร์โค้ดบนสุด: ยิงเครื่องสแกน / พิมพ์แล้ว Enter / กล้อง → เลือกสินค้าให้ (บาร์โค้ดลัง → หน่วยลัง) แล้วไปช่องจำนวน
- * 2) ไม่มีบาร์โค้ด: ค้นหาชื่อ + แตะหมวด → หมวดย่อย → แตะสินค้า (ปักหมุดขึ้นก่อน)
+ * หน้ารับเข้า/เบิก/ปรับยอด — เลือกสินค้าด้วยช่องเดียว:
+ * ยิงเครื่องสแกน / กล้อง / พิมพ์ (บาร์โค้ด, ชื่อ, SKU, หมวด) → รายการใกล้เคียงพร้อมรูปเด้งใต้ช่อง แตะเลือก
+ * Enter = เลือกตัวบนสุด (บาร์โค้ดตรงเป๊ะขึ้นก่อน; บาร์โค้ดลัง → หน่วยลัง)
+ * ช่องว่าง = แสดงสินค้าที่ปักหมุดไว้ให้แตะเลือกเร็ว
  */
 export function ProductPicker({
   products,
@@ -43,16 +43,18 @@ export function ProductPicker({
   scan: Dictionary["scan"];
 }) {
   const [selected, setSelected] = useState<PickProduct | null>(null);
-  const [code, setCode] = useState("");
+  const [text, setText] = useState("");
+  const [open, setOpen] = useState(false);
+  const [active, setActive] = useState(0);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
-  const [search, setSearch] = useState("");
-  const [cat, setCat] = useState<string | null>(null);
-  const [sub, setSub] = useState<string | null>(null);
   const [camera, setCamera] = useState(false);
   const hiddenRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   function choose(p: PickProduct, pack = false) {
     setSelected(p);
+    setText("");
+    setOpen(false);
     const unit = document.querySelector<HTMLSelectElement>(
       'select[name="unit"]',
     );
@@ -65,9 +67,9 @@ export function ProductPicker({
     );
   }
 
-  function byCode(raw: string) {
+  /** บาร์โค้ด/SKU ตรงเป๊ะ (ยิงเครื่องสแกน/กล้อง) */
+  function exact(raw: string) {
     const c = raw.trim();
-    if (!c) return;
     const en = toEnglishLayout(c);
     const pack = products.find(
       (p) =>
@@ -80,124 +82,76 @@ export function ProductPicker({
       products.find((x) =>
         [x.barcode, x.sku].some((v) => v && (v === c || v === en)),
       );
-    setCode(en);
-    if (!p)
+    return p ? { p, pack: !!pack } : null;
+  }
+
+  function byCode(raw: string) {
+    const c = raw.trim();
+    if (!c) return;
+    const hit = exact(c);
+    if (!hit) {
+      // ไม่ใช่รหัส → ใช้เป็นคำค้นแทน (เปิดรายการใกล้เคียง)
+      setText(c);
+      setOpen(true);
+      setActive(0);
       return setMsg({
         ok: false,
-        text: fill(devices.scanNotFound, { code: en }),
+        text: fill(devices.scanNotFound, { code: toEnglishLayout(c) }),
       });
+    }
     setMsg({
       ok: true,
       text: fill(devices.scanSelected, {
-        name: pack ? `${p.name} (${p.packUnit} ×${p.packSize})` : p.name,
+        name: hit.pack
+          ? `${hit.p.name} (${hit.p.packUnit} ×${hit.p.packSize})`
+          : hit.p.name,
       }),
     });
-    choose(p, !!pack);
+    choose(hit.p, hit.pack);
   }
   useBarcodeScanner(byCode);
 
-  const categories = useMemo(
-    () =>
-      [
-        ...new Set(
-          products.map((p) => p.category).filter((c): c is string => !!c),
-        ),
-      ].sort(),
-    [products],
-  );
-  const subs = useMemo(() => {
-    if (!cat) return { list: [] as string[], none: false };
-    const inCat = products.filter((p) => p.category === cat);
-    return {
-      list: [
-        ...new Set(
-          inCat.map((p) => p.subcategory).filter((s): s is string => !!s),
-        ),
-      ].sort(),
-      none: inCat.some((p) => !p.subcategory),
-    };
-  }, [products, cat]);
+  // ค้นหาทุกอย่าง: ชื่อ (ทุกคำ), บาร์โค้ด, บาร์โค้ดลัง, SKU, หมวด/หมวดย่อย
   const results = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    const en = toEnglishLayout(search.trim());
-    return products.filter(
-      (p) =>
-        (!cat || p.category === cat) &&
-        (!sub || (sub === NO_SUB ? !p.subcategory : p.subcategory === sub)) &&
-        (!q ||
-          p.name.toLowerCase().includes(q) ||
-          p.sku?.toLowerCase().includes(q) ||
-          p.barcode?.includes(en) ||
-          p.packBarcode?.includes(en)),
-    );
-  }, [products, search, cat, sub]);
+    const q = text.trim().toLowerCase();
+    if (!q) return products.filter((p) => p.pinned).slice(0, MAX);
+    const en = toEnglishLayout(text.trim()).toLowerCase();
+    const words = q.split(/\s+/);
+    const score = (p: PickProduct) => {
+      const name = p.name.toLowerCase();
+      const codes = [p.barcode, p.packBarcode, p.sku]
+        .filter(Boolean)
+        .map((v) => v!.toLowerCase());
+      if (codes.some((c) => c === q || c === en)) return 100;
+      if (name.startsWith(q)) return 80;
+      if (words.every((w) => name.includes(w))) return 60;
+      if (codes.some((c) => c.includes(q) || c.includes(en))) return 40;
+      const cats = `${p.category ?? ""} ${p.subcategory ?? ""}`.toLowerCase();
+      if (words.every((w) => cats.includes(w) || name.includes(w))) return 20;
+      return 0;
+    };
+    return products
+      .map((p) => ({ p, s: score(p) + (p.pinned ? 1 : 0) }))
+      .filter((x) => x.s > 0)
+      .sort((a, b) => b.s - a.s || a.p.name.localeCompare(b.p.name, "th"))
+      .slice(0, MAX)
+      .map((x) => x.p);
+  }, [products, text]);
 
-  const chip = (
-    active: boolean,
-    label: string,
-    onClick: () => void,
-    key: string,
-  ) => (
-    <button
-      key={key}
-      type="button"
-      onClick={onClick}
-      className={`shrink-0 rounded-full border px-3 py-1 text-sm transition active:scale-95 ${
-        active ? "border-brand bg-brand text-white" : "border-line bg-card"
-      }`}
-    >
-      {label}
-    </button>
-  );
+  const pick = (p: PickProduct) => {
+    setMsg(null);
+    // ค้นด้วยบาร์โค้ดลังแล้วเลือกตัวนั้น → หน่วยลัง
+    const en = toEnglishLayout(text.trim());
+    choose(
+      p,
+      !!p.packBarcode &&
+        (p.packBarcode === text.trim() || p.packBarcode === en),
+    );
+  };
 
   return (
-    <div className="min-w-0 space-y-3 sm:col-span-2">
-      {/* 1) บาร์โค้ด */}
-      <div className="space-y-1">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <label htmlFor="pick-barcode" className="text-sm text-muted">
-            {t.barcode}
-          </label>
-          <ScannerStatus t={devices} />
-        </div>
-        <div className="flex gap-2">
-          <input
-            id="pick-barcode"
-            value={code}
-            onChange={(e) => setCode(toEnglishLayout(e.target.value))}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault(); // ไม่ส่งฟอร์ม
-                byCode(e.currentTarget.value);
-              }
-            }}
-            onBlur={(e) =>
-              e.currentTarget.value && byCode(e.currentTarget.value)
-            }
-            placeholder={t.barcodeHint}
-            autoComplete="off"
-            lang="en"
-            className="w-full rounded-xl border border-line bg-card px-3 py-2.5 font-mono outline-none focus:border-brand"
-          />
-          <button
-            type="button"
-            onClick={() => setCamera(true)}
-            aria-label={scan.button}
-            title={scan.button}
-            className="grid w-12 shrink-0 place-items-center rounded-xl border border-line hover:border-brand"
-          >
-            <Camera className="size-5" />
-          </button>
-        </div>
-        {msg && (
-          <p
-            className={`text-sm ${msg.ok ? "text-emerald-700 dark:text-emerald-300" : "text-rose-600"}`}
-            role="status"
-          >
-            {msg.text}
-          </p>
-        )}
-      </div>
+    <div className="min-w-0 space-y-1.5 sm:col-span-2">
+      <span className="text-sm text-muted">{t.product}</span>
 
       {/* ค่าที่ส่งไปกับฟอร์ม (ต้องเลือกสินค้าก่อนบันทึก) */}
       <input
@@ -209,16 +163,20 @@ export function ProductPicker({
         tabIndex={-1}
         aria-hidden
         className="pointer-events-none absolute size-px opacity-0"
-        onInvalid={(e) => e.currentTarget.setCustomValidity(t.mustPick)}
+        onInvalid={(e) => {
+          e.currentTarget.setCustomValidity(t.mustPick);
+          inputRef.current?.focus();
+        }}
       />
 
-      {/* 2) สินค้าที่เลือก หรือ ตัวเลือก */}
-      <span className="text-sm text-muted">{t.product}</span>
       {selected ? (
+        // สินค้าที่เลือก (การ์ดใหญ่ เห็นรูปชัด)
         <div className="flex items-center gap-3 rounded-2xl border-2 border-brand bg-brand-soft/40 p-2.5">
-          <Thumb url={selected.imageUrl} />
+          <Thumb url={selected.imageUrl} size="size-14" />
           <div className="min-w-0 flex-1">
-            <p className="truncate font-semibold">{selected.name}</p>
+            <p className="line-clamp-2 font-semibold leading-snug">
+              {selected.name}
+            </p>
             <p className="truncate text-xs text-muted">
               {fill(t.inStock, { n: selected.stockQty, unit: selected.unit })}
               {selected.packSize
@@ -231,86 +189,148 @@ export function ProductPicker({
             onClick={() => {
               setSelected(null);
               setMsg(null);
-              setCode("");
+              setTimeout(() => inputRef.current?.focus(), 30);
             }}
-            className="flex items-center gap-1 rounded-xl border border-line bg-card px-3 py-2 text-sm font-medium active:scale-95"
+            className="flex shrink-0 items-center gap-1 rounded-xl border border-line bg-card px-3 py-2 text-sm font-medium active:scale-95"
           >
             <X className="size-4" /> {t.change}
           </button>
         </div>
       ) : (
-        <div className="space-y-2 rounded-2xl border border-line p-2.5">
-          <label className="relative block">
-            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted" />
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && e.preventDefault()}
-              placeholder={t.searchProduct}
-              autoComplete="off"
-              className="w-full rounded-xl border border-line bg-card py-2 pl-9 pr-3 outline-none focus:border-brand"
-            />
-          </label>
-          {categories.length > 0 && (
-            <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1">
-              {chip(!cat, t.all, () => (setCat(null), setSub(null)), "*")}
-              {categories.map((c) =>
-                chip(cat === c, c, () => (setCat(c), setSub(null)), c),
+        <div className="relative">
+          <div className="flex gap-2">
+            <label className="relative min-w-0 flex-1">
+              <Search className="pointer-events-none absolute left-3 top-1/2 size-5 -translate-y-1/2 text-muted" />
+              <input
+                ref={inputRef}
+                id="pick-barcode"
+                value={text}
+                onChange={(e) => {
+                  setText(e.target.value);
+                  setOpen(true);
+                  setActive(0);
+                  setMsg(null);
+                }}
+                onFocus={() => setOpen(true)}
+                onBlur={() => setTimeout(() => setOpen(false), 150)}
+                onKeyDown={(e) => {
+                  if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+                    e.preventDefault();
+                    setOpen(true);
+                    setActive((a) =>
+                      Math.max(
+                        0,
+                        Math.min(
+                          results.length - 1,
+                          a + (e.key === "ArrowDown" ? 1 : -1),
+                        ),
+                      ),
+                    );
+                  } else if (e.key === "Enter") {
+                    e.preventDefault(); // ไม่ส่งฟอร์ม
+                    const v = e.currentTarget.value;
+                    if (exact(v)) byCode(v);
+                    else if (results[active]) pick(results[active]);
+                  } else if (e.key === "Escape") setOpen(false);
+                }}
+                placeholder={t.searchAll}
+                autoComplete="off"
+                enterKeyHint="search"
+                className="w-full rounded-xl border border-line bg-card py-3 pl-10 pr-9 text-base outline-none focus:border-brand focus:ring-2 focus:ring-brand-soft"
+              />
+              {text && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setText("");
+                    setMsg(null);
+                    inputRef.current?.focus();
+                  }}
+                  aria-label="clear"
+                  className="absolute right-2 top-1/2 grid size-7 -translate-y-1/2 place-items-center rounded-full text-muted hover:bg-surface"
+                >
+                  <X className="size-4" />
+                </button>
               )}
-            </div>
-          )}
-          {cat &&
-            (subs.list.length > 0 || subs.none) &&
-            subs.list.length + (subs.none ? 1 : 0) > 1 && (
-              <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1">
-                {chip(!sub, t.all, () => setSub(null), "s*")}
-                {subs.list.map((s) =>
-                  chip(sub === s, s, () => setSub(s), `s-${s}`),
-                )}
-                {subs.none &&
-                  chip(sub === NO_SUB, t.noSub, () => setSub(NO_SUB), "s-none")}
-              </div>
-            )}
-          {results.length === 0 ? (
-            <p className="p-4 text-center text-sm text-muted">{t.noMatch}</p>
-          ) : (
-            <ul
-              className="scroll-box grid gap-1 sm:grid-cols-2"
-              style={{ maxHeight: "min(45vh, 22rem)" }}
+            </label>
+            <button
+              type="button"
+              onClick={() => setCamera(true)}
+              aria-label={scan.button}
+              title={scan.button}
+              className="grid w-12 shrink-0 place-items-center rounded-xl border border-line hover:border-brand"
             >
-              {results.map((p) => (
-                <li key={p.id}>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMsg(null);
-                      choose(p);
-                    }}
-                    className="flex w-full items-center gap-2.5 rounded-xl px-2 py-1.5 text-left row-hover"
-                  >
-                    <Thumb url={p.imageUrl} small />
-                    <span className="min-w-0 flex-1">
-                      <span className="flex items-center gap-1 truncate text-sm font-medium">
-                        {p.pinned && (
-                          <Pin className="size-3 shrink-0 fill-current text-brand" />
-                        )}
-                        <span className="truncate">{p.name}</span>
-                      </span>
-                      <span className="block truncate text-[11px] text-muted">
-                        {[
-                          p.subcategory ?? p.category,
-                          `${p.stockQty} ${p.unit}`,
-                        ]
-                          .filter(Boolean)
-                          .join(" · ")}
-                      </span>
-                    </span>
-                  </button>
+              <Camera className="size-5" />
+            </button>
+          </div>
+
+          {/* รายการใกล้เคียง (เด้งใต้ช่อง) */}
+          {open && (results.length > 0 || text.trim()) && (
+            <ul
+              role="listbox"
+              className="absolute inset-x-0 top-full z-30 mt-1.5 max-h-[min(60vh,26rem)] overflow-y-auto rounded-2xl border border-line bg-card p-1 shadow-xl"
+            >
+              {!text.trim() && (
+                <li className="px-2.5 pb-1 pt-1.5 text-xs text-muted">
+                  {t.pinnedHint}
                 </li>
-              ))}
+              )}
+              {results.length === 0 ? (
+                <li className="p-4 text-center text-sm text-muted">
+                  {t.noMatch}
+                </li>
+              ) : (
+                results.map((p, i) => (
+                  <li key={p.id} role="option" aria-selected={i === active}>
+                    <button
+                      type="button"
+                      // mousedown ก่อน blur ของช่องค้นหา (ไม่งั้นรายการปิดก่อนกด)
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => pick(p)}
+                      onMouseEnter={() => setActive(i)}
+                      className={`flex w-full items-center gap-3 rounded-xl px-2 py-2 text-left ${
+                        i === active ? "bg-brand-soft" : ""
+                      }`}
+                    >
+                      <Thumb url={p.imageUrl} size="size-11" />
+                      <span className="min-w-0 flex-1">
+                        <span className="flex items-center gap-1">
+                          {p.pinned && (
+                            <Pin className="size-3 shrink-0 fill-current text-brand" />
+                          )}
+                          <span className="line-clamp-1 text-[15px] font-medium">
+                            {p.name}
+                          </span>
+                        </span>
+                        <span className="block truncate text-xs text-muted">
+                          {[
+                            [p.category, p.subcategory]
+                              .filter(Boolean)
+                              .join(" › "),
+                            p.barcode,
+                          ]
+                            .filter(Boolean)
+                            .join(" · ") || "—"}
+                        </span>
+                      </span>
+                      <span className="shrink-0 text-right text-xs tabular-nums text-muted">
+                        {p.stockQty} {p.unit}
+                      </span>
+                    </button>
+                  </li>
+                ))
+              )}
             </ul>
           )}
         </div>
+      )}
+      {msg && (
+        <p
+          className={`text-sm ${msg.ok ? "text-emerald-700 dark:text-emerald-300" : "text-rose-600"}`}
+          role="status"
+        >
+          {msg.text}
+        </p>
       )}
 
       {camera && (
@@ -327,27 +347,20 @@ export function ProductPicker({
   );
 }
 
-function Thumb({
-  url,
-  small = false,
-}: {
-  url: string | null;
-  small?: boolean;
-}) {
-  const size = small ? "size-8" : "size-11";
+function Thumb({ url, size }: { url: string | null; size: string }) {
   return url ? (
     // eslint-disable-next-line @next/next/no-img-element -- รูปจาก storage
     <img
       src={url}
       alt=""
       loading="lazy"
-      className={`${size} shrink-0 rounded-lg object-cover`}
+      className={`${size} shrink-0 rounded-xl object-cover`}
     />
   ) : (
     <span
-      className={`grid ${size} shrink-0 place-items-center rounded-lg bg-surface text-muted`}
+      className={`grid ${size} shrink-0 place-items-center rounded-xl bg-surface text-muted`}
     >
-      <ImageOff className="size-3.5" />
+      <ImageOff className="size-4" />
     </span>
   );
 }

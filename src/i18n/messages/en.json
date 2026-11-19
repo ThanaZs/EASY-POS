@@ -326,7 +326,9 @@
     "totalPaid": "Total",
     "otherMovements": "Other movements (sales / issue / adjust / refund)",
     "noPurchaseYet": "No purchase info yet",
-    "supplierFilter": "Bought from"
+    "supplierFilter": "Bought from",
+    "searchAll": "Scan or type name / barcode / category",
+    "pinnedHint": "Pinned products — or type to search"
   },
   "pos": {
     "search": "Scan / search products",
