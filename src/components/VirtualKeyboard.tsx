@@ -69,14 +69,6 @@ const isNumeric = (el: Target) =>
   el instanceof HTMLInputElement &&
   (el.type === "number" ||
     ["numeric", "decimal", "tel"].includes(el.inputMode));
-/** ส่วนล่างของจอที่ถูกบัง (คีย์บอร์ดของ iPhone / แถบเล็กของ iOS ตอนต่อคีย์บอร์ดจริง) */
-const covered = () => {
-  const vv = window.visualViewport;
-  if (!vv) return 0;
-  return Math.max(0, window.innerHeight - vv.height * vv.scale - vv.offsetTop);
-};
-/** คีย์บอร์ดของ iPhone ขึ้นอยู่ (บังจอเกิน 150px — แถบเล็กตอนต่อเครื่องสแกนสูงแค่ ~50px) */
-const nativeUp = () => covered() > 150;
 
 const LANG_KEY = "ep_vkb_lang";
 
@@ -124,6 +116,20 @@ export function VirtualKeyboard({
   useEffect(() => {
     if (!isIOS()) return; // Android/คอม ไม่ต้องใช้
     let check: ReturnType<typeof setTimeout> | undefined;
+    const vv = window.visualViewport;
+    const visible = () => (vv ? vv.height * vv.scale : window.innerHeight);
+    // ความสูงจอตอน "ไม่มีช่องพิมพ์โฟกัส" (= ไม่มีคีย์บอร์ด) — ใช้เทียบว่าคีย์บอร์ดของ iPhone บังไปเท่าไร
+    // (บางเครื่อง/โหมดแอป window.innerHeight หดตามคีย์บอร์ดด้วย → เทียบกับ innerHeight อย่างเดียวไม่ได้ เคยทำให้คีย์บอร์ดซ้อน)
+    let base = visible();
+    /** ส่วนล่างของจอที่ถูกบัง (คีย์บอร์ดของ iPhone / แถบเล็กของ iOS ตอนต่อคีย์บอร์ดจริง) */
+    const covered = () =>
+      Math.max(
+        0,
+        base - visible(),
+        vv ? window.innerHeight - visible() - vv.offsetTop : 0,
+      );
+    /** คีย์บอร์ดของ iPhone ขึ้นอยู่ (บังจอเกิน 150px — แถบเล็กตอนต่อเครื่องสแกนสูงแค่ ~50px) */
+    const nativeUp = () => covered() > 150;
     const onFocusIn = (e: FocusEvent) => {
       const el = e.target;
       if (!isTypable(el) || panel.current?.contains(el)) return;
@@ -134,7 +140,7 @@ export function VirtualKeyboard({
         if (document.activeElement !== el || nativeUp()) return;
         setLift(covered());
         open(el);
-      }, 550);
+      }, 650);
     };
     const onFocusOut = (e: FocusEvent) => {
       const next = e.relatedTarget;
@@ -146,17 +152,20 @@ export function VirtualKeyboard({
     };
     // คีย์บอร์ดของ iPhone โผล่ขึ้นมาทีหลัง (ถอดเครื่องสแกน) → ปิดของเรา ไม่ให้ซ้อน
     const onResize = () => {
+      // ไม่มีช่องโฟกัส = ไม่มีคีย์บอร์ด → จำความสูงเต็มจอ (หมุนจอ/เปลี่ยนขนาด)
+      if (!isTypable(document.activeElement)) base = visible();
       if (!openRef.current) return;
       if (nativeUp()) setOpened(null);
       else setLift(covered());
     };
-    const vv = window.visualViewport;
     vv?.addEventListener("resize", onResize);
+    window.addEventListener("resize", onResize);
     document.addEventListener("focusin", onFocusIn);
     document.addEventListener("focusout", onFocusOut);
     return () => {
       clearTimeout(check);
       vv?.removeEventListener("resize", onResize);
+      window.removeEventListener("resize", onResize);
       document.removeEventListener("focusin", onFocusIn);
       document.removeEventListener("focusout", onFocusOut);
     };
