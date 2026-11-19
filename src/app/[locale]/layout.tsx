@@ -16,10 +16,10 @@ export const metadata: Metadata = {
   appleWebApp: { capable: true, title: "EASY-POS", statusBarStyle: "default" },
   icons: {
     icon: [
-      { url: "/api/pwa-icon/32?v=2", sizes: "32x32", type: "image/png" },
-      { url: "/api/pwa-icon/192?v=2", sizes: "192x192", type: "image/png" },
+      { url: "/icons/icon-32.png", sizes: "32x32", type: "image/png" },
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
     ],
-    apple: "/api/pwa-icon/180?v=2",
+    apple: "/icons/apple-180.png",
   },
 };
 
