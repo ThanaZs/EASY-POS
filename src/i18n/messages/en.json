@@ -214,7 +214,17 @@
     "unpin": "Unpin",
     "pinOnly": "Pinned",
     "note": "Note",
-    "notePlaceholder": "e.g. shelf 2, ordered from supplier A"
+    "notePlaceholder": "e.g. shelf 2, ordered from supplier A",
+    "sort": {
+      "label": "Sort",
+      "name": "Name A–Z",
+      "new": "Newest",
+      "priceDesc": "Price high→low",
+      "priceAsc": "Price low→high",
+      "stockAsc": "Stock low→high",
+      "stockDesc": "Stock high→low",
+      "bought": "Last purchased"
+    }
   },
   "stock": {
     "product": "Product",

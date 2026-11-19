@@ -9,7 +9,7 @@ import { useBarcodeScanner } from "@/client/devices/scanner";
 import type { CategoryNode } from "@/core/ports/repositories";
 
 /** เขียน cookie ตัวกรองล่าสุดของหน้า (อ่านที่ server/filters.ts) — ว่าง = ลบ */
-function rememberFilters(pathname: string, search: string) {
+export function rememberFilters(pathname: string, search: string) {
   const [, , , storeId, page] = pathname.split("/");
   if (!storeId || (page !== "inventory" && page !== "history")) return;
   const p = new URLSearchParams(search);

@@ -14,7 +14,9 @@ import { restoreFilters } from "@/server/filters";
 import { requireStoreAccess } from "@/server/session";
 import { togglePinAction } from "./actions";
 import { InventoryFilters, NO_SUB } from "./InventoryFilters";
+import { SortMenu } from "./SortMenu";
 import { StockText } from "./StockBadge";
+import { parseSort, sortProducts } from "./sort";
 
 export default async function InventoryPage({
   params,
@@ -55,10 +57,14 @@ export default async function InventoryPage({
   ]);
   // พิมพ์/ยิงตอนคีย์บอร์ดค้างภาษาไทย ("ๅ/-ภ") แล้วไม่เจอ → ลองแปลงเป็นแป้นอังกฤษ ("1234")
   const en = toEnglishLayout(q);
-  const items =
+  const sort = parseSort(sp.sort);
+  const items = sortProducts(
     found.length === 0 && en !== q
       ? await repos.products.list(storeId, { ...filter, search: en })
-      : found;
+      : found,
+    sort,
+  );
+  const so = t.inventory.sort;
   const base = `/${locale}/store/${storeId}/inventory`;
   const canEdit = can(member, "products.edit");
 
@@ -118,18 +124,34 @@ export default async function InventoryPage({
         }}
       />
 
-      <p className="text-xs text-muted">
-        {fill(t.inventory.count, { n: items.length })}
-      </p>
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-xs text-muted">
+          {fill(t.inventory.count, { n: items.length })}
+        </p>
+        <SortMenu
+          value={sort}
+          label={so.label}
+          options={[
+            ["", so.name],
+            ["new", so.new],
+            ["priceDesc", so.priceDesc],
+            ["priceAsc", so.priceAsc],
+            ["stockAsc", so.stockAsc],
+            ["stockDesc", so.stockDesc],
+          ]}
+        />
+      </div>
       {items.length === 0 ? (
         <p className="rounded-2xl border border-dashed border-line bg-card p-8 text-center text-muted">
           {t.inventory.empty}
         </p>
       ) : (
-        // แบบกะทัดรัด: แถวเตี้ย รูปเล็ก ราคา+สต็อกบรรทัดเดียว; จอกว้างแสดง 2 คอลัมน์ → เห็นสินค้ามากขึ้นต่อหน้าจอ
-        <ul className="scroll-box grid rounded-2xl border border-line bg-card lg:grid-cols-2 lg:divide-x lg:divide-line">
+        // แถวละ 1 สินค้า เลื่อนทั้งหน้า (ไม่มีกล่องเลื่อนแยก) — จอกว้างแยกคอลัมน์ หมวด / คงเหลือ / ราคา
+        <ul className="overflow-hidden rounded-2xl border border-line bg-card">
           {items.map((p) => {
-            // เน้นตัวสินค้า: รูป + ชื่อ + คงเหลือ | ราคา — ไม่แสดงบาร์โค้ด/หมวด (ดูได้ในหน้าสินค้า)
+            // เน้นตัวสินค้า: รูป + ชื่อ + (คงเหลือ · หมวด) | ราคา — บาร์โค้ดดูได้ในหน้าสินค้า
+            const catPath =
+              [p.category, p.subcategory].filter(Boolean).join(" › ") || "—";
             const body = (
               <>
                 {storage && (
@@ -152,17 +174,24 @@ export default async function InventoryPage({
                   <p className="line-clamp-2 text-[15px] font-medium leading-snug">
                     {p.name}
                   </p>
-                  <p className="mt-0.5 truncate text-[13px]">
-                    <StockText p={p} t={t} />
+                  <p className="mt-0.5 truncate text-[13px] text-muted">
+                    <span className="md:hidden">
+                      <StockText p={p} t={t} />
+                      {" · "}
+                    </span>
+                    {catPath}
                   </p>
                 </div>
-                <span className="shrink-0 text-base font-semibold tabular-nums">
+                <span className="hidden w-44 shrink-0 text-right text-sm md:block">
+                  <StockText p={p} t={t} />
+                </span>
+                <span className="shrink-0 text-right text-base font-semibold tabular-nums md:w-28">
                   {formatMoney(p.priceMinor, store.currency, locale)}
                 </span>
               </>
             );
             return (
-              <li key={p.id} className="flex items-center border-b border-line">
+              <li key={p.id} className="flex items-center border-b border-line last:border-b-0">
                 {canEdit ? (
                   <form action={togglePinAction} className="shrink-0">
                     <input type="hidden" name="locale" value={locale} />
@@ -200,7 +229,7 @@ export default async function InventoryPage({
                     className="flex min-w-0 flex-1 items-center gap-3 py-2.5 pr-4 row-hover"
                   >
                     {body}
-                                      </Link>
+                  </Link>
                 ) : (
                   <div className="flex min-w-0 flex-1 items-center gap-3 py-2.5 pl-4 pr-4">
                     {body}

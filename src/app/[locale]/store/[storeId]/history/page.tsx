@@ -19,7 +19,9 @@ import { requireStoreAccess } from "@/server/session";
 import { BackLink } from "../BackLink";
 import { togglePinAction } from "../inventory/actions";
 import { InventoryFilters, NO_SUB } from "../inventory/InventoryFilters";
+import { SortMenu } from "../inventory/SortMenu";
 import { StockText } from "../inventory/StockBadge";
+import { parseSort, sortProducts } from "../inventory/sort";
 import { MovementList } from "./MovementList";
 
 const UUID = /^[0-9a-f-]{36}$/i;
@@ -402,9 +404,18 @@ export default async function HistoryPage({
       ? repos.stock.productIdsBySupplier(storeId, supplier)
       : Promise.resolve(null),
   ]);
-  const items = bySupplierIds
-    ? products.filter((p) => bySupplierIds.includes(p.id))
-    : products;
+  const sort = parseSort(sp.sort, true);
+  const items = sortProducts(
+    bySupplierIds
+      ? products.filter((p) => bySupplierIds.includes(p.id))
+      : products,
+    sort,
+    (id) => {
+      const m = last.get(id);
+      return m ? Date.parse(`${dayOf(m)}T00:00:00Z`) : undefined;
+    },
+  );
+  const so = t.inventory.sort;
   const canPin = can(member, "products.edit");
 
   return (
@@ -450,6 +461,7 @@ export default async function HistoryPage({
                 sub: subParam,
                 low: low ? "1" : "",
                 pin: pin ? "1" : "",
+                sort,
                 supplier: value,
               }))
                 if (v) p.set(k, v);
@@ -475,19 +487,32 @@ export default async function HistoryPage({
         </section>
       )}
 
-      <p className="text-xs text-muted">
-        {fill(t.inventory.count, { n: items.length })}
-      </p>
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-xs text-muted">
+          {fill(t.inventory.count, { n: items.length })}
+        </p>
+        <SortMenu
+          value={sort}
+          label={so.label}
+          options={[
+            ["", so.name],
+            ["bought", so.bought],
+            ["new", so.new],
+            ["stockAsc", so.stockAsc],
+            ["stockDesc", so.stockDesc],
+          ]}
+        />
+      </div>
       {items.length === 0 ? (
         <p className="rounded-2xl border border-dashed border-line bg-card p-8 text-center text-muted">
           {s.noMatch}
         </p>
       ) : (
-        <ul className="scroll-box grid rounded-2xl border border-line bg-card lg:grid-cols-2 lg:divide-x lg:divide-line">
+        <ul className="overflow-hidden rounded-2xl border border-line bg-card">
           {items.map((p) => {
             const lb = last.get(p.id);
             return (
-              <li key={p.id} className="flex items-center border-b border-line">
+              <li key={p.id} className="flex items-center border-b border-line last:border-b-0">
                 {canPin ? (
                   <form action={togglePinAction} className="shrink-0">
                     <input type="hidden" name="locale" value={locale} />
@@ -544,7 +569,11 @@ export default async function HistoryPage({
                       </p>
                     )}
                   </div>
-                  <span className="shrink-0 text-right text-[13px]">
+                  <span className="hidden w-44 shrink-0 truncate text-[13px] text-muted md:block">
+                    {[p.category, p.subcategory].filter(Boolean).join(" › ") ||
+                      "—"}
+                  </span>
+                  <span className="shrink-0 text-right text-[13px] md:w-44">
                     <StockText p={p} t={t} />
                   </span>
                 </Link>

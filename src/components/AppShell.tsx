@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
-  Check,
   ChevronDown,
   KeyRound,
   LayoutGrid,
@@ -117,17 +116,10 @@ export function AppShell({
 
   const storeList = (
     <div className="space-y-0.5 px-2 pb-2">
-      {stores.map((s) =>
-        link(
-          `/${locale}/store/${s.id}`,
-          s.name,
-          Store,
-          [],
-          s.id === store?.id ? (
-            <Check className="size-4 shrink-0 text-brand" />
-          ) : undefined,
-        ),
-      )}
+      {/* ร้านอื่น (ร้านปัจจุบันอยู่บนหัวเมนูแล้ว) */}
+      {stores
+        .filter((s) => s.id !== store?.id)
+        .map((s) => link(`/${locale}/store/${s.id}`, s.name, Store, []))}
       {link(`${hub}/create-store`, t.createStore, PlusSquare)}
       {link(`${hub}/join`, t.joinStore, KeyRound)}
       {stores.length > 0 && link(`${hub}/stores`, t.myStores, LayoutGrid)}
