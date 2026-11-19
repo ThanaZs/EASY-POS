@@ -6,7 +6,6 @@ import { todayIn } from "@/core/lib/format";
 import { loadLocale } from "@/i18n/page";
 import { getRepositories, getStorage } from "@/server/container";
 import { requireStoreAccess } from "@/server/session";
-import { BackLink } from "../BackLink";
 import { MovementList } from "../history/MovementList";
 import { stockMoveAction } from "./actions";
 import { ProductPicker } from "./ProductPicker";
@@ -47,7 +46,6 @@ export default async function ReceivePage({
 
   return (
     <div className="mx-auto max-w-3xl space-y-4">
-      <BackLink href={`/${locale}/store/${storeId}`} label={t.store.back} />
       <h1 className="text-xl font-bold">{t.store.modules.receive}</h1>
       {tracked.length === 0 ? (
         <p className="rounded-2xl border border-dashed border-line bg-card p-8 text-center text-muted">

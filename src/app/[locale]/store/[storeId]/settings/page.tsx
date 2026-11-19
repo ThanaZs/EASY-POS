@@ -3,7 +3,6 @@ import { Card, Field, PrimaryButton } from "@/components/Field";
 import { Select, timeZoneOptions } from "@/components/Select";
 import { loadLocale } from "@/i18n/page";
 import { requireStoreAccess } from "@/server/session";
-import { BackLink } from "../BackLink";
 import { SettingsTabs } from "../SettingsTabs";
 import { StoreDangerDialog } from "../StoreDangerDialog";
 import { saveSettingsAction } from "./actions";
@@ -26,7 +25,6 @@ export default async function SettingsPage({
 
   return (
     <div className="mx-auto max-w-xl space-y-4">
-      <BackLink href={`/${locale}/store/${storeId}`} label={t.store.back} />
       <h1 className="text-xl font-bold">{t.store.modules.settings}</h1>
       <SettingsTabs
         locale={locale}

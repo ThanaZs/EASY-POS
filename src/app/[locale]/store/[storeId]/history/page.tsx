@@ -3,7 +3,6 @@ import { notFound } from "next/navigation";
 import {
   ArrowDown,
   ArrowUp,
-  ChevronRight,
   ImageOff,
   PackagePlus,
   Pencil,
@@ -20,8 +19,7 @@ import { requireStoreAccess } from "@/server/session";
 import { BackLink } from "../BackLink";
 import { togglePinAction } from "../inventory/actions";
 import { InventoryFilters, NO_SUB } from "../inventory/InventoryFilters";
-import { ScanToSearch } from "../inventory/ScanToSearch";
-import { StockBadge } from "../inventory/StockBadge";
+import { StockText } from "../inventory/StockBadge";
 import { MovementList } from "./MovementList";
 
 const UUID = /^[0-9a-f-]{36}$/i;
@@ -411,13 +409,11 @@ export default async function HistoryPage({
 
   return (
     <div className="space-y-4">
-      <BackLink href={`/${locale}/store/${storeId}`} label={t.store.back} />
       <div>
         <h1 className="text-xl font-bold">{t.store.modules.history}</h1>
-        <p className="text-sm text-muted">{s.historyHint}</p>
+        <p className="text-xs text-muted">{s.historyHint}</p>
       </div>
 
-      <ScanToSearch devices={t.devices} />
       <InventoryFilters
         q={q}
         cat={cat}
@@ -437,11 +433,12 @@ export default async function HistoryPage({
       />
       {/* ร้านที่ซื้อ: แยกเป็นช่องของตัวเอง (แตะชื่อร้าน = กรองทันที) */}
       {suppliers.length > 0 && (
-        <section className="space-y-1.5 rounded-2xl border border-line bg-card p-3">
-          <p className="flex items-center gap-1.5 text-sm font-semibold">
-            <Store className="size-4 text-muted" /> {s.supplierFilter}
-          </p>
-          <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1">
+        <section className="-mx-1 flex items-center gap-1.5 overflow-x-auto px-1 pb-1">
+          <Store
+            className="size-4 shrink-0 text-muted"
+            aria-label={s.supplierFilter}
+          />
+          <div className="flex gap-1.5">
             {[
               ["", s.allSuppliers] as const,
               ...suppliers.map((x) => [x, x] as const),
@@ -478,7 +475,7 @@ export default async function HistoryPage({
         </section>
       )}
 
-      <p className="text-sm text-muted">
+      <p className="text-xs text-muted">
         {fill(t.inventory.count, { n: items.length })}
       </p>
       {items.length === 0 ? (
@@ -507,7 +504,7 @@ export default async function HistoryPage({
                         p.pinned ? t.inventory.unpin : t.inventory.pin
                       }
                       title={p.pinned ? t.inventory.unpin : t.inventory.pin}
-                      className={`grid h-12 w-9 place-items-center transition active:scale-90 ${p.pinned ? "text-brand" : "text-line hover:text-muted"}`}
+                      className={`grid h-16 w-10 place-items-center transition active:scale-90 ${p.pinned ? "text-brand" : "text-line hover:text-muted"}`}
                     >
                       <Pin
                         className={`size-4 ${p.pinned ? "fill-current" : ""}`}
@@ -520,13 +517,15 @@ export default async function HistoryPage({
                 <Link
                   prefetch={false}
                   href={`${base}?product=${p.id}`}
-                  className="flex min-w-0 flex-1 items-center gap-2.5 py-1.5 pr-2 row-hover"
+                  className="flex min-w-0 flex-1 items-center gap-3 py-2.5 pr-4 row-hover"
                 >
-                  {storage && img(p.imagePath, "size-9")}
-                  <div className="min-w-0 flex-1 leading-tight">
-                    <p className="truncate text-sm font-medium">{p.name}</p>
+                  {storage && img(p.imagePath, "size-12 rounded-xl")}
+                  <div className="min-w-0 flex-1">
+                    <p className="line-clamp-2 text-[15px] font-medium leading-snug">
+                      {p.name}
+                    </p>
                     {lb ? (
-                      <p className="truncate text-[11px]">
+                      <p className="mt-0.5 truncate text-[13px]">
                         {lb.unitCostMinor != null && (
                           <b className="tabular-nums">
                             {money(lb.unitCostMinor)}
@@ -540,13 +539,14 @@ export default async function HistoryPage({
                         </span>
                       </p>
                     ) : (
-                      <p className="truncate text-[11px] text-muted">
+                      <p className="mt-0.5 truncate text-[13px] text-muted">
                         {s.noPurchaseYet}
                       </p>
                     )}
                   </div>
-                  <StockBadge p={p} t={t} />
-                  <ChevronRight className="size-4 shrink-0 text-muted" />
+                  <span className="shrink-0 text-right text-[13px]">
+                    <StockText p={p} t={t} />
+                  </span>
                 </Link>
               </li>
             );

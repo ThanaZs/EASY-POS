@@ -664,5 +664,11 @@
     "last7": "7 days",
     "thisMonth": "This month",
     "all": "All"
+  },
+  "shell": {
+    "home": "Store home",
+    "switchStore": "Switch store",
+    "menu": "Menu",
+    "close": "Close"
   }
 }

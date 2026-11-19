@@ -11,7 +11,6 @@ import {
 import { loadLocale } from "@/i18n/page";
 import { getRepositories } from "@/server/container";
 import { requireStoreAccess } from "@/server/session";
-import { BackLink } from "../BackLink";
 
 const RANGES = ["today", "week", "month", "year", "all"] as const;
 type Range = (typeof RANGES)[number];
@@ -148,7 +147,6 @@ export default async function OverviewPage({
 
   return (
     <div className="space-y-5">
-      <BackLink href={base} label={t.store.back} />
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-xl font-bold">{t.store.modules.overview}</h1>
         <Link

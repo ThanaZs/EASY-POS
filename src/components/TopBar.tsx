@@ -18,8 +18,8 @@ export async function TopBar({
 }) {
   const [theme, t] = await Promise.all([getTheme(), getDictionary(locale)]);
   return (
-    <header className="sticky top-0 z-10 border-b border-line bg-card/90 backdrop-blur print:hidden">
-      <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
+    <header className="border-b border-line bg-card print:hidden">
+      <div className="mx-auto flex h-12 max-w-6xl items-center justify-between px-4">
         <Link
           prefetch={false}
           href={href ?? `/${locale}/hub`}

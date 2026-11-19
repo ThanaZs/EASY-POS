@@ -8,7 +8,6 @@ import { loadLocale } from "@/i18n/page";
 import { getRepositories } from "@/server/container";
 import { requireStoreAccess } from "@/server/session";
 import { AuditList } from "../AuditList";
-import { BackLink } from "../BackLink";
 import { SettingsTabs } from "../SettingsTabs";
 
 // ประวัติการแก้ไขทั้งร้าน (เจ้าของ/ผู้จัดการ): ใคร ทำอะไร กับอะไร เปลี่ยนจากอะไรเป็นอะไร เมื่อไร
@@ -51,7 +50,6 @@ export default async function ActivityPage({
 
   return (
     <div className="mx-auto max-w-3xl space-y-4">
-      <BackLink href={`/${locale}/store/${storeId}`} label={t.store.back} />
       <h1 className="text-xl font-bold">{t.store.modules.settings}</h1>
       <SettingsTabs
         locale={locale}

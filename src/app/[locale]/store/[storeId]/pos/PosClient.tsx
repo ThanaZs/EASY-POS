@@ -1,10 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import {
-  ArrowLeft,
   Camera,
   LoaderCircle,
   PauseCircle,
@@ -583,13 +581,6 @@ export function PosClient(props: Props) {
   return (
     <>
       <div className="print:hidden">
-        <Link
-          prefetch={false}
-          href={`/${locale}/store/${props.storeId}`}
-          className="mb-3 inline-flex items-center gap-1 text-sm text-muted hover:text-ink"
-        >
-          <ArrowLeft className="size-4" /> {t.store.back}
-        </Link>
         <div className="grid gap-4 pb-24 lg:grid-cols-[1fr_380px] lg:pb-0">
           <section className="min-w-0 space-y-3">
             <div className="flex flex-wrap gap-2">
@@ -756,7 +747,7 @@ export function PosClient(props: Props) {
             )}
           </section>
 
-          <aside className="hidden h-[calc(100dvh-8rem)] overflow-hidden rounded-2xl border border-line bg-card lg:sticky lg:top-20 lg:block">
+          <aside className="hidden h-[calc(100dvh-3rem)] overflow-hidden rounded-2xl border border-line bg-card lg:sticky lg:top-6 lg:block">
             {cartPanel}
           </aside>
         </div>

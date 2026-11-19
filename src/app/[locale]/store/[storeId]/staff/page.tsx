@@ -8,7 +8,6 @@ import { formatDateTime } from "@/core/lib/format";
 import { loadLocale } from "@/i18n/page";
 import { getRepositories } from "@/server/container";
 import { requireStoreAccess } from "@/server/session";
-import { BackLink } from "../BackLink";
 import { SettingsTabs } from "../SettingsTabs";
 import {
   createInviteAction,
@@ -46,7 +45,6 @@ export default async function StaffPage({
 
   return (
     <div className="space-y-6">
-      <BackLink href={`/${locale}/store/${storeId}`} label={t.store.back} />
       <h1 className="text-xl font-bold">{t.store.modules.settings}</h1>
       <SettingsTabs
         locale={locale}

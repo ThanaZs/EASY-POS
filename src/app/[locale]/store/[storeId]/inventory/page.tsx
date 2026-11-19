@@ -1,7 +1,5 @@
 import Link from "next/link";
 import {
-  ChevronRight,
-  ClipboardList,
   FileSpreadsheet,
   ImageOff,
   Pin,
@@ -14,11 +12,9 @@ import { loadLocale } from "@/i18n/page";
 import { getRepositories, getStorage } from "@/server/container";
 import { restoreFilters } from "@/server/filters";
 import { requireStoreAccess } from "@/server/session";
-import { BackLink } from "../BackLink";
 import { togglePinAction } from "./actions";
 import { InventoryFilters, NO_SUB } from "./InventoryFilters";
-import { ScanToSearch } from "./ScanToSearch";
-import { StockBadge } from "./StockBadge";
+import { StockText } from "./StockBadge";
 
 export default async function InventoryPage({
   params,
@@ -68,23 +64,10 @@ export default async function InventoryPage({
 
   return (
     <div className="space-y-4 pb-20 sm:pb-0">
-      <BackLink href={`/${locale}/store/${storeId}`} label={t.store.back} />
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-xl font-bold">{t.store.modules.inventory}</h1>
         {/* มือถือ: ปุ่มไอคอนล้วน (ประหยัดที่) — จอใหญ่: ไอคอน+ข้อความ; เพิ่มสินค้าบนมือถือ = ปุ่ม + ลอยมุมล่างขวา */}
         <div className="flex flex-wrap justify-end gap-2">
-          {can(member, "stock.history") && (
-            <Link
-              prefetch={false}
-              href={`/${locale}/store/${storeId}/history`}
-              aria-label={t.store.modules.history}
-              title={t.store.modules.history}
-              className="inline-flex size-10 items-center justify-center gap-1 rounded-xl border border-line bg-card text-sm font-medium hover:border-brand sm:size-auto sm:px-3 sm:py-2"
-            >
-              <ClipboardList className="size-5 sm:size-4" />
-              <span className="hidden sm:inline">{t.store.modules.history}</span>
-            </Link>
-          )}
           {can(member, "products.create") && (
             <>
               <Link
@@ -117,10 +100,6 @@ export default async function InventoryPage({
         </div>
       </div>
 
-      {/* สถานะเครื่องสแกน: มือถือไม่ต้องแสดง (จับคู่ Bluetooth ในตั้งค่าเครื่องอยู่แล้ว) */}
-      <div className="hidden sm:block">
-        <ScanToSearch devices={t.devices} />
-      </div>
       <InventoryFilters
         q={q}
         cat={cat}
@@ -139,7 +118,7 @@ export default async function InventoryPage({
         }}
       />
 
-      <p className="text-sm text-muted">
+      <p className="text-xs text-muted">
         {fill(t.inventory.count, { n: items.length })}
       </p>
       {items.length === 0 ? (
@@ -150,10 +129,11 @@ export default async function InventoryPage({
         // แบบกะทัดรัด: แถวเตี้ย รูปเล็ก ราคา+สต็อกบรรทัดเดียว; จอกว้างแสดง 2 คอลัมน์ → เห็นสินค้ามากขึ้นต่อหน้าจอ
         <ul className="scroll-box grid rounded-2xl border border-line bg-card lg:grid-cols-2 lg:divide-x lg:divide-line">
           {items.map((p) => {
+            // เน้นตัวสินค้า: รูป + ชื่อ + คงเหลือ | ราคา — ไม่แสดงบาร์โค้ด/หมวด (ดูได้ในหน้าสินค้า)
             const body = (
               <>
                 {storage && (
-                  <span className="grid size-12 shrink-0 place-items-center overflow-hidden rounded-xl bg-surface sm:size-9 sm:rounded-md">
+                  <span className="grid size-12 shrink-0 place-items-center overflow-hidden rounded-xl bg-surface">
                     {p.imagePath ? (
                       // eslint-disable-next-line @next/next/no-img-element -- รูปจาก storage
                       <img
@@ -164,27 +144,21 @@ export default async function InventoryPage({
                         className="size-full object-cover"
                       />
                     ) : (
-                      <ImageOff className="size-4 text-muted sm:size-3.5" />
+                      <ImageOff className="size-4 text-line" />
                     )}
                   </span>
                 )}
-                <div className="min-w-0 flex-1 leading-tight">
-                  <p className="line-clamp-2 text-[15px] font-medium sm:truncate sm:text-sm">{p.name}</p>
-                  <p className="truncate text-xs text-muted sm:text-[11px]">
-                    {[
-                      [p.category, p.subcategory].filter(Boolean).join(" › "),
-                      p.barcode ?? p.sku,
-                    ]
-                      .filter(Boolean)
-                      .join(" · ") || "—"}
+                <div className="min-w-0 flex-1">
+                  <p className="line-clamp-2 text-[15px] font-medium leading-snug">
+                    {p.name}
+                  </p>
+                  <p className="mt-0.5 truncate text-[13px]">
+                    <StockText p={p} t={t} />
                   </p>
                 </div>
-                <div className="flex shrink-0 flex-col items-end gap-0.5">
-                  <span className="text-base font-semibold tabular-nums sm:text-sm">
-                    {formatMoney(p.priceMinor, store.currency, locale)}
-                  </span>
-                  <StockBadge p={p} t={t} />
-                </div>
+                <span className="shrink-0 text-base font-semibold tabular-nums">
+                  {formatMoney(p.priceMinor, store.currency, locale)}
+                </span>
               </>
             );
             return (
@@ -205,7 +179,7 @@ export default async function InventoryPage({
                         p.pinned ? t.inventory.unpin : t.inventory.pin
                       }
                       title={p.pinned ? t.inventory.unpin : t.inventory.pin}
-                      className={`grid h-12 w-9 place-items-center transition active:scale-90 ${
+                      className={`grid h-16 w-10 place-items-center transition active:scale-90 ${
                         p.pinned ? "text-brand" : "text-line hover:text-muted"
                       }`}
                     >
@@ -223,13 +197,12 @@ export default async function InventoryPage({
                   <Link
                     prefetch={false}
                     href={`${base}/${p.id}`}
-                    className="flex min-w-0 flex-1 items-center gap-3 py-2.5 pr-3 row-hover sm:gap-2.5 sm:py-1.5 sm:pr-2"
+                    className="flex min-w-0 flex-1 items-center gap-3 py-2.5 pr-4 row-hover"
                   >
                     {body}
-                    <ChevronRight className="hidden size-4 shrink-0 text-muted sm:block" />
-                  </Link>
+                                      </Link>
                 ) : (
-                  <div className="flex min-w-0 flex-1 items-center gap-3 py-2.5 pl-3 pr-3 sm:gap-2.5 sm:py-1.5">
+                  <div className="flex min-w-0 flex-1 items-center gap-3 py-2.5 pl-4 pr-4">
                     {body}
                   </div>
                 )}
