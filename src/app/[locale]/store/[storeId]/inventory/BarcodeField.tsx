@@ -53,27 +53,42 @@ export function BarcodeField({
       <label htmlFor="barcode" className="text-sm text-muted">
         {label}
       </label>
+      {/* [ช่องรหัส (ปุ่มสร้างรหัสอยู่ในช่อง ขวาสุด)] [กล้อง] */}
       <span className="flex gap-2">
-        <input
-          ref={inputRef}
-          id="barcode"
-          name="barcode"
-          value={value}
-          onChange={(e) => {
-            // คีย์บอร์ดค้างภาษาไทยตอนยิง/พิมพ์ → แปลง "ๅ/-ภ" กลับเป็น "1234" ทันที
-            setValue(toEnglishLayout(e.target.value));
-            setFlash("");
-          }}
-          maxLength={60}
-          autoComplete="off"
-          inputMode="text"
-          lang="en"
-          className={`w-full min-w-0 rounded-xl border bg-card px-3 py-2.5 font-mono outline-none transition focus:border-brand focus:ring-2 focus:ring-brand-soft ${
-            flash
-              ? "border-emerald-500 ring-2 ring-emerald-200 dark:ring-emerald-900"
-              : "border-line"
-          }`}
-        />
+        <span className="relative min-w-0 flex-1">
+          <input
+            ref={inputRef}
+            id="barcode"
+            name="barcode"
+            value={value}
+            onChange={(e) => {
+              // คีย์บอร์ดค้างภาษาไทยตอนยิง/พิมพ์ → แปลง "ๅ/-ภ" กลับเป็น "1234" ทันที
+              setValue(toEnglishLayout(e.target.value));
+              setFlash("");
+            }}
+            maxLength={60}
+            autoComplete="off"
+            inputMode="text"
+            lang="en"
+            className={`w-full min-w-0 rounded-xl border bg-card py-2.5 pl-3 pr-11 font-mono outline-none transition focus:border-brand focus:ring-2 focus:ring-brand-soft ${
+              flash
+                ? "border-emerald-500 ring-2 ring-emerald-200 dark:ring-emerald-900"
+                : "border-line"
+            }`}
+          />
+          <button
+            type="button"
+            onClick={() => {
+              setValue(makeCode());
+              setFlash("");
+            }}
+            className="absolute right-1.5 top-1/2 grid size-8 -translate-y-1/2 place-items-center rounded-lg text-muted transition hover:bg-surface hover:text-brand-ink active:scale-95"
+            aria-label={genLabel}
+            title={genLabel}
+          >
+            <QrCode className="size-5" />
+          </button>
+        </span>
         <button
           type="button"
           onClick={() => setOpen(true)}
@@ -82,18 +97,6 @@ export function BarcodeField({
           title={scan.button}
         >
           <Camera className="size-5" />
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            setValue(makeCode());
-            setFlash("");
-          }}
-          className="grid w-11 shrink-0 place-items-center rounded-xl border border-line hover:border-brand"
-          aria-label={genLabel}
-          title={genLabel}
-        >
-          <QrCode className="size-5" />
         </button>
       </span>
       {flash && (
