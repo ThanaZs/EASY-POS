@@ -9,16 +9,13 @@ import {
   ChevronUp,
   Delete,
 } from "lucide-react";
-import {
-  isScannerConnected,
-  setInputValue,
-  useScannerState,
-} from "@/client/devices/scanner";
+import { setInputValue } from "@/client/devices/scanner";
 
-// ===== คีย์บอร์ดของ EASY-POS เอง (เฉพาะ iPhone/iPad) =====
+// ===== คีย์บอร์ดสำรองของ EASY-POS (เฉพาะ iPhone/iPad) =====
 // ปัญหา: iPhone/iPad ต่อเครื่องสแกน Bluetooth (เป็น "คีย์บอร์ดจริง") → iOS ซ่อนคีย์บอร์ดบนจอ แตะช่องแล้วพิมพ์ไม่ได้
-// แก้: บน iOS แตะช่องพิมพ์ = เปิดคีย์บอร์ดนี้ทุกครั้ง (ตัวเลข / ไทย / อังกฤษ)
-// และปิดคีย์บอร์ดระบบด้วย inputmode=none ไม่ให้ขึ้นซ้อนกัน; Android/คอม ไม่มีปัญหานี้ → ไม่ใช้เลย
+// แก้ (ใช้คีย์บอร์ดของ iPhone ก่อนเสมอ): แตะช่องพิมพ์ → รอดูว่าคีย์บอร์ดของ iPhone ขึ้นไหม (จอที่มองเห็นหดลง)
+//   ขึ้น = ใช้ของ iPhone ตามปกติ (ไม่ทำอะไร) / ไม่ขึ้น = มีคีย์บอร์ดจริงต่ออยู่ → เปิดคีย์บอร์ดนี้แทน
+// ไม่ต้องพึ่งสถานะเครื่องสแกน (ต่อ Bluetooth แล้วแต่ยังไม่ยิง ก็ทำงาน); Android/คอม ไม่ใช้เลย
 
 const isIOS = () =>
   /iPad|iPhone|iPod/.test(navigator.userAgent) ||
@@ -68,18 +65,18 @@ const isTypable = (el: EventTarget | null): el is Target =>
     !el.readOnly &&
     !el.disabled) ||
   (el instanceof HTMLTextAreaElement && !el.readOnly && !el.disabled);
-// ช่องที่ถูกปิดคีย์บอร์ดระบบ (inputmode=none) จำค่าเดิมไว้ใน data-vkb-im → ใช้เลือกแป้นตัวเลข
-const origMode = (el: Target) => el.dataset.vkbIm ?? el.inputMode;
 const isNumeric = (el: Target) =>
   el instanceof HTMLInputElement &&
   (el.type === "number" ||
-    ["numeric", "decimal", "tel"].includes(origMode(el)));
-/** ปิดคีย์บอร์ดของ iOS สำหรับช่องนี้ (ใช้ของเราแทน) */
-const suppressSystem = (el: Target) => {
-  if (el.inputMode === "none") return;
-  el.dataset.vkbIm = el.inputMode;
-  el.inputMode = "none";
+    ["numeric", "decimal", "tel"].includes(el.inputMode));
+/** ส่วนล่างของจอที่ถูกบัง (คีย์บอร์ดของ iPhone / แถบเล็กของ iOS ตอนต่อคีย์บอร์ดจริง) */
+const covered = () => {
+  const vv = window.visualViewport;
+  if (!vv) return 0;
+  return Math.max(0, window.innerHeight - vv.height * vv.scale - vv.offsetTop);
 };
+/** คีย์บอร์ดของ iPhone ขึ้นอยู่ (บังจอเกิน 150px — แถบเล็กตอนต่อเครื่องสแกนสูงแค่ ~50px) */
+const nativeUp = () => covered() > 150;
 
 const LANG_KEY = "ep_vkb_lang";
 
@@ -94,7 +91,9 @@ export function VirtualKeyboard({
   );
   const [mode, setMode] = useState<Mode>("th");
   const [shift, setShift] = useState(false);
+  const [lift, setLift] = useState(0); // เว้นที่ให้แถบเล็กของ iOS ด้านล่าง
   const panel = useRef<HTMLDivElement>(null);
+  const openRef = useRef(false);
   // เปลี่ยนหน้า / ช่องถูกลบออกจากหน้า → ไม่แสดงคีย์บอร์ดค้างบนหน้าอื่น
   const target =
     opened && opened.path === pathname && opened.el.isConnected
@@ -124,16 +123,18 @@ export function VirtualKeyboard({
 
   useEffect(() => {
     if (!isIOS()) return; // Android/คอม ไม่ต้องใช้
-    // ปิดคีย์บอร์ดระบบตั้งแต่ตอนแตะ (ก่อนโฟกัส) — ตั้งหลังโฟกัสแล้ว iOS อาจเด้งคีย์บอร์ดตัวเองขึ้นมาก่อน
-    const onTouch = (e: Event) => {
-      const el = e.target;
-      if (isTypable(el) && !panel.current?.contains(el)) suppressSystem(el);
-    };
+    let check: ReturnType<typeof setTimeout> | undefined;
     const onFocusIn = (e: FocusEvent) => {
       const el = e.target;
       if (!isTypable(el) || panel.current?.contains(el)) return;
-      suppressSystem(el);
-      open(el);
+      if (openRef.current) return open(el); // ของเราเปิดอยู่ (กด ˄ ˅ ย้ายช่อง) → ใช้ต่อ
+      // รอคีย์บอร์ดของ iPhone เลื่อนขึ้น (~0.3 วิ) แล้วดูว่าขึ้นจริงไหม
+      clearTimeout(check);
+      check = setTimeout(() => {
+        if (document.activeElement !== el || nativeUp()) return;
+        setLift(covered());
+        open(el);
+      }, 550);
     };
     const onFocusOut = (e: FocusEvent) => {
       const next = e.relatedTarget;
@@ -143,14 +144,19 @@ export function VirtualKeyboard({
         if (!isTypable(document.activeElement)) setTarget(null);
       }, 120);
     };
-    document.addEventListener("touchstart", onTouch, {
-      capture: true,
-      passive: true,
-    });
+    // คีย์บอร์ดของ iPhone โผล่ขึ้นมาทีหลัง (ถอดเครื่องสแกน) → ปิดของเรา ไม่ให้ซ้อน
+    const onResize = () => {
+      if (!openRef.current) return;
+      if (nativeUp()) setOpened(null);
+      else setLift(covered());
+    };
+    const vv = window.visualViewport;
+    vv?.addEventListener("resize", onResize);
     document.addEventListener("focusin", onFocusIn);
     document.addEventListener("focusout", onFocusOut);
     return () => {
-      document.removeEventListener("touchstart", onTouch, { capture: true });
+      clearTimeout(check);
+      vv?.removeEventListener("resize", onResize);
       document.removeEventListener("focusin", onFocusIn);
       document.removeEventListener("focusout", onFocusOut);
     };
@@ -160,11 +166,12 @@ export function VirtualKeyboard({
   // iOS: ตอนมีช่องพิมพ์โฟกัสอยู่ position:fixed จะเลื่อนตามหน้า → ตรึง body ไว้ (position:fixed; top:-y)
   // หน้าเลื่อนไม่ได้ = คีย์บอร์ดไม่ขยับ; ระบบเลื่อนช่องที่พิมพ์ขึ้นมาให้เห็นเอง (ย้าย top ของ body)
   // ปิดคีย์บอร์ด → ปลดล็อก แล้วกลับไปตำแหน่งเดิมของหน้า
-  // เผื่อ 64px ล่างสุดให้แถบ ˄ ˅ ✓ ของ iOS (พื้นหลังคีย์บอร์ดยาวลงไปใต้แถบ ไม่มีช่องว่าง)
-  // แถบ ˄ ˅ ✓ ของ iOS ขึ้นเฉพาะตอนมีคีย์บอร์ดจริง (เครื่องสแกน) ต่ออยู่ → เผื่อที่ 64px เฉพาะตอนนั้น
-  const lift = isScannerConnected(useScannerState()) ? 64 : 0;
+  // แถบเล็กของ iOS (ตอนต่อเครื่องสแกน) อยู่ล่างสุด → วัดความสูงจริงจาก visualViewport แล้วเว้นที่ให้ (lift)
   const lockY = useRef(0);
   const isOpen = !!target;
+  useEffect(() => {
+    openRef.current = isOpen;
+  }, [isOpen]);
   useEffect(() => {
     if (!isOpen) return;
     const b = document.body.style;
@@ -342,7 +349,7 @@ export function VirtualKeyboard({
     <div
       ref={panel}
       data-vkb
-      // พื้นหลังยาวถึงขอบล่างจอ; เผื่อที่ให้แถบของ iOS เฉพาะตอนต่อเครื่องสแกน (ไม่งั้นไม่มีแถบ → ชิดล่าง)
+      // พื้นหลังยาวถึงขอบล่างจอ; เว้นที่ให้แถบเล็กของ iOS เท่าที่วัดได้จริง
       style={{
         paddingBottom: `calc(${lift}px + env(safe-area-inset-bottom))`,
       }}

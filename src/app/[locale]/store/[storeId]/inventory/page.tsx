@@ -67,18 +67,22 @@ export default async function InventoryPage({
   const canEdit = can(member, "products.edit");
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 pb-20 sm:pb-0">
       <BackLink href={`/${locale}/store/${storeId}`} label={t.store.back} />
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-xl font-bold">{t.store.modules.inventory}</h1>
+        {/* มือถือ: ปุ่มไอคอนล้วน (ประหยัดที่) — จอใหญ่: ไอคอน+ข้อความ; เพิ่มสินค้าบนมือถือ = ปุ่ม + ลอยมุมล่างขวา */}
         <div className="flex flex-wrap justify-end gap-2">
           {can(member, "stock.history") && (
             <Link
               prefetch={false}
               href={`/${locale}/store/${storeId}/history`}
-              className="inline-flex items-center gap-1 rounded-xl border border-line bg-card px-3 py-2 text-sm font-medium hover:border-brand"
+              aria-label={t.store.modules.history}
+              title={t.store.modules.history}
+              className="inline-flex size-10 items-center justify-center gap-1 rounded-xl border border-line bg-card text-sm font-medium hover:border-brand sm:size-auto sm:px-3 sm:py-2"
             >
-              <ClipboardList className="size-4" /> {t.store.modules.history}
+              <ClipboardList className="size-5 sm:size-4" />
+              <span className="hidden sm:inline">{t.store.modules.history}</span>
             </Link>
           )}
           {can(member, "products.create") && (
@@ -86,23 +90,37 @@ export default async function InventoryPage({
               <Link
                 prefetch={false}
                 href={`${base}/import`}
-                className="inline-flex items-center gap-1 rounded-xl border border-line bg-card px-3 py-2 text-sm font-medium hover:border-brand"
+                aria-label={t.import.button}
+                title={t.import.button}
+                className="inline-flex size-10 items-center justify-center gap-1 rounded-xl border border-line bg-card text-sm font-medium hover:border-brand sm:size-auto sm:px-3 sm:py-2"
               >
-                <FileSpreadsheet className="size-4" /> {t.import.button}
+                <FileSpreadsheet className="size-5 sm:size-4" />
+                <span className="hidden sm:inline">{t.import.button}</span>
               </Link>
               <Link
                 prefetch={false}
                 href={`${base}/new`}
-                className="inline-flex items-center gap-1 rounded-xl bg-brand px-3 py-2 text-sm font-semibold text-white hover:opacity-90"
+                className="hidden items-center gap-1 rounded-xl bg-brand px-3 py-2 text-sm font-semibold text-white hover:opacity-90 sm:inline-flex"
               >
                 <Plus className="size-4" /> {t.inventory.add}
+              </Link>
+              <Link
+                prefetch={false}
+                href={`${base}/new`}
+                aria-label={t.inventory.add}
+                className="fixed bottom-[calc(1.25rem+env(safe-area-inset-bottom))] right-5 z-40 grid size-14 place-items-center rounded-full bg-brand text-white shadow-lg shadow-black/25 transition active:scale-95 sm:hidden"
+              >
+                <Plus className="size-7" />
               </Link>
             </>
           )}
         </div>
       </div>
 
-      <ScanToSearch devices={t.devices} />
+      {/* สถานะเครื่องสแกน: มือถือไม่ต้องแสดง (จับคู่ Bluetooth ในตั้งค่าเครื่องอยู่แล้ว) */}
+      <div className="hidden sm:block">
+        <ScanToSearch devices={t.devices} />
+      </div>
       <InventoryFilters
         q={q}
         cat={cat}
@@ -135,7 +153,7 @@ export default async function InventoryPage({
             const body = (
               <>
                 {storage && (
-                  <span className="grid size-9 shrink-0 place-items-center overflow-hidden rounded-md bg-surface">
+                  <span className="grid size-12 shrink-0 place-items-center overflow-hidden rounded-xl bg-surface sm:size-9 sm:rounded-md">
                     {p.imagePath ? (
                       // eslint-disable-next-line @next/next/no-img-element -- รูปจาก storage
                       <img
@@ -146,13 +164,13 @@ export default async function InventoryPage({
                         className="size-full object-cover"
                       />
                     ) : (
-                      <ImageOff className="size-3.5 text-muted" />
+                      <ImageOff className="size-4 text-muted sm:size-3.5" />
                     )}
                   </span>
                 )}
                 <div className="min-w-0 flex-1 leading-tight">
-                  <p className="truncate text-sm font-medium">{p.name}</p>
-                  <p className="truncate text-[11px] text-muted">
+                  <p className="line-clamp-2 text-[15px] font-medium sm:truncate sm:text-sm">{p.name}</p>
+                  <p className="truncate text-xs text-muted sm:text-[11px]">
                     {[
                       [p.category, p.subcategory].filter(Boolean).join(" › "),
                       p.barcode ?? p.sku,
@@ -162,7 +180,7 @@ export default async function InventoryPage({
                   </p>
                 </div>
                 <div className="flex shrink-0 flex-col items-end gap-0.5">
-                  <span className="text-sm font-semibold tabular-nums">
+                  <span className="text-base font-semibold tabular-nums sm:text-sm">
                     {formatMoney(p.priceMinor, store.currency, locale)}
                   </span>
                   <StockBadge p={p} t={t} />
@@ -205,13 +223,13 @@ export default async function InventoryPage({
                   <Link
                     prefetch={false}
                     href={`${base}/${p.id}`}
-                    className="flex min-w-0 flex-1 items-center gap-2.5 py-1.5 pr-2 row-hover"
+                    className="flex min-w-0 flex-1 items-center gap-3 py-2.5 pr-3 row-hover sm:gap-2.5 sm:py-1.5 sm:pr-2"
                   >
                     {body}
-                    <ChevronRight className="size-4 shrink-0 text-muted" />
+                    <ChevronRight className="hidden size-4 shrink-0 text-muted sm:block" />
                   </Link>
                 ) : (
-                  <div className="flex min-w-0 flex-1 items-center gap-2.5 py-1.5 pl-3 pr-3">
+                  <div className="flex min-w-0 flex-1 items-center gap-3 py-2.5 pl-3 pr-3 sm:gap-2.5 sm:py-1.5">
                     {body}
                   </div>
                 )}

@@ -147,7 +147,7 @@ export function InventoryFilters({
   return (
     <div className="space-y-2" role="search">
       <div className="flex flex-wrap gap-2">
-        <label className="relative min-w-48 flex-1">
+        <label className="relative min-w-48 basis-full sm:basis-0 sm:flex-1">
           {pending ? (
             <LoaderCircle className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 animate-spin text-muted" />
           ) : (
@@ -169,7 +169,7 @@ export function InventoryFilters({
             }}
             placeholder={labels.search}
             aria-label={labels.search}
-            className="w-full rounded-xl border border-line bg-card py-2 pl-9 pr-20 outline-none focus:border-brand"
+            className="w-full rounded-xl border border-line bg-card py-2.5 pl-9 pr-20 outline-none focus:border-brand sm:py-2"
           />
           {text && (
             <button
@@ -204,7 +204,7 @@ export function InventoryFilters({
             apply({ cat: e.target.value, sub: "" });
           }}
           aria-label={labels.allCategories}
-          className="rounded-xl border border-line bg-card px-3 py-2"
+          className="min-w-0 flex-1 rounded-xl border border-line bg-card px-3 py-2 sm:flex-none"
         >
           <option value="">{labels.allCategories}</option>
           {tree.map((n) => (
@@ -230,7 +230,13 @@ export function InventoryFilters({
           <Pin className={`size-4 ${selPin ? "fill-current" : ""}`} />{" "}
           {labels.pinOnly}
         </button>
-        <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-line bg-card px-3 py-2 text-sm">
+        <label
+          className={`flex cursor-pointer items-center gap-2 rounded-xl border px-3 py-2 text-sm transition ${
+            selLow
+              ? "border-brand bg-brand-soft font-semibold text-brand-ink"
+              : "border-line bg-card"
+          }`}
+        >
           <input
             type="checkbox"
             checked={selLow}
