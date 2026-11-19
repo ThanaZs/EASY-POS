@@ -62,7 +62,7 @@ export function InstallPrompt({ t }: { t: Dictionary["install"] }) {
       <div className="space-y-4 p-5">
         <div className="flex items-start gap-3">
           {/* eslint-disable-next-line @next/next/no-img-element -- ไอคอนแอปจาก route ของเราเอง */}
-          <img src="/api/pwa-icon/192" alt="" className="size-14 rounded-2xl shadow" />
+          <img src="/api/pwa-icon/192?v=2" alt="" className="size-14 rounded-2xl shadow" />
           <div className="min-w-0 flex-1">
             <h2 className="text-lg font-bold">{t.title}</h2>
             <p className="text-sm text-muted">{t.subtitle}</p>

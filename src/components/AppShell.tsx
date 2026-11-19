@@ -23,6 +23,7 @@ import {
 import { LAST_STORE_COOKIE } from "@/core/lib/last-store";
 import type { Locale } from "@/i18n/config";
 import { LanguageSwitcher } from "./LanguageSwitcher";
+import { LogoMark } from "./LogoMark";
 import { PageTitleContext } from "./PageTitle";
 import { ThemeToggle } from "./ThemeToggle";
 
@@ -140,9 +141,7 @@ export function AppShell({
         aria-expanded={picker}
         className="m-2 mr-12 flex items-center gap-2.5 rounded-xl p-2 text-left transition hover:bg-surface lg:mr-2"
       >
-        <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-brand text-sm font-bold text-white">
-          EP
-        </span>
+        <LogoMark size={36} />
         <span className="min-w-0 flex-1">
           <span className="block truncate text-[17px] font-bold leading-tight">
             {store?.name ?? "EASY-POS"}

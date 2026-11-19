@@ -1,14 +1,16 @@
 import { ImageResponse } from "next/og";
+import { LOGO_GRADIENT, LogoGlyph } from "@/components/LogoMark";
 
 // ไอคอนแอป (สร้างจากโค้ด ไม่ต้องมีไฟล์รูป) — /api/pwa-icon/192, /512, /180 (iPhone), ?maskable=1 (Android ตัดขอบเป็นวงกลม/มน)
-const SIZES = new Set([180, 192, 512]);
+// รูป = โลโก้ถุงช้อปปิ้ง + บาร์โค้ด (components/LogoMark) บนพื้นส้มไล่สี
+const SIZES = new Set([32, 180, 192, 512]);
 
 export async function GET(req: Request, ctx: { params: Promise<{ size: string }> }) {
   const size = Number((await ctx.params).size);
   if (!SIZES.has(size)) return new Response("not found", { status: 404 });
   const maskable = new URL(req.url).searchParams.get("maskable") === "1";
-  const radius = maskable ? 0 : Math.round(size * 0.22);
-  const font = Math.round(size * (maskable ? 0.32 : 0.4));
+  // iPhone (180) / maskable ตัดมุมเอง → ส่งสี่เหลี่ยมเต็ม; ขนาดอื่นทำมุมมนให้
+  const radius = maskable || size === 180 ? 0 : Math.round(size * 0.22);
   return new ImageResponse(
     (
       <div
@@ -18,15 +20,11 @@ export async function GET(req: Request, ctx: { params: Promise<{ size: string }>
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          background: "linear-gradient(135deg, #f97316 0%, #ea580c 55%, #c2410c 100%)",
+          background: LOGO_GRADIENT,
           borderRadius: radius,
-          color: "#fff",
-          fontSize: font,
-          fontWeight: 800,
-          letterSpacing: -font * 0.04,
         }}
       >
-        EP
+        <LogoGlyph size={size} scale={maskable ? 0.78 : 1} />
       </div>
     ),
     { width: size, height: size, headers: { "Cache-Control": "public, max-age=604800, immutable" } },

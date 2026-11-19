@@ -14,7 +14,13 @@ export const metadata: Metadata = {
   description: "Point of sale web app",
   applicationName: "EASY-POS",
   appleWebApp: { capable: true, title: "EASY-POS", statusBarStyle: "default" },
-  icons: { icon: "/api/pwa-icon/192", apple: "/api/pwa-icon/180" },
+  icons: {
+    icon: [
+      { url: "/api/pwa-icon/32?v=2", sizes: "32x32", type: "image/png" },
+      { url: "/api/pwa-icon/192?v=2", sizes: "192x192", type: "image/png" },
+    ],
+    apple: "/api/pwa-icon/180?v=2",
+  },
 };
 
 export async function generateViewport(): Promise<Viewport> {

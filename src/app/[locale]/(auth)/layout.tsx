@@ -1,4 +1,5 @@
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { LogoMark } from "@/components/LogoMark";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { loadLocale } from "@/i18n/page";
 import { getTheme } from "@/server/theme";
@@ -13,9 +14,7 @@ export default async function AuthLayout({ children, params }: LayoutProps<"/[lo
         <LanguageSwitcher current={locale} />
       </div>
       <div className="text-center">
-        <div className="mx-auto mb-3 grid size-16 place-items-center rounded-2xl bg-brand text-xl font-black text-white">
-          EP
-        </div>
+        <LogoMark size={72} className="mx-auto mb-3 shadow-lg shadow-orange-500/25" />
         <h1 className="text-2xl font-bold">{t.app.name}</h1>
         <p className="text-muted">{t.app.tagline}</p>
       </div>
