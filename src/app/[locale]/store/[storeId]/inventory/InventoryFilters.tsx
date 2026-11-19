@@ -2,7 +2,14 @@
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
-import { Camera, LoaderCircle, Pin, Search, X } from "lucide-react";
+import {
+  Camera,
+  LoaderCircle,
+  Pin,
+  Search,
+  TriangleAlert,
+  X,
+} from "lucide-react";
 import { CameraScanner } from "@/components/CameraScanner";
 import type { Dictionary } from "@/i18n/dictionary";
 import { useBarcodeScanner } from "@/client/devices/scanner";
@@ -204,7 +211,7 @@ export function InventoryFilters({
             apply({ cat: e.target.value, sub: "" });
           }}
           aria-label={labels.allCategories}
-          className="min-w-0 flex-1 rounded-xl border border-line bg-card px-3 py-2 sm:flex-none"
+          className="min-w-0 flex-1 rounded-xl border border-line bg-card px-3 py-2 font-medium sm:flex-none sm:font-normal"
         >
           <option value="">{labels.allCategories}</option>
           {tree.map((n) => (
@@ -214,39 +221,43 @@ export function InventoryFilters({
             </option>
           ))}
         </select>
+        {/* มือถือ: หมวดหมู่ได้ที่กว้างสุด (สำคัญกว่า) — ปักหมุด/ใกล้หมด เหลือแค่ไอคอน */}
         <button
           type="button"
           aria-pressed={selPin}
+          aria-label={labels.pinOnly}
+          title={labels.pinOnly}
           onClick={() => {
             setSelPin(!selPin);
             apply({ pin: !selPin });
           }}
-          className={`flex items-center gap-1.5 rounded-xl border px-3 py-2 text-sm transition active:scale-95 ${
+          className={`flex shrink-0 items-center gap-1.5 rounded-xl border px-3 py-2 text-sm transition active:scale-95 ${
             selPin
               ? "border-brand bg-brand-soft font-semibold text-brand-ink"
               : "border-line bg-card"
           }`}
         >
-          <Pin className={`size-4 ${selPin ? "fill-current" : ""}`} />{" "}
-          {labels.pinOnly}
+          <Pin className={`size-4 ${selPin ? "fill-current" : ""}`} />
+          <span className="hidden sm:inline">{labels.pinOnly}</span>
         </button>
-        <label
-          className={`flex cursor-pointer items-center gap-2 rounded-xl border px-3 py-2 text-sm transition ${
+        <button
+          type="button"
+          aria-pressed={selLow}
+          aria-label={labels.lowOnly}
+          title={labels.lowOnly}
+          onClick={() => {
+            setSelLow(!selLow);
+            apply({ low: !selLow });
+          }}
+          className={`flex shrink-0 items-center gap-1.5 rounded-xl border px-3 py-2 text-sm transition active:scale-95 ${
             selLow
-              ? "border-brand bg-brand-soft font-semibold text-brand-ink"
+              ? "border-amber-500 bg-amber-50 font-semibold text-amber-700 dark:bg-amber-950 dark:text-amber-300"
               : "border-line bg-card"
           }`}
         >
-          <input
-            type="checkbox"
-            checked={selLow}
-            onChange={(e) => {
-              setSelLow(e.target.checked);
-              apply({ low: e.target.checked });
-            }}
-          />
-          {labels.lowOnly}
-        </label>
+          <TriangleAlert className="size-4" />
+          <span className="hidden sm:inline">{labels.lowOnly}</span>
+        </button>
       </div>
       {camera && (
         <CameraScanner
