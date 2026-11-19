@@ -1,4 +1,3 @@
-import { BackLink } from "@/components/BackLink";
 import { Alert, pickMessage } from "@/components/Alert";
 import { Card, Field, PrimaryButton } from "@/components/Field";
 import { Select, timeZoneOptions } from "@/components/Select";
@@ -44,7 +43,6 @@ export default async function AccountPage({
 
   return (
     <div className="mx-auto max-w-lg space-y-4">
-      <BackLink href={`/${locale}/hub`} label={t.hub.back} />
       <h1 className="text-xl font-bold">{t.hub.account}</h1>
       <Card>
         <form action={saveAccountAction} className="space-y-4">

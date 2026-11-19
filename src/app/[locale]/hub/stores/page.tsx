@@ -1,7 +1,7 @@
-import { BackLink } from "@/components/BackLink";
 import Link from "next/link";
 import { Alert } from "@/components/Alert";
-import { ChevronRight, Store } from "lucide-react";
+import { ChevronRight, KeyRound, PlusSquare, Store } from "lucide-react";
+import { StoreDangerDialog } from "../../store/[storeId]/StoreDangerDialog";
 import { loadLocale } from "@/i18n/page";
 import { getRepositories } from "@/server/container";
 import { requireUser } from "@/server/session";
@@ -17,15 +17,36 @@ export default async function MyStoresPage({
 
   return (
     <div className="mx-auto max-w-2xl">
-      <BackLink href={`/${locale}/hub`} label={t.hub.back} />
-      <h1 className="mb-4 mt-2 text-xl font-bold">{t.hub.myStores}</h1>
+      <h1 className="mb-4 text-xl font-bold">{t.hub.myStores}</h1>
       {(done === "deleted" || done === "left") && (
         <div className="mb-4">
           <Alert kind="success">{t.danger[done]}</Alert>
         </div>
       )}
       {stores.length === 0 ? (
-        <p className="text-muted">{t.stores.empty}</p>
+        // ยังไม่มีร้าน: ปุ่มใหญ่ 2 ปุ่ม (เหมือนในเมนู) ให้เริ่มได้ทันที
+        <div className="space-y-3">
+          <p className="text-muted">{t.stores.empty}</p>
+          {(
+            [
+              ["create-store", t.hub.createStore, PlusSquare, "bg-amber-500"],
+              ["join", t.hub.joinStore, KeyRound, "bg-sky-600"],
+            ] as const
+          ).map(([path, label, Icon, color]) => (
+            <Link
+              key={path}
+              prefetch={false}
+              href={`/${locale}/hub/${path}`}
+              className="flex items-center gap-4 rounded-2xl border border-line bg-card p-4 shadow-sm pressable"
+            >
+              <span className={`grid size-12 shrink-0 place-items-center rounded-xl text-white ${color}`}>
+                <Icon />
+              </span>
+              <span className="flex-1 font-semibold">{label}</span>
+              <ChevronRight className="shrink-0 text-muted" />
+            </Link>
+          ))}
+        </div>
       ) : (
         <ul className="space-y-3">
           {stores.map(({ store, member }) => (
@@ -48,6 +69,18 @@ export default async function MyStoresPage({
                 </span>
                 <ChevronRight className="shrink-0 text-muted" />
               </Link>
+              {/* ออกจากร้าน (พนักงาน) — ย้ายมาจากหน้าหลักร้านเดิม; เจ้าของลบร้านได้ในตั้งค่าร้าน */}
+              {member.role !== "owner" && (
+                <div className="ml-auto mt-1.5 w-44">
+                  <StoreDangerDialog
+                    mode="leave"
+                    locale={locale}
+                    storeId={store.id}
+                    storeName={store.name}
+                    t={t.danger}
+                  />
+                </div>
+              )}
             </li>
           ))}
         </ul>

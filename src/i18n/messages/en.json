@@ -666,9 +666,8 @@
     "all": "All"
   },
   "shell": {
-    "home": "Store home",
-    "switchStore": "Switch store",
     "menu": "Menu",
-    "close": "Close"
+    "close": "Close",
+    "chooseStore": "Tap to switch store"
   }
 }

@@ -1,4 +1,3 @@
-import { BackLink } from "@/components/BackLink";
 import { Card, Field, PrimaryButton } from "@/components/Field";
 import { currencyOptions, Select, timeZoneOptions } from "@/components/Select";
 import { loadLocale } from "@/i18n/page";
@@ -13,7 +12,6 @@ export default async function CreateStorePage({
 
   return (
     <div className="mx-auto max-w-lg">
-      <BackLink href={`/${locale}/hub`} label={t.hub.back} />
       <h1 className="mb-4 mt-2 text-xl font-bold">{t.hub.createStore}</h1>
       <Card>
         <form action={createStoreAction} className="space-y-4">

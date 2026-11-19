@@ -1,4 +1,3 @@
-import { BackLink } from "@/components/BackLink";
 import { Alert, pickMessage } from "@/components/Alert";
 import { Card, Field, PrimaryButton } from "@/components/Field";
 import { loadLocale } from "@/i18n/page";
@@ -15,7 +14,6 @@ export default async function JoinStorePage({
 
   return (
     <div className="mx-auto max-w-lg">
-      <BackLink href={`/${locale}/hub`} label={t.hub.back} />
       <h1 className="mb-4 mt-2 text-xl font-bold">{t.hub.joinStore}</h1>
       <Card>
         <form action={joinStoreAction} className="space-y-4">
