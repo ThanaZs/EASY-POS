@@ -13,6 +13,8 @@ type Labels = {
   packPrice: string;
   packPriceHint: string;
   packPriceAuto: string;
+  addUnit: string;
+  newUnitPlaceholder: string;
   packBarcode: string;
 };
 
@@ -61,7 +63,8 @@ export function PackFields({
             value={unit}
             onChange={setUnit}
             options={unitOptions}
-            required
+            addNew={labels.addUnit}
+            newPlaceholder={labels.newUnitPlaceholder}
           />
           <label className="block space-y-1">
             <span className="text-sm text-muted">
@@ -89,7 +92,7 @@ export function PackFields({
               className={cls}
             />
           </label>
-          <label className="col-span-2 block space-y-1">
+          <label className="block space-y-1">
             <span className="text-sm text-muted">{labels.packBarcode}</span>
             <input
               name="packBarcode"

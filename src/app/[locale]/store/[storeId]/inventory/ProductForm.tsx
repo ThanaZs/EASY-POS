@@ -172,6 +172,18 @@ export function ProductForm({
             label={inv.unit}
             defaultValue={product?.unit ?? "ชิ้น"}
             options={merge(BASE_UNITS, units.units)}
+            addNew={inv.addUnit}
+            newPlaceholder={inv.newUnitPlaceholder}
+          />
+          <Field
+            label={inv.expiresAt}
+            name="expiresAt"
+            type="date"
+            defaultValue={
+              product?.expiresAt
+                ? product.expiresAt.toISOString().slice(0, 10)
+                : ""
+            }
           />
           <PackFields
             baseUnit={product?.unit ?? "ชิ้น"}
@@ -192,26 +204,20 @@ export function ProductForm({
               packPriceHint: inv.packPriceHint,
               packPriceAuto: inv.packPriceAuto,
               packBarcode: inv.packBarcode,
+              addUnit: inv.addUnit,
+              newUnitPlaceholder: inv.newUnitPlaceholder,
             }}
           />
-          <Field
-            label={inv.expiresAt}
-            name="expiresAt"
-            type="date"
-            defaultValue={
-              product?.expiresAt
-                ? product.expiresAt.toISOString().slice(0, 10)
-                : ""
-            }
-          />
-          <Field
-            label={inv.note}
-            name="note"
-            defaultValue={product?.note ?? ""}
-            maxLength={500}
-            placeholder={inv.notePlaceholder}
-            autoComplete="off"
-          />
+          <div className="col-span-2">
+            <Field
+              label={inv.note}
+              name="note"
+              defaultValue={product?.note ?? ""}
+              maxLength={500}
+              placeholder={inv.notePlaceholder}
+              autoComplete="off"
+            />
+          </div>
           <label className="col-span-2 flex items-center gap-2 text-sm">
             <input
               type="checkbox"

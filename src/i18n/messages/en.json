@@ -201,7 +201,7 @@
     "newCategoryPlaceholder": "Type a new category name",
     "packEnable": "Can be sold by pack / case",
     "packHint": "Stock is always counted in the retail unit — receive by case, and POS has a sell-by-case button",
-    "packUnit": "Pack unit name (e.g. case, pack, dozen)",
+    "packUnit": "Pack unit",
     "packSize": "1 {unit} = how many {base}",
     "packPrice": "Price per {unit}",
     "packPriceHint": "Leave blank = unit price × pack size",
@@ -229,7 +229,9 @@
     "genCode": "Generate a code (no barcode)",
     "more": "More options",
     "moreHint": "Unit · sell by case · expiry · note",
-    "packPriceAuto": "Auto"
+    "packPriceAuto": "Auto",
+    "addUnit": "+ Add new unit…",
+    "newUnitPlaceholder": "Type a unit name"
   },
   "stock": {
     "product": "Product",
