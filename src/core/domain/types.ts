@@ -107,6 +107,10 @@ export interface Product {
   isActive: boolean;
   note: string; // หมายเหตุ (ภายในร้าน)
   pinned: boolean; // ปักหมุด: แสดงก่อน (ทั้งในคลังและหน้าขาย, ในหมวดที่เลือกก็ขึ้นก่อน)
+  /** ถังขยะ: ลบเมื่อไร / ใครลบ / เหตุผล (null = ไม่ได้อยู่ในถังขยะ) */
+  deletedAt: Date | null;
+  deletedBy: string | null;
+  deletedReason: string | null;
   createdAt: Date;
   updatedAt: Date;
 }

@@ -112,6 +112,9 @@ export function CatalogLookup({
         >
           {t.editExisting}
         </Link>
+        <p className="w-full text-xs text-amber-800 dark:text-amber-200">
+          {t.replaceHint}
+        </p>
       </div>
     );
   if (state === "none")

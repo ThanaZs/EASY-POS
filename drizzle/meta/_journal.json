@@ -78,6 +78,13 @@
       "when": 1794972123983,
       "tag": "0010_purchase_info",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1795169438731,
+      "tag": "0011_product_trash",
+      "breakpoints": true
     }
   ]
 }

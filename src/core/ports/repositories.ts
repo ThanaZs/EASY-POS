@@ -139,6 +139,20 @@ export interface ProductRepo {
   ): Promise<Product | null>;
   /** ลบแบบซ่อน (is_active=false) เพราะบิลเก่ายังอ้างถึง — คืน path รูปเดิม (ให้ลบไฟล์) */
   deactivate(storeId: ID, id: ID): Promise<string | null>;
+  /** ย้ายไปถังขยะ (กู้คืนได้): ซ่อนจากร้าน แต่เก็บบาร์โค้ด/รูป/ข้อมูลไว้ครบ */
+  trash(storeId: ID, id: ID, by: string, reason: string | null): Promise<Product | null>;
+  /** สินค้าในถังขยะ (ล่าสุดก่อน) */
+  listTrash(storeId: ID): Promise<Product[]>;
+  countTrash(storeId: ID): Promise<number>;
+  /** กู้คืนจากถังขยะ — บาร์โค้ดที่ตอนนี้มีสินค้าอื่นใช้อยู่จะถูกเอาออก (droppedBarcode) */
+  restore(
+    storeId: ID,
+    id: ID,
+  ): Promise<{ product: Product; droppedBarcode: boolean } | null>;
+  /** ลบถาวร (ออกจากถังขยะ) = ซ่อนแบบเดิม: เอาบาร์โค้ด/รูปออก — คืน path รูป (ให้ลบไฟล์); บิลเก่ายังอ้างถึงได้ */
+  purge(storeId: ID, id: ID): Promise<string | null>;
+  /** ลบถาวรสินค้าที่อยู่ในถังขยะนานเกิน days วัน — คืน path รูปทั้งหมด */
+  purgeOlderThan(storeId: ID, days: number): Promise<string[]>;
   /** ตั้ง/ลบรูป — คืน path รูปเดิม (ให้ลบไฟล์) */
   setImage(storeId: ID, id: ID, path: string | null): Promise<string | null>;
   /** ปักหมุด/เลิกปักหมุด — คืนสินค้า (null = ไม่พบ) */

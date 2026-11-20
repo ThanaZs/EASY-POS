@@ -2,6 +2,7 @@
 
 import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
+import { can } from "@/core/domain/permissions";
 import { randomCode } from "@/core/lib/code";
 import { defaultLocale, isLocale } from "@/i18n/config";
 import { parseMoney } from "@/core/lib/format";
@@ -112,7 +113,7 @@ export async function lookupBarcodeAction(input: {
 export async function saveProductAction(form: FormData) {
   const { locale, storeId } = storeCtx(form);
   const productId = str(form, "productId");
-  const { store, user } = await requireStoreAccess(
+  const { store, user, member } = await requireStoreAccess(
     locale,
     storeId,
     productId ? "products.edit" : "products.create",
@@ -190,6 +191,43 @@ export async function saveProductAction(form: FormData) {
   } catch (e) {
     if (!(e instanceof Error && e.message === "DUPLICATE_BARCODE")) throw e;
     error = "duplicate";
+  }
+  // เพิ่มสินค้าใหม่แต่บาร์โค้ดซ้ำกับสินค้าเดิม (ผู้ใช้ไม่เลือก "แก้ไขสินค้าเดิม") → สินค้าใหม่แทนที่:
+  // สินค้าเดิมย้ายไปถังขยะ (กู้คืนได้) แล้วบันทึกตัวใหม่ — ต้องมีสิทธิ์ลบสินค้า
+  if (error === "duplicate" && !productId && can(member, "products.delete")) {
+    const codes = [input.barcode, input.packBarcode].filter(
+      (c): c is string => !!c,
+    );
+    const clash = (await repos.products.list(storeId, {})).filter((p) =>
+      codes.some((c) => p.barcode === c || p.packBarcode === c),
+    );
+    for (const old of clash) {
+      await repos.products.trash(
+        storeId,
+        old.id,
+        user.displayName,
+        `ถูกแทนที่ด้วย ${input.name}`,
+      );
+      await audit(storeId, user, "product.delete", {
+        entityType: "product",
+        entityId: old.id,
+        entityName: old.name,
+        note: `ย้ายไปถังขยะ — ถูกแทนที่ด้วย ${input.name}`,
+      });
+    }
+    try {
+      savedId = (
+        await repos.products.create(
+          storeId,
+          input,
+          int(form, "initialQty", 0, 1_000_000, 0),
+          user.id,
+        )
+      ).id;
+      error = null;
+    } catch (e) {
+      if (!(e instanceof Error && e.message === "DUPLICATE_BARCODE")) throw e;
+    }
   }
   if (error) redirect(`${back}?error=${error}`);
   // รูปพัง ≠ สินค้าพัง: บันทึกสินค้าแล้ว แจ้งให้ถ่ายใหม่ในหน้าแก้ไข
@@ -269,17 +307,59 @@ export async function deleteProductAction(form: FormData) {
   const { user } = await requireStoreAccess(locale, storeId, "products.delete");
   const repos = await getRepositories();
   const productId = str(form, "productId");
-  const product = await repos.products.findById(storeId, productId);
-  const oldImage = await repos.products.deactivate(storeId, productId);
+  // ไม่ลบจริง: ย้ายไปถังขยะ (กู้คืนได้ 30 วัน) กันลบผิด
+  const product = await repos.products.trash(
+    storeId,
+    productId,
+    user.displayName,
+    null,
+  );
   if (product)
     await audit(storeId, user, "product.delete", {
       entityType: "product",
       entityId: productId,
       entityName: product.name,
-      note: product.barcode ?? "",
+      note: `ย้ายไปถังขยะ${product.barcode ? ` · ${product.barcode}` : ""}`,
     });
-  if (oldImage) await (await getStorage())?.remove([oldImage]).catch(() => {});
-  redirect(`/${locale}/store/${storeId}/inventory`);
+  redirect(`/${locale}/store/${storeId}/inventory?trashed=1`);
+}
+
+/** กู้คืนสินค้าจากถังขยะ */
+export async function restoreProductAction(form: FormData) {
+  const { locale, storeId } = storeCtx(form);
+  const { user } = await requireStoreAccess(locale, storeId, "products.delete");
+  const repos = await getRepositories();
+  const res = await repos.products.restore(storeId, str(form, "productId"));
+  const base = `/${locale}/store/${storeId}/inventory/trash`;
+  if (!res) redirect(base);
+  await audit(storeId, user, "product.restore", {
+    entityType: "product",
+    entityId: res.product.id,
+    entityName: res.product.name,
+    note: res.droppedBarcode ? "บาร์โค้ดซ้ำกับสินค้าอื่น — กู้คืนแบบไม่มีบาร์โค้ด" : "",
+  });
+  redirect(
+    `${base}?restored=${encodeURIComponent(res.product.name)}${res.droppedBarcode ? "&nobarcode=1" : ""}`,
+  );
+}
+
+/** ลบถาวร (ออกจากถังขยะ) — บิลเก่ายังอ้างถึงชื่อสินค้าได้ */
+export async function purgeProductAction(form: FormData) {
+  const { locale, storeId } = storeCtx(form);
+  const { user } = await requireStoreAccess(locale, storeId, "products.delete");
+  const repos = await getRepositories();
+  const productId = str(form, "productId");
+  const p = await repos.products.findById(storeId, productId);
+  const img = await repos.products.purge(storeId, productId);
+  if (p)
+    await audit(storeId, user, "product.purge", {
+      entityType: "product",
+      entityId: productId,
+      entityName: p.name,
+      note: "ลบถาวรจากถังขยะ",
+    });
+  if (img) await (await getStorage())?.remove([img]).catch(() => {});
+  redirect(`/${locale}/store/${storeId}/inventory/trash`);
 }
 
 /** ปักหมุด/เลิกปักหมุดสินค้า (ปุ่มในรายการคลังสินค้า) */

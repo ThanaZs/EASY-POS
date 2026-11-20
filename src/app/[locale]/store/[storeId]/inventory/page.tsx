@@ -1,6 +1,7 @@
 import Link from "next/link";
+import { Alert } from "@/components/Alert";
 import { PageTitle } from "@/components/PageTitle";
-import { FileSpreadsheet, Plus } from "lucide-react";
+import { FileSpreadsheet, Plus, Trash2 } from "lucide-react";
 import { can } from "@/core/domain/permissions";
 import { fill } from "@/core/lib/format";
 import { toEnglishLayout } from "@/core/lib/keyboard";
@@ -45,10 +46,13 @@ export default async function InventoryPage({
     lowStockOnly: low,
     pinnedOnly: pin,
   };
-  const [found, tree, storage] = await Promise.all([
+  const [found, tree, storage, trashCount] = await Promise.all([
     repos.products.list(storeId, { ...filter, search: q }),
     repos.products.categoryTree(storeId),
     getStorage(),
+    can(member, "products.delete")
+      ? repos.products.countTrash(storeId)
+      : Promise.resolve(0),
   ]);
   // พิมพ์/ยิงตอนคีย์บอร์ดค้างภาษาไทย ("ๅ/-ภ") แล้วไม่เจอ → ลองแปลงเป็นแป้นอังกฤษ ("1234")
   const en = toEnglishLayout(q);
@@ -81,6 +85,15 @@ export default async function InventoryPage({
         <div className="flex flex-wrap justify-end gap-2">
           {can(member, "products.create") && (
             <>
+              {trashCount > 0 && (
+                <Link
+                  prefetch={false}
+                  href={`${base}/trash`}
+                  className="inline-flex items-center gap-1 rounded-xl border border-line bg-card px-3 py-2 text-sm font-medium hover:border-brand"
+                >
+                  <Trash2 className="size-4" /> {t.inventory.trash.title} ({trashCount})
+                </Link>
+              )}
               <Link
                 prefetch={false}
                 href={`${base}/import`}
@@ -102,6 +115,18 @@ export default async function InventoryPage({
         </div>
       </div>
 
+      {sp.trashed === "1" && (
+        <Alert kind="success">
+          {t.inventory.trash.moved}{" "}
+          <Link
+            prefetch={false}
+            href={`${base}/trash`}
+            className="font-semibold underline"
+          >
+            {t.inventory.trash.open}
+          </Link>
+        </Alert>
+      )}
       <InventoryFilters
         q={q}
         cat={cat}
@@ -172,6 +197,17 @@ export default async function InventoryPage({
           low: t.inventory.low,
         }}
       />
+      {/* มือถือ: ลิงก์ถังขยะใต้รายการ (คอมมีปุ่มข้างนำเข้า Excel) */}
+      {trashCount > 0 && (
+        <Link
+          prefetch={false}
+          href={`${base}/trash`}
+          className="mx-auto flex w-fit items-center gap-1.5 rounded-full px-3 py-2 text-sm text-muted hover:text-ink sm:hidden"
+        >
+          <Trash2 className="size-4" />
+          {fill(t.inventory.trash.link, { n: trashCount })}
+        </Link>
+      )}
     </div>
   );
 }

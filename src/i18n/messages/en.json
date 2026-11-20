@@ -180,8 +180,8 @@
     "trackStock": "Track stock for this product",
     "expiresAt": "Expiry date",
     "save": "Save",
-    "delete": "Delete product",
-    "deleteConfirm": "Delete this product? (past bills are kept)",
+    "delete": "Move to trash",
+    "deleteConfirm": "Move this product to the trash? (restorable for 30 days)",
     "low": "Low",
     "out": "Out",
     "noTrack": "Not tracked",
@@ -262,6 +262,22 @@
       "confirm": "Merge “{a}” as a case of “{b}”? This cannot be undone",
       "done": "Merged — this product now sells by piece and by case",
       "notFound": "No product with barcode {code}"
+    },
+    "trash": {
+      "title": "Trash",
+      "hint": "Deleted or replaced products are kept for {days} days and can be restored with their barcode, photo and history — then deleted permanently.",
+      "empty": "Trash is empty",
+      "restore": "Restore",
+      "purge": "Delete forever",
+      "purgeTitle": "Delete forever?",
+      "purgeMessage": "“{name}” can no longer be restored (old bills stay viewable)",
+      "restored": "Restored “{name}”",
+      "noBarcode": "— its barcode is now used by another product, so it was restored without one",
+      "deletedInfo": "Deleted {when} by {who}",
+      "daysLeft": "{n} days left",
+      "moved": "Product moved to trash (restorable for 30 days)",
+      "open": "Open trash",
+      "link": "Trash ({n} items)"
     }
   },
   "stock": {
@@ -647,7 +663,8 @@
     "fromOff": "Data from Open Food Facts (CC BY-SA)",
     "fromObf": "Data from Open Beauty Facts (CC BY-SA)",
     "exists": "This barcode is already in your store",
-    "editExisting": "Edit this product"
+    "editExisting": "Edit this product",
+    "replaceHint": "Or press “Save”: this new product replaces it and the old one moves to the trash (restorable)"
   },
   "keyboard": {
     "done": "Done",
@@ -677,7 +694,9 @@
       "member.remove": "Removed staff",
       "member.leave": "Left store",
       "product.pin": "Pinned product",
-      "product.unpin": "Unpinned product"
+      "product.unpin": "Unpinned product",
+      "product.restore": "Restored product",
+      "product.purge": "Deleted product forever"
     },
     "fields": {
       "name": "Name",

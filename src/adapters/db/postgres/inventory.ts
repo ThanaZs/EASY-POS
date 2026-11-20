@@ -10,6 +10,7 @@ import {
   inArray,
   isNotNull,
   isNull,
+  lt,
   lte,
   or,
   sql,
@@ -216,6 +217,7 @@ export function productRepo(): ProductRepo {
               .where(
                 and(
                   eq(products.storeId, storeId),
+                  eq(products.isActive, true), // ไม่แตะสินค้าในถังขยะ
                   inArray(products.barcode, barcodes),
                 ),
               )
@@ -350,11 +352,161 @@ export function productRepo(): ProductRepo {
         .set({
           isActive: false,
           barcode: null,
+          packBarcode: null,
           imagePath: null,
+          deletedAt: null,
           updatedAt: new Date(),
         })
         .where(and(eq(products.storeId, storeId), eq(products.id, id)));
       return old?.imagePath ?? null;
+    },
+    async trash(storeId, id, by, reason) {
+      const [r] = await db
+        .update(products)
+        .set({
+          isActive: false,
+          deletedAt: new Date(),
+          deletedBy: by.slice(0, 80),
+          deletedReason: reason?.slice(0, 200) ?? null,
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(products.storeId, storeId),
+            eq(products.id, id),
+            eq(products.isActive, true),
+          ),
+        )
+        .returning();
+      return r ? toProduct(r) : null;
+    },
+    async listTrash(storeId) {
+      const rows = await db
+        .select()
+        .from(products)
+        .where(
+          and(
+            eq(products.storeId, storeId),
+            eq(products.isActive, false),
+            isNotNull(products.deletedAt),
+          ),
+        )
+        .orderBy(desc(products.deletedAt))
+        .limit(500);
+      return rows.map(toProduct);
+    },
+    async countTrash(storeId) {
+      const [r] = await db
+        .select({ n: sql<number>`count(*)::int` })
+        .from(products)
+        .where(
+          and(
+            eq(products.storeId, storeId),
+            eq(products.isActive, false),
+            isNotNull(products.deletedAt),
+          ),
+        );
+      return r?.n ?? 0;
+    },
+    async restore(storeId, id) {
+      return db.transaction(async (tx) => {
+        const [p] = await tx
+          .select()
+          .from(products)
+          .where(
+            and(
+              eq(products.storeId, storeId),
+              eq(products.id, id),
+              eq(products.isActive, false),
+              isNotNull(products.deletedAt),
+            ),
+          )
+          .for("update");
+        if (!p) return null;
+        // บาร์โค้ดเดิมมีสินค้าอื่น (ที่ใช้งานอยู่) ใช้แล้ว → กู้คืนแบบไม่มีบาร์โค้ดนั้น
+        const taken = async (code: string | null) => {
+          if (!code) return false;
+          const [hit] = await tx
+            .select({ id: products.id })
+            .from(products)
+            .where(
+              and(
+                eq(products.storeId, storeId),
+                eq(products.isActive, true),
+                sql`(${products.barcode} = ${code} or ${products.packBarcode} = ${code})`,
+              ),
+            )
+            .limit(1);
+          return !!hit;
+        };
+        const dropBar = await taken(p.barcode);
+        const dropPack = await taken(p.packBarcode);
+        const [r] = await tx
+          .update(products)
+          .set({
+            isActive: true,
+            deletedAt: null,
+            deletedBy: null,
+            deletedReason: null,
+            ...(dropBar ? { barcode: null } : {}),
+            ...(dropPack ? { packBarcode: null } : {}),
+            updatedAt: new Date(),
+          })
+          .where(eq(products.id, p.id))
+          .returning();
+        return { product: toProduct(r), droppedBarcode: dropBar || dropPack };
+      });
+    },
+    async purge(storeId, id) {
+      const [old] = await db
+        .select({ imagePath: products.imagePath })
+        .from(products)
+        .where(
+          and(
+            eq(products.storeId, storeId),
+            eq(products.id, id),
+            eq(products.isActive, false),
+            isNotNull(products.deletedAt),
+          ),
+        );
+      if (!old) return null;
+      await db
+        .update(products)
+        .set({
+          barcode: null,
+          packBarcode: null,
+          imagePath: null,
+          deletedAt: null,
+          updatedAt: new Date(),
+        })
+        .where(and(eq(products.storeId, storeId), eq(products.id, id)));
+      return old.imagePath;
+    },
+    async purgeOlderThan(storeId, days) {
+      const cutoff = new Date(Date.now() - days * 86_400_000);
+      const old = and(
+        eq(products.storeId, storeId),
+        eq(products.isActive, false),
+        isNotNull(products.deletedAt),
+        lt(products.deletedAt, cutoff),
+      );
+      // อ่าน path รูปก่อน (หลังอัปเดตเป็น null แล้ว) → ผู้เรียกลบไฟล์ทิ้ง
+      const imgs = await db
+        .select({ img: products.imagePath })
+        .from(products)
+        .where(old);
+      if (imgs.length === 0) return [];
+      await db
+        .update(products)
+        .set({
+          barcode: null,
+          packBarcode: null,
+          imagePath: null,
+          deletedAt: null,
+          updatedAt: new Date(),
+        })
+        .where(old);
+      return imgs.map((r) => r.img).filter((x): x is string => !!x);
     },
     async setPinned(storeId, id, pinned) {
       const [r] = await db

@@ -138,12 +138,21 @@ export const products = pgTable(
     isActive: boolean("is_active").notNull().default(true),
     note: text("note").notNull().default(""), // หมายเหตุสินค้า (ใช้ภายในร้าน)
     pinned: boolean("pinned").notNull().default(false), // ปักหมุด: แสดงก่อนในคลัง/หน้าขาย
+    // ถังขยะ: ลบแล้วกู้คืนได้ (is_active=false + deleted_at) — เก็บบาร์โค้ด/รูปไว้ครบจนกว่าลบถาวร (30 วัน)
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+    deletedBy: text("deleted_by"), // ชื่อคนลบ (ณ ตอนลบ)
+    deletedReason: text("deleted_reason"), // เช่น "ถูกแทนที่ด้วย X" / ว่าง = ลบเอง
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
   (t) => [
-    uniqueIndex("products_store_barcode").on(t.storeId, t.barcode),
-    uniqueIndex("products_store_pack_barcode").on(t.storeId, t.packBarcode),
+    // บาร์โค้ดห้ามซ้ำเฉพาะสินค้าที่ใช้งานอยู่ — สินค้าในถังขยะเก็บบาร์โค้ดเดิมไว้ (ไว้กู้คืน)
+    uniqueIndex("products_store_barcode")
+      .on(t.storeId, t.barcode)
+      .where(sql`${t.isActive}`),
+    uniqueIndex("products_store_pack_barcode")
+      .on(t.storeId, t.packBarcode)
+      .where(sql`${t.isActive}`),
     index("products_store_name").on(t.storeId, t.name),
   ],
 );
