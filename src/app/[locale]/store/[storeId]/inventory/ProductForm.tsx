@@ -72,7 +72,7 @@ export function ProductForm({
   return (
     <form
       action={saveProductAction}
-      className="grid grid-cols-2 gap-3 rounded-2xl border border-line bg-card p-4 shadow-sm sm:gap-4 sm:p-6"
+      className="grid grid-cols-2 gap-3 rounded-2xl border border-line bg-card p-3.5 shadow-sm sm:gap-4 sm:p-6"
     >
       <input type="hidden" name="locale" value={locale} />
       <input type="hidden" name="storeId" value={store.id} />
@@ -179,7 +179,7 @@ export function ProductForm({
           </span>
           <ChevronDown className="size-5 shrink-0 text-muted transition group-open:rotate-180" />
         </summary>
-        <div className="grid grid-cols-2 gap-3 border-t border-line p-3">
+        <div className="grid grid-cols-2 gap-3 border-t border-line p-2.5 sm:p-3">
           <UnitField
             name="unit"
             label={inv.unit}
@@ -246,7 +246,7 @@ export function ProductForm({
       </details>
 
       {/* ปุ่มบันทึกติดล่างจอเสมอ (มือถือไม่ต้องเลื่อนหา) */}
-      <div className="sticky bottom-0 col-span-2 -mx-4 -mb-4 rounded-b-2xl border-t border-line bg-card/95 p-3 backdrop-blur sm:static sm:m-0 sm:border-0 sm:bg-transparent sm:p-0">
+      <div className="sticky bottom-0 col-span-2 -mx-3.5 -mb-3.5 rounded-b-2xl border-t border-line bg-card/95 p-3 backdrop-blur sm:static sm:m-0 sm:border-0 sm:bg-transparent sm:p-0">
         <PrimaryButton type="submit">{inv.save}</PrimaryButton>
       </div>
     </form>

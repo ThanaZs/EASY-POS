@@ -129,6 +129,27 @@ export default async function ReceivePage({
                 ]}
               />
             </div>
+            {/* วันที่: รับเข้าวันไหน / เบิกออกวันไหน (ย้อนหลังได้ ห้ามล่วงหน้า) */}
+            <label className="block space-y-1">
+              <span className="text-sm text-muted">
+                <span className="hidden group-has-[input[name=mode][value=in]:checked]:inline">
+                  {t.stock.inDate}
+                </span>
+                <span className="hidden group-has-[input[name=mode][value=out]:checked]:inline">
+                  {t.stock.outDate}
+                </span>
+                <span className="hidden group-has-[input[name=mode][value=adjust]:checked]:inline">
+                  {t.stock.adjustDate}
+                </span>
+              </span>
+              <input
+                type="date"
+                name="movedOn"
+                defaultValue={todayIn(store.timeZone)}
+                max={todayIn(store.timeZone)}
+                className="w-full rounded-xl border border-line bg-card px-3 py-2.5 outline-none focus:border-brand focus:ring-2 focus:ring-brand-soft"
+              />
+            </label>
             <Field label={t.stock.note} name="note" maxLength={200} />
             {/* ข้อมูลการซื้อ: แสดงเฉพาะโหมด "รับเข้า" */}
             <fieldset className="hidden gap-3 rounded-2xl border border-dashed border-line p-3 group-has-[input[name=mode][value=in]:checked]:grid sm:col-span-2 sm:grid-cols-2">
@@ -174,12 +195,6 @@ export default async function ReceivePage({
                 maxLength={60}
                 autoComplete="off"
                 placeholder={t.stock.lotHint}
-              />
-              <Field
-                label={t.stock.purchasedOn}
-                name="purchasedOn"
-                type="date"
-                defaultValue={todayIn(store.timeZone)}
               />
               {can(member, "products.edit") && (
                 <label className="flex items-center gap-2 text-sm sm:col-span-2">

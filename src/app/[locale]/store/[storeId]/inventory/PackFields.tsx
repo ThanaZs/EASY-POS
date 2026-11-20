@@ -66,7 +66,7 @@ export function PackFields({
       {/* สินค้าเดียวกัน ขายได้ทั้งชิ้นและลัง — ไม่ต้องเพิ่มลังเป็นสินค้าแยก */}
       <p className="text-xs text-muted">{labels.hint}</p>
       {on && (
-        <div className="grid grid-cols-2 gap-3 rounded-xl bg-surface p-3">
+        <div className="grid grid-cols-2 gap-3 rounded-xl bg-surface p-2.5 sm:p-3">
           <UnitField
             name="packUnit"
             label={labels.packUnit}
@@ -115,7 +115,7 @@ export function PackFields({
                   autoComplete="off"
                   lang="en"
                   aria-label={labels.packBarcode}
-                  className={`${cls} pr-11 font-mono`}
+                  className={`${cls} pr-10 font-mono text-[15px] tracking-tight`}
                 />
                 <button
                   type="button"

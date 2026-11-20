@@ -254,7 +254,7 @@ export function AppShell({
         </div>
       )}
 
-      <main className="mx-auto max-w-6xl px-4 py-4 lg:py-6">
+      <main className="mx-auto max-w-6xl overflow-x-clip px-4 py-4 lg:py-6">
         <PageTitleContext.Provider value={setPage}>
           {children}
         </PageTitleContext.Provider>

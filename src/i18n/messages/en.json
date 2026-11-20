@@ -343,7 +343,10 @@
     "noPurchaseYet": "No purchase info yet",
     "supplierFilter": "Bought from",
     "searchAll": "Scan or type name / barcode / category",
-    "pinnedHint": "Pinned products — or type to search"
+    "pinnedHint": "Pinned products — or type to search",
+    "inDate": "Received on",
+    "outDate": "Issued on",
+    "adjustDate": "Adjusted on"
   },
   "pos": {
     "search": "Scan / search products",

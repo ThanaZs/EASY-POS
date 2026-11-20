@@ -165,3 +165,18 @@ body {
     animation-duration: 0.01ms !important;
   }
 }
+
+/* iOS Safari: ช่องวันที่ (date/time) กว้างขั้นต่ำตามตัวเอง → ล้นกรอบแล้ว Safari ย่อทั้งหน้า — บังคับให้พอดีช่อง */
+input[type="date"],
+input[type="time"],
+input[type="datetime-local"],
+input[type="month"] {
+  min-width: 0;
+  max-width: 100%;
+  -webkit-appearance: none;
+  appearance: none;
+  min-height: 2.75rem;
+}
+input[type="date"]::-webkit-date-and-time-value {
+  text-align: left;
+}

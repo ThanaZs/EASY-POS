@@ -37,8 +37,19 @@ export async function stockMoveAction(form: FormData) {
     delta = qty - p.stockQty;
   else redirect(back);
 
-  // ข้อมูลการซื้อ (เฉพาะรับเข้า): ราคาซื้อ (ต่อหน่วยที่เลือก หรือ รวมทั้งหมด), ซื้อจาก, ลอต, วันที่ซื้อ
-  let purchase: PurchaseInfo | undefined;
+  // วันที่ของรายการ (รับเข้าวันไหน / เบิกออกวันไหน) — เลือกย้อนหลังได้ ไม่เลือก = วันนี้ (เก็บในช่อง purchasedOn ของ movement)
+  const dayIn = str(form, "movedOn") || str(form, "purchasedOn");
+  const movedOn = /^\d{4}-\d{2}-\d{2}$/.test(dayIn) && dayIn <= todayIn(store.timeZone)
+    ? dayIn
+    : todayIn(store.timeZone);
+  // ข้อมูลการซื้อ (เฉพาะรับเข้า): ราคาซื้อ (ต่อหน่วยที่เลือก หรือ รวมทั้งหมด), ซื้อจาก, ลอต
+  const noPurchase: PurchaseInfo = {
+    unitCostMinor: null,
+    supplier: null,
+    lotNo: null,
+    purchasedOn: movedOn,
+  };
+  let purchase: PurchaseInfo = noPurchase;
   let newCost: number | null = null;
   if (mode === "in" && qty > 0) {
     const price = parseMoney(str(form, "buyPrice"), store.currency);
@@ -51,14 +62,11 @@ export async function stockMoveAction(form: FormData) {
             ? Math.round(price / p.packSize!)
             : price;
     }
-    const day = str(form, "purchasedOn");
     purchase = {
       unitCostMinor,
       supplier: str(form, "supplier").slice(0, 80) || null,
       lotNo: str(form, "lotNo").slice(0, 60) || null,
-      purchasedOn: /^\d{4}-\d{2}-\d{2}$/.test(day)
-        ? day
-        : todayIn(store.timeZone),
+      purchasedOn: movedOn,
     };
     if (
       unitCostMinor !== null &&

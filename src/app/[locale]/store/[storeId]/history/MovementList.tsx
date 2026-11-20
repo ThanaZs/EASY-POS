@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Store, Tag, Truck } from "lucide-react";
+import { CalendarDays, Store, Tag, Truck } from "lucide-react";
 import type { StockMovement } from "@/core/domain/types";
 import { formatDateTime, formatMoney } from "@/core/lib/format";
 import type { Locale } from "@/i18n/config";
@@ -66,6 +66,12 @@ export function MovementList({
                 >
                   {t.stock.types[m.type]}
                 </span>
+                {m.purchasedOn && (
+                  <span className="inline-flex items-center gap-1 text-xs font-semibold text-ink">
+                    <CalendarDays className="size-3.5 text-muted" />
+                    {day(m.purchasedOn)}
+                  </span>
+                )}
                 {showProduct &&
                   (linkBase && m.productId ? (
                     <Link
@@ -97,11 +103,6 @@ export function MovementList({
                   {m.lotNo && (
                     <span className="inline-flex items-center gap-1">
                       <Truck className="size-3" /> {t.stock.lotNo} {m.lotNo}
-                    </span>
-                  )}
-                  {m.purchasedOn && (
-                    <span className="text-muted">
-                      {t.stock.boughtOn} {day(m.purchasedOn)}
                     </span>
                   )}
                 </p>

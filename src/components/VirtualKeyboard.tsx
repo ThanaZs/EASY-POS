@@ -226,8 +226,14 @@ export function VirtualKeyboard({
     return () => {
       document.removeEventListener("touchstart", onStart);
       document.removeEventListener("touchmove", onMove);
+      // ปลดล็อกแล้วกลับตำแหน่งเดิม — iOS ต้องสั่งซ้ำหลังวาดใหม่ (สั่งครั้งเดียวมักโดนรีเซ็ตเป็นบนสุด)
+      const y = lockY.current;
       Object.assign(b, prev);
-      window.scrollTo(0, lockY.current);
+      const back = () => window.scrollTo({ top: y, left: 0, behavior: "instant" });
+      back();
+      requestAnimationFrame(back);
+      setTimeout(back, 60);
+      setTimeout(back, 250);
     };
   }, [isOpen]);
 
