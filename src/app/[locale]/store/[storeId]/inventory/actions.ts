@@ -512,3 +512,32 @@ export async function mergeAsPackAction(form: FormData) {
   if (oldImage) await (await getStorage())?.remove([oldImage]).catch(() => {});
   redirect(`/${locale}/store/${storeId}/inventory/${target.id}?merged=1`);
 }
+
+/** เปลี่ยนชื่อหมวด / หมวดย่อย (ปุ่มดินสอในตัวกรองคลังสินค้า) — มีผลกับทุกสินค้าในหมวดนั้น */
+export async function renameCategoryAction(input: {
+  locale: string;
+  storeId: string;
+  kind: "cat" | "sub";
+  category: string;
+  from: string;
+  to: string;
+}): Promise<{ ok: true; n: number; to: string } | { ok: false }> {
+  const locale = isLocale(input.locale) ? input.locale : defaultLocale;
+  const { user } = await requireStoreAccess(locale, input.storeId, "products.edit");
+  const to = input.to.trim().slice(0, 60);
+  const from = input.from;
+  if (!to || !from || to === from) return { ok: false };
+  const repos = await getRepositories();
+  const n =
+    input.kind === "cat"
+      ? await repos.products.renameCategory(input.storeId, from, to)
+      : await repos.products.renameSubcategory(input.storeId, input.category, from, to);
+  await audit(input.storeId, user, "category.rename", {
+    entityType: "category",
+    entityName: input.kind === "cat" ? to : `${input.category} › ${to}`,
+    changes: { [input.kind === "cat" ? "category" : "subcategory"]: [from, to] },
+    note: `${n} รายการ`,
+  });
+  refresh();
+  return { ok: true, n, to };
+}

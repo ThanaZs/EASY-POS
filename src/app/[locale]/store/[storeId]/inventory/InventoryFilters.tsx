@@ -5,6 +5,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import {
   Camera,
   LoaderCircle,
+  Pencil,
   Pin,
   Search,
   TriangleAlert,
@@ -14,6 +15,8 @@ import { CameraScanner } from "@/components/CameraScanner";
 import type { Dictionary } from "@/i18n/dictionary";
 import { useBarcodeScanner } from "@/client/devices/scanner";
 import type { CategoryNode } from "@/core/ports/repositories";
+import { fill } from "@/core/lib/format";
+import { renameCategoryAction } from "./actions";
 
 /** เขียน cookie ตัวกรองล่าสุดของหน้า (อ่านที่ server/filters.ts) — ว่าง = ลบ */
 export function rememberFilters(pathname: string, search: string) {
@@ -51,6 +54,7 @@ export function InventoryFilters({
   tree,
   labels,
   scan,
+  rename,
 }: {
   q: string;
   cat: string;
@@ -60,6 +64,15 @@ export function InventoryFilters({
   tree: CategoryNode[];
   labels: Labels;
   scan: Dictionary["scan"];
+  /** มีสิทธิ์แก้สินค้า → ปุ่มดินสอแก้ชื่อหมวด/หมวดย่อย */
+  rename?: {
+    locale: string;
+    storeId: string;
+    t: Pick<
+      Dictionary["inventory"],
+      "renameCat" | "renameSub" | "renamePrompt" | "renamed" | "renameFailed"
+    >;
+  };
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -86,6 +99,35 @@ export function InventoryFilters({
   };
   useBarcodeScanner(onScanned);
   const node = tree.find((n) => n.category === selCat);
+  const [renaming, setRenaming] = useState(false);
+  /** แก้ชื่อหมวด (kind=cat) หรือหมวดย่อยที่เลือกอยู่ (kind=sub) — ใช้ช่องถามของเครื่อง (ง่าย ไม่ต้องมีหน้าใหม่) */
+  async function renameIt(kind: "cat" | "sub") {
+    if (!rename || renaming) return;
+    const from = kind === "cat" ? selCat : selSub;
+    if (!from || from === NO_SUB) return;
+    const to = window
+      .prompt(fill(rename.t.renamePrompt, { name: from }), from)
+      ?.trim();
+    if (!to || to === from) return;
+    setRenaming(true);
+    const res = await renameCategoryAction({
+      locale: rename.locale,
+      storeId: rename.storeId,
+      kind,
+      category: selCat,
+      from,
+      to,
+    }).catch(() => ({ ok: false as const }));
+    setRenaming(false);
+    if (!res.ok) return window.alert(rename.t.renameFailed);
+    if (kind === "cat") {
+      setSelCat(res.to);
+      apply({ cat: res.to, sub: selSub });
+    } else {
+      setSelSub(res.to);
+      apply({ sub: res.to });
+    }
+  }
   const showSubs = !!node && node.subcategories.length > 0;
 
   function apply(
@@ -221,6 +263,18 @@ export function InventoryFilters({
             </option>
           ))}
         </select>
+        {rename && selCat && (
+          <button
+            type="button"
+            onClick={() => renameIt("cat")}
+            disabled={renaming}
+            aria-label={rename.t.renameCat}
+            title={rename.t.renameCat}
+            className="grid w-10 shrink-0 place-items-center rounded-xl border border-line bg-card text-muted transition hover:border-brand hover:text-brand-ink active:scale-95 disabled:opacity-50"
+          >
+            <Pencil className="size-4" />
+          </button>
+        )}
         {/* มือถือ: หมวดหมู่ได้ที่กว้างสุด (สำคัญกว่า) — ปักหมุด/ใกล้หมด เหลือแค่ไอคอน */}
         <button
           type="button"
@@ -274,6 +328,18 @@ export function InventoryFilters({
           {chip("", labels.allSub)}
           {node.subcategories.map((s) => chip(s, s))}
           {node.hasNoSub && chip(NO_SUB, labels.noSub)}
+          {rename && selSub && selSub !== NO_SUB && (
+            <button
+              type="button"
+              onClick={() => renameIt("sub")}
+              disabled={renaming}
+              aria-label={rename.t.renameSub}
+              title={rename.t.renameSub}
+              className="flex shrink-0 items-center gap-1 rounded-full border border-dashed border-line px-3 py-1 text-sm text-muted transition hover:border-brand hover:text-brand-ink active:scale-95 disabled:opacity-50"
+            >
+              <Pencil className="size-3.5" /> {rename.t.renameSub}
+            </button>
+          )}
         </div>
       )}
     </div>

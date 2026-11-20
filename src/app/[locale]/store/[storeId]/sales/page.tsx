@@ -6,7 +6,6 @@ import { loadLocale } from "@/i18n/page";
 import { getRepositories } from "@/server/container";
 import { requireStoreAccess } from "@/server/session";
 import { DateRangeFilter } from "@/components/DateRangeFilter";
-import { BackLink } from "../BackLink";
 
 // ประวัติบิลรายวัน (ตาม business_date ของร้าน)
 export default async function SalesPage({
@@ -35,11 +34,7 @@ export default async function SalesPage({
 
   return (
     <div className="mx-auto max-w-3xl space-y-4">
-      <BackLink mobileHidden
-        href={`/${locale}/store/${storeId}/overview`}
-        label={t.store.backSales}
-      />
-      <PageTitle title={t.store.tabs.bills} back={`/${locale}/store/${storeId}/overview`} />
+      <PageTitle title={t.store.modules.sales} />
       <DateRangeFilter from={from} to={to} today={today} labels={t.range} />
       <div className="flex items-baseline justify-between rounded-2xl border border-line bg-card p-4">
         <span className="text-muted">

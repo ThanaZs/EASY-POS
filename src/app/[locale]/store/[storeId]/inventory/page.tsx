@@ -123,6 +123,21 @@ export default async function InventoryPage({
         pin={pin}
         tree={tree}
         scan={t.scan}
+        rename={
+          can(member, "products.edit")
+            ? {
+                locale,
+                storeId,
+                t: {
+                  renameCat: t.inventory.renameCat,
+                  renameSub: t.inventory.renameSub,
+                  renamePrompt: t.inventory.renamePrompt,
+                  renamed: t.inventory.renamed,
+                  renameFailed: t.inventory.renameFailed,
+                },
+              }
+            : undefined
+        }
         labels={{
           search: t.inventory.search,
           allCategories: t.inventory.allCategories,

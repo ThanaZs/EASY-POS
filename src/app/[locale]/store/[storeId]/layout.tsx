@@ -8,7 +8,6 @@ import { MODULES, type ModuleKey } from "./modules";
 
 // หน้าย่อยที่อยู่ใต้เมนูเดียวกัน (ไฮไลต์เมนูให้ถูกตอนเปิดหน้าย่อย)
 const ALSO: Partial<Record<ModuleKey, string[]>> = {
-  overview: ["sales"],
   settings: ["staff", "activity"],
 };
 

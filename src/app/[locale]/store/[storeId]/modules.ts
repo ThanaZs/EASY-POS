@@ -4,6 +4,7 @@ import {
   Boxes,
   Calculator,
   PackagePlus,
+  Receipt,
   Settings,
   type LucideIcon,
 } from "lucide-react";
@@ -45,6 +46,13 @@ export const MODULES: Array<{
     Icon: BarChart3,
     color: "bg-indigo-600",
     anyOf: [{ permission: "reports.view", path: "overview" }],
+  },
+  {
+    // บิลทั้งหมด: เมนูของตัวเอง หาง่าย (เดิมอยู่ในแท็บของยอดขาย)
+    key: "sales",
+    Icon: Receipt,
+    color: "bg-emerald-600",
+    anyOf: [{ permission: "reports.view", path: "sales" }],
   },
   {
     key: "history",

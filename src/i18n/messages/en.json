@@ -119,7 +119,7 @@
       "expenses": "Expenses",
       "history": "Product history",
       "settings": "Store settings",
-      "sales": "Bills"
+      "sales": "All bills"
     },
     "comingSoon": "In development — see docs/ROADMAP.md",
     "tabs": {
@@ -278,7 +278,12 @@
       "moved": "Product moved to trash (restorable for 30 days)",
       "open": "Open trash",
       "link": "Trash ({n} items)"
-    }
+    },
+    "renameCat": "Rename category",
+    "renameSub": "Rename subcategory",
+    "renamePrompt": "New name for “{name}” (all products in it follow — matching an existing name merges them)",
+    "renamed": "Renamed to “{name}” ({n} items)",
+    "renameFailed": "Rename failed"
   },
   "stock": {
     "product": "Product",
@@ -696,7 +701,8 @@
       "product.pin": "Pinned product",
       "product.unpin": "Unpinned product",
       "product.restore": "Restored product",
-      "product.purge": "Deleted product forever"
+      "product.purge": "Deleted product forever",
+      "category.rename": "Renamed category"
     },
     "fields": {
       "name": "Name",

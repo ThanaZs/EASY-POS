@@ -172,6 +172,28 @@ export function productRepo(): ProductRepo {
         [...new Set(xs.map((x) => x?.trim()).filter((x): x is string => !!x))].sort(compareText);
       return { units: uniq(rows.map((r) => r.u)), packUnits: uniq(rows.map((r) => r.p)) };
     },
+    async renameCategory(storeId, from, to) {
+      const rows = await db
+        .update(products)
+        .set({ category: to, updatedAt: new Date() })
+        .where(and(eq(products.storeId, storeId), eq(products.category, from)))
+        .returning({ id: products.id });
+      return rows.length;
+    },
+    async renameSubcategory(storeId, category, from, to) {
+      const rows = await db
+        .update(products)
+        .set({ subcategory: to, updatedAt: new Date() })
+        .where(
+          and(
+            eq(products.storeId, storeId),
+            eq(products.category, category),
+            eq(products.subcategory, from),
+          ),
+        )
+        .returning({ id: products.id });
+      return rows.length;
+    },
     async categoryTree(storeId) {
       const rows = await db
         .selectDistinct({ c: products.category, s: products.subcategory })
