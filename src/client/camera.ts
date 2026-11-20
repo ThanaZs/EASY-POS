@@ -119,6 +119,8 @@ export type BarcodeCamera = {
     supported: boolean;
     on: boolean;
     failed: boolean;
+    /** เปิดให้อัตโนมัติ (สแกนไม่ติดนาน) — แสดงข้อความบอกผู้ใช้ */
+    auto: boolean;
     toggle: () => void;
   };
   /** แตะจอเพื่อโฟกัส (x, y = 0..1 ของภาพ) */
@@ -249,6 +251,10 @@ export function useBarcodeCamera(
   const [torchSupported, setTorchSupported] = useState(false);
   const [torchOn, setTorchOn] = useState(false);
   const [torchFailed, setTorchFailed] = useState(false);
+  const [torchAuto, setTorchAuto] = useState(false);
+  // ผู้ใช้กดปุ่มไฟฉายเองแล้ว → ไม่เปิดอัตโนมัติทับการตัดสินใจของผู้ใช้
+  const torchManual = useRef(false);
+  const torchOnRef = useRef(false);
   const [camInfo, setCamInfo] = useState({ index: 0, total: 0, label: "" });
   const [restart, setRestart] = useState(0); // เพิ่มค่า = เปิดกล้องใหม่ (หลังสลับกล้อง)
   const trackRef = useRef<Track | null>(null);
@@ -270,6 +276,25 @@ export function useBarcodeCamera(
     let candidate = { code: "", at: 0 };
     let frame = 0;
     let sharpAvg = 0;
+    let autoTried = false;
+    /** สแกนไม่ติดเกิน 5 วิ (มักเพราะมืด/แสงน้อย) → เปิดไฟฉายให้เอง 1 ครั้ง (ถ้ากล้องมีไฟฉาย) */
+    const autoTorch = (track: Track) => {
+      autoTried = true;
+      if (torchManual.current || torchOnRef.current) return;
+      const c = (track.getCapabilities?.() ?? {}) as Caps;
+      if (!c.torch) return; // ไม่มีไฟฉาย/ไม่บอก → ไม่ลอง (ไม่ขึ้นข้อความผิดพลาดให้งง)
+      track
+        .applyConstraints({ advanced: [{ torch: true } as MediaTrackConstraintSet] })
+        .then(() => {
+          const st = track.getSettings?.() as MediaTrackSettings & { torch?: boolean };
+          if (stopped || (st && "torch" in st && !st.torch)) return;
+          torchOnRef.current = true;
+          setTorchOn(true);
+          setTorchAuto(true);
+          setTimeout(() => setTorchAuto(false), 3000);
+        })
+        .catch(() => {});
+    };
     const crop = document.createElement("canvas");
     const cropCtx = crop.getContext("2d", { willReadFrequently: true });
     const probe = document.createElement("canvas");
@@ -391,7 +416,10 @@ export function useBarcodeCamera(
                   } else candidate = { code, at: now };
                 }
               }
-              if (now - lastAccepted > 5000) setStalled(true);
+              if (now - lastAccepted > 5000) {
+                setStalled(true);
+                if (!autoTried) autoTorch(track);
+              }
             }
           } catch {
             // เฟรมนี้อ่านไม่ได้ — ลองเฟรมถัดไป
@@ -427,6 +455,7 @@ export function useBarcodeCamera(
             // ignore
           }
           setTorchOn(false);
+          torchOnRef.current = false;
           setTorchSupported(false);
           setRestart((n) => n + 1);
         })
@@ -438,9 +467,12 @@ export function useBarcodeCamera(
       supported: torchSupported,
       on: torchOn,
       failed: torchFailed,
+      auto: torchAuto,
       toggle: () => {
         const track = trackRef.current;
         if (!track) return;
+        torchManual.current = true;
+        setTorchAuto(false);
         const next = !torchOn;
         track
           .applyConstraints({
@@ -455,6 +487,7 @@ export function useBarcodeCamera(
               throw new Error("no-torch");
             if (next && s && !("torch" in s) && !torchSupported)
               throw new Error("no-torch");
+            torchOnRef.current = next;
             setTorchOn(next);
             setTorchFailed(false);
           })

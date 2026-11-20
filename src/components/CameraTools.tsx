@@ -110,6 +110,14 @@ export function CameraTools({
           <Keyboard className="size-5" />
         </button>
       </div>
+      {cam.torch.auto && (
+        <p
+          className="pointer-events-auto w-full max-w-sm rounded-xl bg-amber-300/95 px-3 py-2 text-center text-sm font-medium text-black"
+          role="status"
+        >
+          {t.torchAuto}
+        </p>
+      )}
       {cam.torch.failed && (
         <p
           className="pointer-events-auto w-full max-w-sm rounded-xl bg-black/70 px-3 py-2 text-center text-sm text-white"
