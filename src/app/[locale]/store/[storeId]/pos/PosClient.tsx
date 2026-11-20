@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { ClearCartConfirm } from "./ClearCartConfirm";
 import { compareText } from "@/core/lib/compare";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import {
@@ -438,6 +439,7 @@ export function PosClient(props: Props) {
     searchRef.current?.focus();
   }
 
+  const [askClear, setAskClear] = useState(false); // ยืนยันก่อนล้างตะกร้า
   const cartPanel = (
     <div className="flex h-full flex-col">
       <div className="flex items-center justify-between border-b border-line p-3">
@@ -448,7 +450,7 @@ export function PosClient(props: Props) {
         <div className="flex items-center gap-2">
           {lines.length > 0 && (
             <button
-              onClick={() => setCart(new Map())}
+              onClick={() => setAskClear(true)}
               className="text-sm text-rose-600 hover:underline"
             >
               {t.pos.clear}
@@ -581,6 +583,18 @@ export function PosClient(props: Props) {
 
   return (
     <>
+      {askClear && (
+        <ClearCartConfirm
+          itemCount={itemCount}
+          totalText={money(totals.totalMinor)}
+          t={t.pos}
+          onCancel={() => setAskClear(false)}
+          onConfirm={() => {
+            setAskClear(false);
+            setCart(new Map());
+          }}
+        />
+      )}
       <div className="print:hidden">
         <div className="grid gap-4 pb-24 lg:grid-cols-[1fr_380px] lg:pb-0">
           <section className="min-w-0 space-y-3">

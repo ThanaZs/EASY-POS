@@ -397,7 +397,9 @@
     "clearCart": "ล้างตะกร้า",
     "scanSpeed": "ความเร็วการสแกน",
     "seconds": "{n} วินาที",
-    "itemsCount": "{n} ชิ้น"
+    "itemsCount": "{n} ชิ้น",
+    "clearConfirmTitle": "ล้างตะกร้า?",
+    "clearConfirmText": "สินค้า {n} ชิ้น รวม {total} จะถูกลบออกทั้งหมด"
   },
   "overview": {
     "today": "ยอดขายวันนี้",

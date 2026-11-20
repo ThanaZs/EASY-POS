@@ -397,7 +397,9 @@
     "clearCart": "Clear cart",
     "scanSpeed": "Scan speed",
     "seconds": "{n} s",
-    "itemsCount": "{n} items"
+    "itemsCount": "{n} items",
+    "clearConfirmTitle": "Clear the cart?",
+    "clearConfirmText": "{n} items totalling {total} will be removed"
   },
   "overview": {
     "today": "Sales today",

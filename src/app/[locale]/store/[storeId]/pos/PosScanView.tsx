@@ -13,6 +13,7 @@ import {
 import { scanFeedback, useBarcodeCamera } from "@/client/camera";
 import { CameraTools, useTapFocus } from "@/components/CameraTools";
 import { fill } from "@/core/lib/format";
+import { ClearCartConfirm } from "./ClearCartConfirm";
 import type { Dictionary } from "@/i18n/dictionary";
 
 export type ScanLine = {
@@ -68,6 +69,7 @@ export function PosScanView({
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [speed, setSpeed] = useState(loadSpeed);
+  const [askClear, setAskClear] = useState(false); // ยืนยันก่อนล้างตะกร้า (กันกดพลาด)
   const [toast, setToast] = useState<{ ok: boolean; message: string } | null>(
     null,
   );
@@ -108,25 +110,28 @@ export function PosScanView({
     >
       {/* บน: ปุ่ม 2 อันซ้อนกันทางซ้าย (พื้นขาว ตัวหนังสือเข้ม เห็นชัดบนพื้นส้ม) + ยอดรวมใหญ่ทางขวา */}
       <div className="flex items-center gap-3 bg-gradient-to-r from-brand to-amber-400 px-3 pb-2.5 pt-[max(0.6rem,env(safe-area-inset-top))] text-white">
-        <div className="flex shrink-0 flex-col gap-1.5">
-          {(
-            [
-              [onHold, PauseCircle, t.pos.hold, "text-brand-ink"],
-              [onClear, Trash2, t.pos.clearCart, "text-rose-600"],
-            ] as const
-          ).map(([fn, Icon, label, color]) => (
-            <button
-              key={label}
-              onClick={fn}
-              disabled={lines.length === 0}
-              className="flex h-8 items-center gap-1.5 rounded-full bg-white px-3 text-xs font-semibold text-ink shadow-sm transition active:scale-95 disabled:bg-white/70 disabled:text-muted"
-            >
-              <Icon
-                className={`size-4 ${lines.length === 0 ? "" : color}`}
-              />
-              {label}
-            </button>
-          ))}
+        {/* ปุ่มใหญ่พอกดด้วยนิ้ว (สูง 40px) แยกห่างกัน — พักบิลกดได้เลย (เรียกคืนได้), ล้างตะกร้าต้องยืนยันก่อน */}
+        <div className="flex shrink-0 flex-col gap-2">
+          <button
+            onClick={onHold}
+            disabled={lines.length === 0}
+            className="flex h-10 items-center gap-1.5 rounded-full bg-white px-3.5 text-sm font-semibold text-ink shadow-sm transition active:scale-95 disabled:bg-white/70 disabled:text-muted"
+          >
+            <PauseCircle
+              className={`size-5 ${lines.length ? "text-brand-ink" : ""}`}
+            />
+            {t.pos.hold}
+          </button>
+          <button
+            onClick={() => setAskClear(true)}
+            disabled={lines.length === 0}
+            className="flex h-10 items-center gap-1.5 rounded-full bg-white px-3.5 text-sm font-semibold text-ink shadow-sm transition active:scale-95 disabled:bg-white/70 disabled:text-muted"
+          >
+            <Trash2
+              className={`size-5 ${lines.length ? "text-rose-600" : ""}`}
+            />
+            {t.pos.clearCart}
+          </button>
         </div>
         <div className="ml-auto min-w-0 text-right leading-tight">
           <p className="text-sm font-medium opacity-95">
@@ -278,6 +283,18 @@ export function PosScanView({
           {t.pos.summary} <ArrowRight className="size-5" />
         </button>
       </div>
+      {askClear && (
+        <ClearCartConfirm
+          itemCount={itemCount}
+          totalText={totalText}
+          t={t.pos}
+          onCancel={() => setAskClear(false)}
+          onConfirm={() => {
+            setAskClear(false);
+            onClear();
+          }}
+        />
+      )}
     </div>
   );
 }
