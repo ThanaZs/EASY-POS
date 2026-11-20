@@ -4,6 +4,7 @@ import { useMemo, useRef, useState } from "react";
 import { Camera, ImageOff, Pin, Search, X } from "lucide-react";
 import { toEnglishLayout, useBarcodeScanner } from "@/client/devices/scanner";
 import { CameraScanner } from "@/components/CameraScanner";
+import { compareText } from "@/core/lib/compare";
 import { fill } from "@/core/lib/format";
 import type { Dictionary } from "@/i18n/dictionary";
 
@@ -133,7 +134,7 @@ export function ProductPicker({
     return products
       .map((p) => ({ p, s: score(p) + (p.pinned ? 1 : 0) }))
       .filter((x) => x.s > 0)
-      .sort((a, b) => b.s - a.s || a.p.name.localeCompare(b.p.name, "th"))
+      .sort((a, b) => b.s - a.s || compareText(a.p.name, b.p.name))
       .slice(0, MAX)
       .map((x) => x.p);
   }, [products, text]);

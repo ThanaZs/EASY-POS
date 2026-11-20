@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { compareText } from "@/core/lib/compare";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import {
   Camera,
@@ -180,7 +181,7 @@ export function PosClient(props: Props) {
             .map((p) => p.category)
             .filter((c): c is string => Boolean(c)),
         ),
-      ].sort(),
+      ].sort(compareText),
     [products],
   );
   const subcategories = useMemo(
@@ -193,7 +194,7 @@ export function PosClient(props: Props) {
                 .map((p) => p.subcategory)
                 .filter((c): c is string => Boolean(c)),
             ),
-          ].sort()
+          ].sort(compareText)
         : [],
     [products, category],
   );

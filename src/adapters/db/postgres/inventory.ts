@@ -1,4 +1,5 @@
 import "server-only";
+import { compareText } from "@/core/lib/compare";
 import {
   and,
   asc,
@@ -131,7 +132,10 @@ export function productRepo(): ProductRepo {
         .where(and(...conds))
         .orderBy(desc(products.pinned), asc(products.name)) // ปักหมุดขึ้นก่อน (ในหมวดที่กรองก็เช่นกัน)
         .limit(1000);
-      return rows.map(toProduct);
+      // เรียงชื่อซ้ำแบบธรรมชาติ (DB เรียงทีละตัวอักษร: "12" มาก่อน "9") — ปักหมุดยังขึ้นก่อน
+      return rows
+        .map(toProduct)
+        .sort((x, y) => Number(y.pinned) - Number(x.pinned) || compareText(x.name, y.name));
     },
     async findById(storeId, id) {
       const [r] = await db
@@ -153,7 +157,10 @@ export function productRepo(): ProductRepo {
           ),
         )
         .orderBy(asc(products.category));
-      return rows.map((r) => r.c!).filter(Boolean);
+      return rows
+        .map((r) => r.c!)
+        .filter(Boolean)
+        .sort(compareText);
     },
     async units(storeId) {
       const rows = await db
@@ -161,9 +168,7 @@ export function productRepo(): ProductRepo {
         .from(products)
         .where(and(eq(products.storeId, storeId), eq(products.isActive, true)));
       const uniq = (xs: Array<string | null>) =>
-        [...new Set(xs.map((x) => x?.trim()).filter((x): x is string => !!x))].sort((a, b) =>
-          a.localeCompare(b, "th"),
-        );
+        [...new Set(xs.map((x) => x?.trim()).filter((x): x is string => !!x))].sort(compareText);
       return { units: uniq(rows.map((r) => r.u)), packUnits: uniq(rows.map((r) => r.p)) };
     },
     async categoryTree(storeId) {
@@ -190,7 +195,13 @@ export function productRepo(): ProductRepo {
           node.subcategories.push(r.s);
         tree.set(r.c, node);
       }
-      return [...tree].map(([category, n]) => ({ category, ...n }));
+      return [...tree]
+        .sort(([a], [b]) => compareText(a, b))
+        .map(([category, n]) => ({
+          category,
+          ...n,
+          subcategories: n.subcategories.sort(compareText),
+        }));
     },
     importRows(storeId, rows, actorId, opts) {
       return db.transaction(async (tx) => {
