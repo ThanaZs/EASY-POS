@@ -107,26 +107,29 @@ export function PosScanView({
       aria-label={t.scan.title}
     >
       {/* บน: ปุ่ม + ยอดรวม */}
-      <div className="flex items-center gap-2 bg-gradient-to-r from-brand to-amber-400 px-3 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] text-white">
+      {/* ปุ่มพักบิล/ล้าง เล็ก (ไอคอน+คำสั้น) → ยอดรวมได้ที่มากขึ้น */}
+      <div className="flex items-center gap-1.5 bg-gradient-to-r from-brand to-amber-400 px-3 pb-2.5 pt-[max(0.6rem,env(safe-area-inset-top))] text-white">
         <button
           onClick={onHold}
           disabled={lines.length === 0}
-          className="flex items-center gap-1 rounded-xl border border-white/60 bg-white/15 px-3 py-2 text-sm font-semibold transition active:scale-95 disabled:opacity-40"
+          className="flex w-14 shrink-0 flex-col items-center gap-0.5 rounded-lg border border-white/50 bg-white/15 py-1 text-[10px] font-semibold leading-none transition active:scale-95 disabled:opacity-40"
         >
-          <PauseCircle className="size-4" /> {t.pos.hold}
+          <PauseCircle className="size-4" />
+          <span className="max-w-full truncate px-0.5">{t.pos.hold}</span>
         </button>
         <button
           onClick={onClear}
           disabled={lines.length === 0}
-          className="flex items-center gap-1 rounded-xl border border-white/60 bg-white/15 px-3 py-2 text-sm font-semibold transition active:scale-95 disabled:opacity-40"
+          className="flex w-14 shrink-0 flex-col items-center gap-0.5 rounded-lg border border-white/50 bg-white/15 py-1 text-[10px] font-semibold leading-none transition active:scale-95 disabled:opacity-40"
         >
-          <Trash2 className="size-4" /> {t.pos.clearCart}
+          <Trash2 className="size-4" />
+          <span className="max-w-full truncate px-0.5">{t.pos.clearCart}</span>
         </button>
         <div className="ml-auto min-w-0 text-right leading-tight">
           <p className="text-xs opacity-90">
             {fill(t.pos.itemsCount, { n: itemCount })}
           </p>
-          <p className="truncate text-3xl font-bold tabular-nums sm:text-4xl">
+          <p className="truncate text-4xl font-bold tabular-nums sm:text-5xl">
             {totalText}
           </p>
         </div>
