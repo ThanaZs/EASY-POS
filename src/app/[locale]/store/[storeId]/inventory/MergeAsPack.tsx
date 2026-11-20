@@ -1,11 +1,13 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ImageOff, Merge, Search, X } from "lucide-react";
+import { Camera, ImageOff, Merge, Search, X } from "lucide-react";
+import { CameraScanner } from "@/components/CameraScanner";
 import { fill } from "@/core/lib/format";
 import { toEnglishLayout } from "@/core/lib/keyboard";
 import type { Dictionary } from "@/i18n/dictionary";
 import { mergeAsPackAction } from "./actions";
+import { UnitField } from "./UnitField";
 
 type Opt = {
   id: string;
@@ -25,17 +27,29 @@ export function MergeAsPack({
   storeId,
   source,
   options,
+  unitOptions,
   t,
+  unitT,
+  scan,
 }: {
   locale: string;
   storeId: string;
   source: { id: string; name: string; unit: string; stockQty: number };
   options: Opt[];
+  unitOptions: string[];
   t: Dictionary["inventory"]["merge"];
+  unitT: { label: string; addNew: string; newPlaceholder: string };
+  scan: Dictionary["scan"];
 }) {
   const [q, setQ] = useState("");
   const [target, setTarget] = useState<Opt | null>(null);
   const [size, setSize] = useState("12");
+  const [camera, setCamera] = useState(false);
+  const [msg, setMsg] = useState("");
+  // ชื่อหน่วยลัง: ค่าเริ่มต้น = หน่วยของสินค้านี้ (ถ้าไม่ใช่ "ชิ้น") ไม่งั้น "ลัง"; เปลี่ยน/เพิ่มเองได้
+  const [packUnit, setPackUnit] = useState(
+    source.unit && source.unit !== "ชิ้น" ? source.unit : "ลัง",
+  );
   const results = useMemo(() => {
     const s = q.trim().toLowerCase();
     if (!s) return [];
@@ -49,8 +63,22 @@ export function MergeAsPack({
       .slice(0, 6);
   }, [q, options]);
   const n = Number.parseInt(size, 10);
-  const ok = !!target && Number.isFinite(n) && n >= 2;
-  const packUnit = target && source.unit !== target.unit ? source.unit : "ลัง";
+  const ok =
+    !!target && Number.isFinite(n) && n >= 2 && !!packUnit.trim();
+  /** สแกนบาร์โค้ดสินค้าปลีก → เลือกให้เลย */
+  const byCode = (raw: string) => {
+    const c = toEnglishLayout(raw.trim());
+    const hit = options.find(
+      (o) => o.barcode === c || o.barcode === raw.trim(),
+    );
+    if (hit) {
+      setTarget(hit);
+      setMsg("");
+    } else {
+      setQ(c);
+      setMsg(fill(t.notFound, { code: c }));
+    }
+  };
 
   return (
     <details className="group rounded-2xl border border-line bg-card">
@@ -99,17 +127,36 @@ export function MergeAsPack({
           </div>
         ) : (
           <div className="space-y-1">
-            <label className="relative block">
-              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted" />
-              <input
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && e.preventDefault()}
-                placeholder={t.search}
-                autoComplete="off"
-                className="w-full rounded-xl border border-line bg-card py-2.5 pl-9 pr-3 outline-none focus:border-brand"
-              />
-            </label>
+            <span className="flex gap-2">
+              <label className="relative block min-w-0 flex-1">
+                <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted" />
+                <input
+                  value={q}
+                  onChange={(e) => {
+                    setQ(e.target.value);
+                    setMsg("");
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key !== "Enter") return;
+                    e.preventDefault();
+                    if (results[0]) setTarget(results[0]);
+                  }}
+                  placeholder={t.search}
+                  autoComplete="off"
+                  className="w-full rounded-xl border border-line bg-card py-2.5 pl-9 pr-3 outline-none focus:border-brand"
+                />
+              </label>
+              <button
+                type="button"
+                onClick={() => setCamera(true)}
+                aria-label={scan.button}
+                title={scan.button}
+                className="grid w-11 shrink-0 place-items-center rounded-xl border border-line hover:border-brand"
+              >
+                <Camera className="size-5" />
+              </button>
+            </span>
+            {msg && <p className="text-sm text-rose-600">{msg}</p>}
             {results.map((o) => (
               <button
                 key={o.id}
@@ -129,21 +176,35 @@ export function MergeAsPack({
           </div>
         )}
 
-        {/* 2) 1 ลัง = กี่ชิ้น */}
-        <label className="block space-y-1">
-          <span className="text-sm text-muted">
-            {fill(t.packSize, { pack: packUnit, unit: target?.unit ?? "ชิ้น" })}
-          </span>
-          <input
-            name="packSize"
-            type="number"
-            min={2}
-            inputMode="numeric"
-            value={size}
-            onChange={(e) => setSize(e.target.value)}
-            className="w-32 rounded-xl border border-line bg-card px-3 py-2.5 outline-none focus:border-brand"
+        {/* 2) หน่วยลัง (เลือก/เพิ่มเอง) + 1 ลัง = กี่ชิ้น */}
+        <div className="grid grid-cols-2 gap-3">
+          <UnitField
+            name="packUnit"
+            label={unitT.label}
+            value={packUnit}
+            onChange={setPackUnit}
+            options={unitOptions}
+            addNew={unitT.addNew}
+            newPlaceholder={unitT.newPlaceholder}
           />
-        </label>
+          <label className="block space-y-1">
+            <span className="text-sm text-muted">
+              {fill(t.packSize, {
+                pack: packUnit || "ลัง",
+                unit: target?.unit ?? "ชิ้น",
+              })}
+            </span>
+            <input
+              name="packSize"
+              type="number"
+              min={2}
+              inputMode="numeric"
+              value={size}
+              onChange={(e) => setSize(e.target.value)}
+              className="w-full rounded-xl border border-line bg-card px-3 py-2.5 outline-none focus:border-brand"
+            />
+          </label>
+        </div>
 
         {/* ผลลัพธ์ที่จะเกิด */}
         {ok && target && (
@@ -174,6 +235,16 @@ export function MergeAsPack({
         >
           <Merge className="size-4" /> {t.submit}
         </button>
+        {camera && (
+          <CameraScanner
+            onDetected={(c) => {
+              setCamera(false);
+              byCode(c);
+            }}
+            onClose={() => setCamera(false)}
+            labels={scan}
+          />
+        )}
       </form>
     </details>
   );

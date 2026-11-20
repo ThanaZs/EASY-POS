@@ -254,13 +254,14 @@
       "hint": "Added a case as a separate product → merge so stock counts as one",
       "pickTarget": "1. Choose the retail product (sold by piece)",
       "search": "Search retail product name / barcode",
-      "packSize": "2. 1 {pack} = how many {unit}",
+      "packSize": "1 {pack} = how many {unit}",
       "result1": "“{b}” can be sold by case: 1 {pack} = {n} {unit}, using this product's barcode and price",
       "result2": "Stock {q} {pack} → adds {total} {unit}",
       "result3": "“{a}” will be deactivated (old bills still visible)",
       "submit": "Merge into one product",
       "confirm": "Merge “{a}” as a case of “{b}”? This cannot be undone",
-      "done": "Merged — this product now sells by piece and by case"
+      "done": "Merged — this product now sells by piece and by case",
+      "notFound": "No product with barcode {code}"
     }
   },
   "stock": {

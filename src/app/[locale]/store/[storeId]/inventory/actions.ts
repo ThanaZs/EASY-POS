@@ -380,7 +380,8 @@ export async function mergeAsPackAction(form: FormData) {
     redirect(`${back}?error=merge`);
 
   const packUnit =
-    source.unit && source.unit !== target.unit ? source.unit : "ลัง";
+    str(form, "packUnit").slice(0, 20) ||
+    (source.unit && source.unit !== target.unit ? source.unit : "ลัง");
   const packBarcode = source.barcode ?? source.packBarcode ?? null;
   const qty = source.stockQty;
 

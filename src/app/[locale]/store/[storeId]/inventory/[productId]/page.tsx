@@ -92,7 +92,24 @@ export default async function EditProductPage({
             imageUrl:
               o.imagePath && storage ? storage.publicUrl(o.imagePath) : null,
           }))}
+          unitOptions={[
+            ...new Set([
+              "ลัง",
+              "แพ็ก",
+              "โหล",
+              "กล่อง",
+              "มัด",
+              "ถุง",
+              ...units.packUnits,
+            ]),
+          ]}
           t={t.inventory.merge}
+          unitT={{
+            label: t.inventory.packUnit,
+            addNew: t.inventory.addUnit,
+            newPlaceholder: t.inventory.newUnitPlaceholder,
+          }}
+          scan={t.scan}
         />
       )}
       <section className="space-y-2">
