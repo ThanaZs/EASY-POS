@@ -106,30 +106,40 @@ export function PosScanView({
       aria-modal
       aria-label={t.scan.title}
     >
-      {/* บน: ปุ่ม + ยอดรวม */}
-      {/* ปุ่มพักบิล/ล้าง เล็ก (ไอคอน+คำสั้น) → ยอดรวมได้ที่มากขึ้น */}
-      <div className="flex items-center gap-1.5 bg-gradient-to-r from-brand to-amber-400 px-3 pb-2.5 pt-[max(0.6rem,env(safe-area-inset-top))] text-white">
-        <button
-          onClick={onHold}
-          disabled={lines.length === 0}
-          className="flex w-14 shrink-0 flex-col items-center gap-0.5 rounded-lg border border-white/50 bg-white/15 py-1 text-[10px] font-semibold leading-none transition active:scale-95 disabled:opacity-40"
-        >
-          <PauseCircle className="size-4" />
-          <span className="max-w-full truncate px-0.5">{t.pos.hold}</span>
-        </button>
-        <button
-          onClick={onClear}
-          disabled={lines.length === 0}
-          className="flex w-14 shrink-0 flex-col items-center gap-0.5 rounded-lg border border-white/50 bg-white/15 py-1 text-[10px] font-semibold leading-none transition active:scale-95 disabled:opacity-40"
-        >
-          <Trash2 className="size-4" />
-          <span className="max-w-full truncate px-0.5">{t.pos.clearCart}</span>
-        </button>
+      {/* บน: ปุ่ม 2 อันซ้อนกันทางซ้าย (พื้นขาว ตัวหนังสือเข้ม เห็นชัดบนพื้นส้ม) + ยอดรวมใหญ่ทางขวา */}
+      <div className="flex items-center gap-3 bg-gradient-to-r from-brand to-amber-400 px-3 pb-2.5 pt-[max(0.6rem,env(safe-area-inset-top))] text-white">
+        <div className="flex shrink-0 flex-col gap-1.5">
+          {(
+            [
+              [onHold, PauseCircle, t.pos.hold, "text-brand-ink"],
+              [onClear, Trash2, t.pos.clearCart, "text-rose-600"],
+            ] as const
+          ).map(([fn, Icon, label, color]) => (
+            <button
+              key={label}
+              onClick={fn}
+              disabled={lines.length === 0}
+              className="flex h-8 items-center gap-1.5 rounded-full bg-white px-3 text-xs font-semibold text-ink shadow-sm transition active:scale-95 disabled:bg-white/70 disabled:text-muted"
+            >
+              <Icon
+                className={`size-4 ${lines.length === 0 ? "" : color}`}
+              />
+              {label}
+            </button>
+          ))}
+        </div>
         <div className="ml-auto min-w-0 text-right leading-tight">
-          <p className="text-xs opacity-90">
+          <p className="text-sm font-medium opacity-95">
             {fill(t.pos.itemsCount, { n: itemCount })}
           </p>
-          <p className="truncate text-4xl font-bold tabular-nums sm:text-5xl">
+          <p
+            className={`truncate font-bold tabular-nums drop-shadow-sm ${
+              // ยอดยาว (หลักล้าน) → ย่อตัวอักษรให้พอดีจอมือถือ ไม่ถูกตัด
+              totalText.length > 11
+                ? "text-3xl sm:text-5xl"
+                : "text-4xl sm:text-5xl"
+            }`}
+          >
             {totalText}
           </p>
         </div>
