@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Camera, QrCode } from "lucide-react";
+import { Barcode, Camera, Plus } from "lucide-react";
 import { toEnglishLayout, useBarcodeScanner } from "@/client/devices/scanner";
 import { CameraScanner } from "@/components/CameraScanner";
 import { fill } from "@/core/lib/format";
@@ -9,7 +9,7 @@ import type { Dictionary } from "@/i18n/dictionary";
 import { CatalogLookup } from "./CatalogLookup";
 
 /** รหัสภายในร้าน (EAN-13 ขึ้นต้น 2 = ใช้ในร้าน ไม่ชนบาร์โค้ดสินค้าจริง) — สแกน/พิมพ์เป็นบาร์โค้ด/QR ได้ */
-function makeCode(): string {
+export function makeCode(): string {
   const d = [2, ...crypto.getRandomValues(new Uint8Array(11)).map((x) => x % 10)];
   const sum = d.reduce((a, n, i) => a + n * (i % 2 ? 3 : 1), 0);
   return d.join("") + ((10 - (sum % 10)) % 10);
@@ -86,7 +86,7 @@ export function BarcodeField({
             aria-label={genLabel}
             title={genLabel}
           >
-            <QrCode className="size-5" />
+            <GenCodeIcon />
           </button>
         </span>
         <button
@@ -118,5 +118,17 @@ export function BarcodeField({
         />
       )}
     </div>
+  );
+}
+
+/** ไอคอน "สร้างบาร์โค้ด": รูปบาร์โค้ด + วงกลมเครื่องหมายบวกมุมขวาล่าง */
+export function GenCodeIcon() {
+  return (
+    <span className="relative inline-grid size-6 place-items-center">
+      <Barcode className="size-6" strokeWidth={1.75} />
+      <span className="absolute -bottom-1 -right-1.5 grid size-3.5 place-items-center rounded-full bg-brand text-white ring-2 ring-card">
+        <Plus className="size-2.5" strokeWidth={3.5} />
+      </span>
+    </span>
   );
 }

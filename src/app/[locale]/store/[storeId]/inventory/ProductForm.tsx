@@ -220,6 +220,7 @@ export function ProductForm({
               packBarcode: inv.packBarcode,
               addUnit: inv.addUnit,
               newUnitPlaceholder: inv.newUnitPlaceholder,
+              genCode: inv.genCode,
             }}
           />
           <div className="col-span-2">

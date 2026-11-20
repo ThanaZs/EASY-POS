@@ -6,6 +6,7 @@ import { CameraScanner } from "@/components/CameraScanner";
 import type { Dictionary } from "@/i18n/dictionary";
 import { toEnglishLayout } from "@/core/lib/keyboard";
 import { fill } from "@/core/lib/format";
+import { GenCodeIcon, makeCode } from "./BarcodeField";
 import { UnitField } from "./UnitField";
 
 type Labels = {
@@ -18,6 +19,7 @@ type Labels = {
   packPriceAuto: string;
   addUnit: string;
   newUnitPlaceholder: string;
+  genCode: string;
   packBarcode: string;
 };
 
@@ -88,7 +90,7 @@ export function PackFields({
               className={cls}
             />
           </label>
-          <label className="block space-y-1">
+          <label className="col-span-2 block space-y-1">
             <span className="text-sm text-muted">
               {fill(labels.packPrice, { unit: unit || "ลัง" })} ({currency})
             </span>
@@ -100,18 +102,31 @@ export function PackFields({
               className={cls}
             />
           </label>
-          <div className="block space-y-1">
+          {/* บาร์โค้ดลัง: แบบเดียวกับช่องบาร์โค้ดหลัก — [ช่อง (ปุ่มสร้างรหัสอยู่ขวาในช่อง)] [กล้อง] */}
+          <div className="col-span-2 space-y-1">
             <span className="text-sm text-muted">{labels.packBarcode}</span>
-            <span className="flex gap-1.5">
-              <input
-                name="packBarcode"
-                value={code}
-                onChange={(e) => setCode(toEnglishLayout(e.target.value))}
-                maxLength={60}
-                autoComplete="off"
-                aria-label={labels.packBarcode}
-                className={`${cls} min-w-0 font-mono`}
-              />
+            <span className="flex gap-2">
+              <span className="relative min-w-0 flex-1">
+                <input
+                  name="packBarcode"
+                  value={code}
+                  onChange={(e) => setCode(toEnglishLayout(e.target.value))}
+                  maxLength={60}
+                  autoComplete="off"
+                  lang="en"
+                  aria-label={labels.packBarcode}
+                  className={`${cls} pr-11 font-mono`}
+                />
+                <button
+                  type="button"
+                  onClick={() => setCode(makeCode())}
+                  aria-label={labels.genCode}
+                  title={labels.genCode}
+                  className="absolute right-1.5 top-1/2 grid size-8 -translate-y-1/2 place-items-center rounded-lg text-muted transition hover:bg-surface hover:text-brand-ink active:scale-95"
+                >
+                  <GenCodeIcon />
+                </button>
+              </span>
               <button
                 type="button"
                 onClick={() => setCamera(true)}
