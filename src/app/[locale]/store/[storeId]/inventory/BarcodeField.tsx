@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Barcode, Camera, Plus } from "lucide-react";
+import { Camera } from "lucide-react";
 import { toEnglishLayout, useBarcodeScanner } from "@/client/devices/scanner";
 import { CameraScanner } from "@/components/CameraScanner";
 import { fill } from "@/core/lib/format";
@@ -121,14 +121,24 @@ export function BarcodeField({
   );
 }
 
-/** ไอคอน "สร้างบาร์โค้ด": รูปบาร์โค้ด + วงกลมเครื่องหมายบวกมุมขวาล่าง */
+/** ประกาย 4 แฉก (ขอบโค้งเว้า) กลางที่ (cx, cy) รัศมี r */
+const sparkle = (cx: number, cy: number, r: number) => {
+  const k = r * 0.18;
+  return `M${cx} ${cy - r}Q${cx + k} ${cy - k} ${cx + r} ${cy}Q${cx + k} ${cy + k} ${cx} ${cy + r}Q${cx - k} ${cy + k} ${cx - r} ${cy}Q${cx - k} ${cy - k} ${cx} ${cy - r}Z`;
+};
+
+/** ไอคอน "สร้างบาร์โค้ด" (แบบ 3 ที่ผู้ใช้เลือก): บาร์โค้ด + ประกายส้ม 3 ดวงมุมขวาบน */
 export function GenCodeIcon() {
   return (
-    <span className="relative inline-grid size-6 place-items-center">
-      <Barcode className="size-6" strokeWidth={1.75} />
-      <span className="absolute -bottom-1 -right-1.5 grid size-3.5 place-items-center rounded-full bg-brand text-white ring-2 ring-card">
-        <Plus className="size-2.5" strokeWidth={3.5} />
-      </span>
-    </span>
+    <svg viewBox="0 0 25 24" className="size-6" aria-hidden>
+      <g fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
+        <path d="M2.5 8v13M6.5 8v13M10 8v13M14 8v13M17.5 12v9" />
+      </g>
+      <g className="fill-brand">
+        <path d={sparkle(18.3, 6, 4.3)} />
+        <path d={sparkle(22.8, 1.9, 1.8)} />
+        <path d={sparkle(23.2, 9.6, 1.4)} />
+      </g>
+    </svg>
   );
 }
