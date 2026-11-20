@@ -11,7 +11,7 @@ import { setInputValue } from "@/client/devices/scanner";
 // - ปิดคีย์บอร์ดระบบด้วย inputmode=none (ตั้งตั้งแต่ตอนแตะ ก่อนโฟกัส) → แถบ ˄ ˅ ✓ ของ iOS หายไปด้วย
 // - หน้าตา/ตำแหน่งปุ่มเหมือนคีย์บอร์ด iPhone (ไทย เกษมณี / ABC / 123 / #+= / แป้นตัวเลข)
 // - กดปุ่มมีป้ายตัวอักษรเด้งเหนือนิ้ว, กดค้างลบ = ลบรัว, 🌐 สลับไทย/อังกฤษ
-// - ปิด: ปุ่ม "เสร็จ" หรือปัดจอนอกคีย์บอร์ด; Android/คอม ไม่ใช้เลย
+// - ปิด: ปุ่ม "เสร็จ" หรือแตะนอกคีย์บอร์ด (ปัดจอไม่ปิด); Android/คอม ไม่ใช้เลย
 
 const isIOS = () =>
   /iPad|iPhone|iPod/.test(navigator.userAgent) ||
@@ -203,29 +203,33 @@ export function VirtualKeyboard({
       right: "0",
       width: "100%",
     });
-    // ปัด/เลื่อนจอตรงที่ไม่ใช่คีย์บอร์ด (เกิน 12px) = ปิดคีย์บอร์ด → หน้ากลับมาเลื่อนได้
+    // ผู้ใช้ไม่เอา "ปัดจอแล้วปิดคีย์บอร์ด" → ปัดจอไม่ทำอะไร
+    // ปิดได้ด้วยปุ่ม "เสร็จ" หรือแตะ (ไม่ลาก) ตรงที่ไม่ใช่คีย์บอร์ด/ช่องพิมพ์
     let start: { x: number; y: number } | null = null;
     const onStart = (e: TouchEvent) => {
       const t = e.touches[0];
+      const el = e.target as Element | null;
       start =
         e.touches.length === 1 &&
-        !(e.target as Element | null)?.closest?.("[data-vkb]")
+        !el?.closest?.("[data-vkb]") &&
+        !isTypable(el)
           ? { x: t.clientX, y: t.clientY }
           : null;
     };
-    const onMove = (e: TouchEvent) => {
+    const onEnd = (e: TouchEvent) => {
       if (!start) return;
-      const t = e.touches[0];
-      if (Math.hypot(t.clientX - start.x, t.clientY - start.y) < 12) return;
+      const t = e.changedTouches[0];
+      const moved = Math.hypot(t.clientX - start.x, t.clientY - start.y);
       start = null;
+      if (moved > 10) return; // ลาก/ปัด = ไม่ปิด
       (document.activeElement as HTMLElement | null)?.blur?.();
       setOpened(null);
     };
     document.addEventListener("touchstart", onStart, { passive: true });
-    document.addEventListener("touchmove", onMove, { passive: true });
+    document.addEventListener("touchend", onEnd, { passive: true });
     return () => {
       document.removeEventListener("touchstart", onStart);
-      document.removeEventListener("touchmove", onMove);
+      document.removeEventListener("touchend", onEnd);
       // ปลดล็อกแล้วกลับตำแหน่งเดิม — iOS ต้องสั่งซ้ำหลังวาดใหม่ (สั่งครั้งเดียวมักโดนรีเซ็ตเป็นบนสุด)
       const y = lockY.current;
       Object.assign(b, prev);
