@@ -11,6 +11,7 @@ import {
   LogOut,
   Menu,
   PlusSquare,
+  Trash2,
   Store,
   UserCog,
   X,
@@ -28,10 +29,12 @@ import { PageTitleContext } from "./PageTitle";
 import { ThemeToggle } from "./ThemeToggle";
 
 export type ShellNav = {
-  key: ModuleKey;
+  key: ModuleKey | "trash";
   href: string;
   label: string;
   match: string[];
+  /** ตัวเลขท้ายเมนู (เช่น จำนวนในถังขยะ) — 0/ไม่ใส่ = ไม่แสดง */
+  badge?: number;
 };
 type Icon = React.ComponentType<{ className?: string }>;
 
@@ -92,6 +95,9 @@ export function AppShell({
   }, [storeId]);
 
   const under = (p: string) => pathname === p || pathname.startsWith(`${p}/`);
+  const active = nav
+    .flatMap((n) => n.match.filter(under).map((m) => ({ n, len: m.length })))
+    .sort((x, y) => y.len - x.len)[0]?.n;
   const link = (
     href: string,
     label: string,
@@ -166,8 +172,15 @@ export function AppShell({
               link(
                 n.href,
                 n.label,
-                MODULES.find((m) => m.key === n.key)?.Icon ?? LayoutGrid,
-                n.match,
+                n.key === "trash"
+                  ? Trash2
+                  : (MODULES.find((m) => m.key === n.key)?.Icon ?? LayoutGrid),
+                n.key === active?.key ? n.match : [],
+                n.badge ? (
+                  <span className="grid min-w-6 place-items-center rounded-full bg-surface px-1.5 text-xs font-semibold text-muted tabular-nums">
+                    {n.badge}
+                  </span>
+                ) : undefined,
               ),
             )}
           </nav>
@@ -223,7 +236,7 @@ export function AppShell({
         {/* หัวข้อหน้า (แทนชื่อร้าน) — หน้าไม่มีหัวข้อ = ชื่อเมนูที่เปิดอยู่ / ชื่อร้าน */}
         <span className="min-w-0 flex-1 truncate text-[17px] font-bold">
           {page?.text ??
-            nav.find((n) => n.match.some(under))?.label ??
+            active?.label ??
             store?.name ??
             "EASY-POS"}
         </span>
