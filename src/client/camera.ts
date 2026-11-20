@@ -18,7 +18,7 @@ const FORMATS = [
   "code_93",
   "itf",
   "codabar",
-  "qr_code",
+  // ไม่อ่าน QR code: ร้านบางแห่งพิมพ์ QR เดียวกัน (ลิงก์ร้าน) ติดทุกสินค้า → สแกนแล้วได้สินค้าผิด (ผู้ใช้ขอ)
 ];
 
 /** ใช้ BarcodeDetector ของเบราว์เซอร์ (Android Chrome) ถ้ามี ไม่งั้นใช้ zxing-wasm (iPhone/Firefox) — โหลดเฉพาะตอนเปิดกล้อง */

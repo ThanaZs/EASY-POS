@@ -3,6 +3,10 @@
 > ไฟล์นี้คือ "สมุดส่งงาน" — ทุกครั้งที่ทำงานเสร็จหนึ่งรอบ ให้เพิ่มรายการใหม่ **ไว้บนสุด**
 > เครื่องใหม่ / Claude session ใหม่: อ่านไฟล์นี้ + ROADMAP.md ก่อนเริ่มงาน
 
+## 2026-11-20 — กล้องสแกนอ่านเฉพาะบาร์โค้ด ไม่อ่าน QR (deploy แล้ว)
+- `client/camera.ts` FORMATS เอา `qr_code` ออก (ทั้ง BarcodeDetector ของเบราว์เซอร์และ zxing) — ร้านบางแห่งใช้ QR เดียวกันทุกสินค้า; เครื่องสแกนแบบยิง (Bluetooth/USB) ตั้งค่าที่ตัวเครื่องเอง
+- ตรวจแล้ว: lint, tsc, build
+
 ## 2026-11-20 — ถังขยะสินค้า + บาร์โค้ดซ้ำตอนเพิ่ม = แทนที่ (deploy แล้ว)
 - migration `0011_product_trash` (ผู้ใช้อนุมัติ, migrate แล้วบน Supabase): products.deleted_at/deleted_by/deleted_reason; unique index บาร์โค้ด/บาร์โค้ดลัง เป็นแบบ partial `WHERE is_active` (สินค้าในถังขยะเก็บบาร์โค้ดเดิมได้)
 - ProductRepo: trash / listTrash / countTrash / restore (บาร์โค้ดชนสินค้าที่ใช้อยู่ → กู้คืนแบบไม่มีบาร์โค้ด) / purge (= ซ่อนแบบเดิม: ลบบาร์โค้ด/รูป) / purgeOlderThan(30 วัน); import ไม่แตะสินค้าในถังขยะ
