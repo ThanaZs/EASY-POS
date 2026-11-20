@@ -13,9 +13,22 @@ import { PackFields } from "./PackFields";
 import { ProductPhotoField } from "./ProductPhotoField";
 import { UnitField } from "./UnitField";
 
-const BASE_UNITS = ["ชิ้น", "อัน", "ขวด", "กล่อง", "ถุง", "ซอง", "แพ็ก", "เส้น", "เมตร", "กก."];
+const BASE_UNITS = [
+  "ชิ้น",
+  "อัน",
+  "ขวด",
+  "กล่อง",
+  "ถุง",
+  "ซอง",
+  "แพ็ก",
+  "เส้น",
+  "เมตร",
+  "กก.",
+];
 const PACK_UNITS = ["ลัง", "แพ็ก", "โหล", "กล่อง", "มัด", "ถุง"];
-const merge = (base: string[], used: string[]) => [...new Set([...base, ...used])];
+const merge = (base: string[], used: string[]) => [
+  ...new Set([...base, ...used]),
+];
 
 /**
  * ฟอร์มเดียวใช้ทั้งเพิ่มและแก้ไขสินค้า — ออกแบบให้มือถือเห็นช่องหลักครบในจอเดียว:
@@ -189,6 +202,7 @@ export function ProductForm({
             baseUnit={product?.unit ?? "ชิ้น"}
             currency={store.currency}
             unitOptions={merge(PACK_UNITS, units.packUnits)}
+            scan={t.scan}
             defaults={{
               packUnit: product?.packUnit ?? null,
               packSize: product?.packSize ?? null,

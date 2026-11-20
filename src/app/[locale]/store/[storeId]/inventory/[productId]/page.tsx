@@ -8,6 +8,8 @@ import { requireStoreAccess } from "@/server/session";
 import { BackLink } from "../../BackLink";
 import { deleteProductAction } from "../actions";
 import { AuditList } from "../../AuditList";
+import { Alert } from "@/components/Alert";
+import { MergeAsPack } from "../MergeAsPack";
 import { ProductForm } from "../ProductForm";
 import { StockBadge } from "../StockBadge";
 
@@ -26,25 +28,35 @@ export default async function EditProductPage({
   );
   if (!UUID.test(productId)) notFound();
   const repos = await getRepositories();
-  const [product, categories, history, units] = await Promise.all([
+  const sp = await searchParams;
+  const [product, categories, history, units, all] = await Promise.all([
     repos.products.findById(storeId, productId),
     repos.products.categoryTree(storeId),
     repos.audit.list(storeId, { entityId: productId, limit: 30 }),
     repos.products.units(storeId),
+    repos.products.list(storeId, {}),
   ]);
+  const others = all.filter((o) => o.id !== productId);
   if (!product || !product.isActive) notFound();
   const storage = await getStorage();
 
   return (
     <div className="mx-auto max-w-2xl space-y-4">
-      <BackLink mobileHidden
+      <BackLink
+        mobileHidden
         href={`/${locale}/store/${storeId}/inventory`}
         label={t.store.modules.inventory}
       />
       <div className="flex items-center justify-between gap-3">
-        <PageTitle title={t.inventory.edit} back={`/${locale}/store/${storeId}/inventory`} />
+        <PageTitle
+          title={t.inventory.edit}
+          back={`/${locale}/store/${storeId}/inventory`}
+        />
         <StockBadge p={product} t={t} />
       </div>
+      {sp.merged === "1" && (
+        <Alert kind="success">{t.inventory.merge.done}</Alert>
+      )}
       <ProductForm
         locale={locale}
         t={t}
@@ -52,7 +64,7 @@ export default async function EditProductPage({
         product={product}
         categoryTree={categories}
         units={units}
-        error={(await searchParams).error}
+        error={sp.error}
         photoEnabled={storage !== null}
         photoUrl={
           product.imagePath && storage
@@ -60,6 +72,29 @@ export default async function EditProductPage({
             : null
         }
       />
+      {/* เคยเพิ่มลังแยกเป็นสินค้าอีกตัว → รวมเข้ากับสินค้าปลีก */}
+      {!product.packSize && others.length > 0 && (
+        <MergeAsPack
+          locale={locale}
+          storeId={storeId}
+          source={{
+            id: product.id,
+            name: product.name,
+            unit: product.unit,
+            stockQty: product.stockQty,
+          }}
+          options={others.map((o) => ({
+            id: o.id,
+            name: o.name,
+            barcode: o.barcode,
+            unit: o.unit,
+            stockQty: o.stockQty,
+            imageUrl:
+              o.imagePath && storage ? storage.publicUrl(o.imagePath) : null,
+          }))}
+          t={t.inventory.merge}
+        />
+      )}
       <section className="space-y-2">
         <div className="flex items-baseline justify-between gap-2">
           <h2 className="font-semibold">{t.audit.productHistory}</h2>

@@ -351,3 +351,83 @@ export async function bulkPriceAction(input: {
   refresh();
   return { ok: true, n };
 }
+
+/**
+ * รวมสินค้า 2 ตัวที่จริงๆ เป็นของเดียวกัน: "สินค้านี้ (source) คือลัง/แพ็กของสินค้าอื่น (target)"
+ * เช่น เคยเพิ่ม "น้ำดื่ม (ลัง)" แยกจาก "น้ำดื่ม (ขวด)" → รวมเป็นสินค้าเดียว สต็อกนับเป็นขวด
+ * - target: ตั้งขายยกลัง = หน่วย/ราคา/บาร์โค้ดของ source, 1 ลัง = packSize ชิ้น
+ * - สต็อกของ source (เป็นลัง) × packSize → บวกเข้า target (บันทึกในประวัติสต็อกทั้งสองตัว)
+ * - source: ปิดใช้ (บิลเก่ายังอ้างถึงได้) + ย้ายบาร์โค้ดไปเป็นบาร์โค้ดลังของ target
+ */
+export async function mergeAsPackAction(form: FormData) {
+  const { locale, storeId } = storeCtx(form);
+  const { user } = await requireStoreAccess(locale, storeId, "products.edit");
+  const repos = await getRepositories();
+  const sourceId = str(form, "sourceId");
+  const targetId = str(form, "targetId");
+  const back = `/${locale}/store/${storeId}/inventory/${sourceId}`;
+  const packSize = int(form, "packSize", 2, 100_000, 0);
+  const [source, target] = await Promise.all([
+    repos.products.findById(storeId, sourceId),
+    repos.products.findById(storeId, targetId),
+  ]);
+  if (
+    !source?.isActive ||
+    !target?.isActive ||
+    source.id === target.id ||
+    packSize < 2
+  )
+    redirect(`${back}?error=merge`);
+
+  const packUnit =
+    source.unit && source.unit !== target.unit ? source.unit : "ลัง";
+  const packBarcode = source.barcode ?? source.packBarcode ?? null;
+  const qty = source.stockQty;
+
+  // 1) source: เอาบาร์โค้ดออกก่อน (บาร์โค้ดห้ามซ้ำในร้าน) แล้วปิดใช้
+  await repos.products.update(storeId, source.id, { barcode: null, packBarcode: null });
+  if (qty !== 0)
+    await repos.stock.move({
+      storeId,
+      productId: source.id,
+      type: "adjust",
+      qty: -qty,
+      note: `รวมเป็นลังของ ${target.name}`,
+      actorId: user.id,
+    });
+  const oldImage = await repos.products.deactivate(storeId, source.id);
+
+  // 2) target: ตั้งขายยกลัง + รับสต็อกจาก source (ลัง × จำนวนต่อลัง)
+  const patch = {
+    packUnit,
+    packSize,
+    packPriceMinor: source.priceMinor > 0 ? source.priceMinor : null,
+    packBarcode,
+  };
+  await repos.products.update(storeId, target.id, patch);
+  if (qty !== 0)
+    await repos.stock.move({
+      storeId,
+      productId: target.id,
+      type: "adjust",
+      qty: qty * packSize,
+      note: `รวมจาก ${source.name} (${qty} ${packUnit} × ${packSize})`,
+      actorId: user.id,
+    });
+
+  await audit(storeId, user, "product.update", {
+    entityType: "product",
+    entityId: target.id,
+    entityName: target.name,
+    changes: diff(target, patch, ["packUnit", "packSize", "packPriceMinor", "packBarcode"]),
+    note: `รวมจาก ${source.name}`,
+  });
+  await audit(storeId, user, "product.delete", {
+    entityType: "product",
+    entityId: source.id,
+    entityName: source.name,
+    note: `รวมเป็นลังของ ${target.name}`,
+  });
+  if (oldImage) await (await getStorage())?.remove([oldImage]).catch(() => {});
+  redirect(`/${locale}/store/${storeId}/inventory/${target.id}?merged=1`);
+}

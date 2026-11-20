@@ -193,14 +193,15 @@
       "photoTooBig": "Photo is too large — please retake",
       "photoInvalid": "Invalid image file",
       "photoFailed": "Product saved, but the photo upload failed — please try again",
-      "packSize": "Pack size must be greater than 1"
+      "packSize": "Pack size must be greater than 1",
+      "merge": "Merge failed — choose the retail product and enter at least 2 per case"
     },
     "subcategory": "Subcategory",
     "noCategory": "— None —",
     "addCategory": "+ Add new…",
     "newCategoryPlaceholder": "Type a new category name",
     "packEnable": "Can be sold by pack / case",
-    "packHint": "Stock is always counted in the retail unit — receive by case, and POS has a sell-by-case button",
+    "packHint": "One product sells by piece and by case — stock is always counted in pieces (no separate case product needed). Scanning the case barcode at checkout deducts a whole case.",
     "packUnit": "Pack unit",
     "packSize": "1 {unit} = how many {base}",
     "packPrice": "Price per {unit}",
@@ -247,6 +248,19 @@
       "more": "and {n} more",
       "save": "Save {n} items",
       "invalid": "Enter a valid number"
+    },
+    "merge": {
+      "title": "Is this the case/pack of another product?",
+      "hint": "Added a case as a separate product → merge so stock counts as one",
+      "pickTarget": "1. Choose the retail product (sold by piece)",
+      "search": "Search retail product name / barcode",
+      "packSize": "2. 1 {pack} = how many {unit}",
+      "result1": "“{b}” can be sold by case: 1 {pack} = {n} {unit}, using this product's barcode and price",
+      "result2": "Stock {q} {pack} → adds {total} {unit}",
+      "result3": "“{a}” will be deactivated (old bills still visible)",
+      "submit": "Merge into one product",
+      "confirm": "Merge “{a}” as a case of “{b}”? This cannot be undone",
+      "done": "Merged — this product now sells by piece and by case"
     }
   },
   "stock": {

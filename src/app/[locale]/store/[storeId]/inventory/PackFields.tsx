@@ -1,6 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { Camera } from "lucide-react";
+import { CameraScanner } from "@/components/CameraScanner";
+import type { Dictionary } from "@/i18n/dictionary";
 import { toEnglishLayout } from "@/core/lib/keyboard";
 import { fill } from "@/core/lib/format";
 import { UnitField } from "./UnitField";
@@ -25,6 +28,7 @@ export function PackFields({
   currency,
   labels,
   unitOptions,
+  scan,
 }: {
   defaults: {
     packUnit: string | null;
@@ -36,10 +40,12 @@ export function PackFields({
   currency: string;
   labels: Labels;
   unitOptions: string[];
+  scan: Dictionary["scan"];
 }) {
   const [on, setOn] = useState(!!defaults.packSize);
   const [unit, setUnit] = useState(defaults.packUnit ?? "ลัง");
   const [code, setCode] = useState(defaults.packBarcode ?? "");
+  const [camera, setCamera] = useState(false);
   const cls =
     "w-full rounded-xl border border-line bg-card px-3 py-2.5 outline-none focus:border-brand focus:ring-2 focus:ring-brand-soft";
 
@@ -55,6 +61,8 @@ export function PackFields({
         />
         {labels.enable}
       </label>
+      {/* สินค้าเดียวกัน ขายได้ทั้งชิ้นและลัง — ไม่ต้องเพิ่มลังเป็นสินค้าแยก */}
+      <p className="text-xs text-muted">{labels.hint}</p>
       {on && (
         <div className="grid grid-cols-2 gap-3 rounded-xl bg-surface p-3">
           <UnitField
@@ -92,17 +100,39 @@ export function PackFields({
               className={cls}
             />
           </label>
-          <label className="block space-y-1">
+          <div className="block space-y-1">
             <span className="text-sm text-muted">{labels.packBarcode}</span>
-            <input
-              name="packBarcode"
-              value={code}
-              onChange={(e) => setCode(toEnglishLayout(e.target.value))}
-              maxLength={60}
-              autoComplete="off"
-              className={`${cls} font-mono`}
+            <span className="flex gap-1.5">
+              <input
+                name="packBarcode"
+                value={code}
+                onChange={(e) => setCode(toEnglishLayout(e.target.value))}
+                maxLength={60}
+                autoComplete="off"
+                aria-label={labels.packBarcode}
+                className={`${cls} min-w-0 font-mono`}
+              />
+              <button
+                type="button"
+                onClick={() => setCamera(true)}
+                aria-label={scan.button}
+                title={scan.button}
+                className="grid w-11 shrink-0 place-items-center rounded-xl border border-line bg-card hover:border-brand"
+              >
+                <Camera className="size-5" />
+              </button>
+            </span>
+          </div>
+          {camera && (
+            <CameraScanner
+              onDetected={(c) => {
+                setCamera(false);
+                setCode(toEnglishLayout(c));
+              }}
+              onClose={() => setCamera(false)}
+              labels={scan}
             />
-          </label>
+          )}
         </div>
       )}
     </div>
