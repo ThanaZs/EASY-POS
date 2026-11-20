@@ -198,7 +198,7 @@ export function InventoryFilters({
             onClick={() => setCamera(true)}
             aria-label={scan.button}
             title={scan.button}
-            className="absolute right-1.5 top-1/2 grid size-8 -translate-y-1/2 place-items-center rounded-lg text-muted transition hover:bg-surface hover:text-brand-ink active:scale-95"
+            className="absolute right-1.5 top-1/2 grid size-8 -translate-y-1/2 place-items-center rounded-lg bg-brand text-white shadow-sm transition hover:opacity-90 active:scale-95"
           >
             <Camera className="size-5" />
           </button>

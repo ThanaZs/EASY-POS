@@ -78,7 +78,9 @@ export function ProductPhotoField({
           <img src={shown} alt="" className="size-full object-cover" />
         ) : (
           <span className="flex flex-col items-center gap-1 text-xs">
-            <Camera className="size-6" />
+            <span className="grid size-10 place-items-center rounded-full bg-brand text-white shadow-sm">
+              <Camera className="size-5" />
+            </span>
             {t.take}
           </span>
         )}

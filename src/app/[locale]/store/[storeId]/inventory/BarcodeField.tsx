@@ -92,7 +92,7 @@ export function BarcodeField({
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="grid w-11 shrink-0 place-items-center rounded-xl border border-line hover:border-brand"
+          className="grid w-11 shrink-0 place-items-center rounded-xl bg-brand text-white shadow-sm transition hover:opacity-90 active:scale-95"
           aria-label={scan.button}
           title={scan.button}
         >

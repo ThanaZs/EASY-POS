@@ -132,7 +132,7 @@ export function PackFields({
                 onClick={() => setCamera(true)}
                 aria-label={scan.button}
                 title={scan.button}
-                className="grid w-11 shrink-0 place-items-center rounded-xl border border-line bg-card hover:border-brand"
+                className="grid w-11 shrink-0 place-items-center rounded-xl bg-brand text-white shadow-sm transition hover:opacity-90 active:scale-95"
               >
                 <Camera className="size-5" />
               </button>
