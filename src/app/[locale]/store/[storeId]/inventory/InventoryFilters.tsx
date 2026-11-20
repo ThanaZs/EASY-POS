@@ -100,6 +100,16 @@ export function InventoryFilters({
   useBarcodeScanner(onScanned);
   const node = tree.find((n) => n.category === selCat);
   const [renaming, setRenaming] = useState(false);
+  // เลื่อนแถวหมวดย่อยให้เห็นตัวที่เลือก (+ปุ่มดินสอ) เสมอ — เช่น กลับมาหน้านี้ด้วยตัวกรองเดิม
+  const subRow = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const row = subRow.current;
+    const on = row?.querySelector<HTMLElement>('[aria-pressed="true"]');
+    if (!row || !on) return;
+    const end = on.offsetLeft + on.offsetWidth + 44; // + ปุ่มดินสอ
+    if (on.offsetLeft < row.scrollLeft || end > row.scrollLeft + row.clientWidth)
+      row.scrollTo({ left: Math.max(0, on.offsetLeft - 16), behavior: "smooth" });
+  }, [selSub, selCat]);
   /** แก้ชื่อหมวด (kind=cat) หรือหมวดย่อยที่เลือกอยู่ (kind=sub) — ใช้ช่องถามของเครื่อง (ง่าย ไม่ต้องมีหน้าใหม่) */
   async function renameIt(kind: "cat" | "sub") {
     if (!rename || renaming) return;
@@ -324,22 +334,29 @@ export function InventoryFilters({
         />
       )}
       {showSubs && (
-        <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1">
+        <div
+          ref={subRow}
+          className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1"
+        >
           {chip("", labels.allSub)}
-          {node.subcategories.map((s) => chip(s, s))}
+          {/* ปุ่มดินสออยู่ติดหมวดย่อยที่เลือก (เดิมอยู่ท้ายแถว เลื่อนจนมองไม่เห็นบนมือถือ) */}
+          {node.subcategories.map((s) => [
+            chip(s, s),
+            rename && selSub === s && (
+              <button
+                key={`${s}-rename`}
+                type="button"
+                onClick={() => renameIt("sub")}
+                disabled={renaming}
+                aria-label={rename.t.renameSub}
+                title={rename.t.renameSub}
+                className="-ml-0.5 grid size-8 shrink-0 place-items-center rounded-full border border-brand/60 bg-card text-brand-ink transition active:scale-95 disabled:opacity-50"
+              >
+                <Pencil className="size-3.5" />
+              </button>
+            ),
+          ])}
           {node.hasNoSub && chip(NO_SUB, labels.noSub)}
-          {rename && selSub && selSub !== NO_SUB && (
-            <button
-              type="button"
-              onClick={() => renameIt("sub")}
-              disabled={renaming}
-              aria-label={rename.t.renameSub}
-              title={rename.t.renameSub}
-              className="flex shrink-0 items-center gap-1 rounded-full border border-dashed border-line px-3 py-1 text-sm text-muted transition hover:border-brand hover:text-brand-ink active:scale-95 disabled:opacity-50"
-            >
-              <Pencil className="size-3.5" /> {rename.t.renameSub}
-            </button>
-          )}
         </div>
       )}
     </div>
