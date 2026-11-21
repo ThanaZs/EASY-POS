@@ -874,12 +874,13 @@ export function PosClient(props: Props) {
       )}
 
       {payOpen && (
+        // มือถือ: แผ่นชำระเงินลงมาจากขอบบน — คีย์บอร์ด (ขึ้นจากล่าง) จะไม่บังช่องรับเงิน
         <div
-          className="fixed inset-0 z-40 grid place-items-end bg-black/40 sm:place-items-center print:hidden"
+          className="fixed inset-0 z-40 grid place-items-start justify-items-center bg-black/40 sm:place-items-center print:hidden"
           role="dialog"
           aria-modal
         >
-          <div className="w-full max-w-md space-y-4 rounded-t-2xl bg-card p-5 shadow-xl sm:rounded-2xl">
+          <div className="max-h-[100dvh] w-full max-w-md space-y-4 overflow-y-auto rounded-b-2xl bg-card p-5 pt-[calc(1.25rem+env(safe-area-inset-top))] shadow-xl sm:rounded-2xl sm:pt-5">
             <div className="flex items-baseline justify-between">
               <h2 className="text-lg font-semibold">{t.pos.pay}</h2>
               <span className="text-2xl font-bold tabular-nums text-brand-ink">
