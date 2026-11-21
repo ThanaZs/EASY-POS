@@ -65,7 +65,7 @@ function PinBadge({ inline = false }: { inline?: boolean }) {
 
 /**
  * รายการสินค้า (คลังสินค้า / ประวัติสินค้า):
- * - ปัดแถวไปทางขวา → ปุ่ม ปักหมุด / ลบ (ย้ายไปถังขยะ)
+ * - ปัดแถวไปทางซ้าย → ปุ่ม ปักหมุด / ลบ โผล่ทางขวา (ย้ายไปถังขยะ)
  * - "เลือก" (ซ้ายบน) → ติ๊กหลายรายการ หรือ "ทั้งหมด" ในหมวด/ตัวกรองที่เปิดอยู่
  *   → ปักหมุด / ลบ / แก้ราคา พร้อมกัน
  * - สินค้าปักหมุด = หมุดเอียงที่มุมซ้ายบนของรูป
@@ -503,7 +503,7 @@ function BarBtn({
 }
 
 /**
- * แถวที่ปัดไปทางขวาได้ → ปุ่มคำสั่งโผล่ทางซ้าย (ใช้นิ้วเท่านั้น; คอมใช้โหมด "เลือก")
+ * แถวที่ปัดไปทางซ้ายได้ → ปุ่มคำสั่งโผล่ทางขวา (ใช้นิ้วเท่านั้น; คอมใช้โหมด "เลือก")
  * ปัดแนวตั้ง = เลื่อนหน้าตามปกติ; แตะแถวที่เปิดอยู่ = ปิด (ไม่เปิดหน้าสินค้า)
  */
 function SwipeRow({
@@ -537,14 +537,14 @@ function SwipeRow({
       );
   };
   // เปิด/ปิดจากข้างนอก (เช่น ปัดแถวอื่น → แถวนี้ปิด)
-  useEffect(() => place(open ? SWIPE_W : 0, true), [open]);
+  useEffect(() => place(open ? -SWIPE_W : 0, true), [open]);
 
   if (!actions) return <div className="flex">{children}</div>;
   return (
     <>
       <div
         ref={panel}
-        className="absolute inset-y-0 left-0 flex"
+        className="absolute inset-y-0 right-0 flex"
         style={{ width: SWIPE_W, visibility: "hidden" }}
         aria-hidden={!open}
       >
@@ -559,8 +559,8 @@ function SwipeRow({
           g.current = {
             x0: p.clientX,
             y0: p.clientY,
-            base: open ? SWIPE_W : 0,
-            x: open ? SWIPE_W : 0,
+            base: open ? -SWIPE_W : 0,
+            x: open ? -SWIPE_W : 0,
             axis: "",
           };
         }}
@@ -574,7 +574,7 @@ function SwipeRow({
             else if (Math.abs(dy) > 8) s.axis = "y";
           }
           if (s.axis !== "x") return;
-          s.x = Math.max(0, Math.min(SWIPE_W + 24, s.base + dx));
+          s.x = Math.min(0, Math.max(-SWIPE_W - 24, s.base + dx));
           place(s.x, false);
         }}
         onTouchEnd={() => {
@@ -582,8 +582,8 @@ function SwipeRow({
           if (s.axis === "x") {
             swallow.current = true; // ปัดจบ ≠ แตะเปิดหน้าสินค้า
             setTimeout(() => (swallow.current = false), 400);
-            const o = s.x > SWIPE_W / 2;
-            place(o ? SWIPE_W : 0, true);
+            const o = s.x < -SWIPE_W / 2;
+            place(o ? -SWIPE_W : 0, true);
             onOpen(o);
           } else if (!s.axis && open) {
             swallow.current = true; // แตะแถวที่เปิดอยู่ = ปิด
