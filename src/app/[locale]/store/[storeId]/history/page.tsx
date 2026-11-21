@@ -9,6 +9,7 @@ import {
   Pencil,
   Pin,
   Store,
+  Sparkles,
 } from "lucide-react";
 import { can } from "@/core/domain/permissions";
 import type { StockMovement } from "@/core/domain/types";
@@ -71,11 +72,9 @@ export default async function HistoryPage({
       year: "2-digit",
       timeZone: "UTC",
     }).format(new Date(`${d}T00:00:00Z`));
-  const dayOf = (m: StockMovement) =>
-    m.purchasedOn ??
-    new Intl.DateTimeFormat("en-CA", { timeZone: store.timeZone }).format(
-      m.createdAt,
-    );
+  const localDay = (d: Date) =>
+    new Intl.DateTimeFormat("en-CA", { timeZone: store.timeZone }).format(d);
+  const dayOf = (m: StockMovement) => m.purchasedOn ?? localDay(m.createdAt);
   const img = (path: string | null, size: string) =>
     path && storage ? (
       // eslint-disable-next-line @next/next/no-img-element -- รูปจาก storage
@@ -281,89 +280,112 @@ export default async function HistoryPage({
         {/* ----- ไทม์ไลน์การซื้อ ----- */}
         <section className="space-y-2">
           <h2 className="font-semibold">{s.purchaseTimeline}</h2>
-          {purchases.length === 0 ? (
+          {purchases.length === 0 && (
             <p className="rounded-2xl border border-dashed border-line bg-card p-6 text-center text-muted">
               {s.noPurchases}
             </p>
-          ) : (
-            <ol className="scroll-box space-y-2">
-              {purchases.map((m, i) => {
-                const prev = purchases
-                  .slice(i + 1)
-                  .find((x) => x.unitCostMinor != null);
-                const diff =
-                  m.unitCostMinor != null && prev?.unitCostMinor != null
-                    ? m.unitCostMinor - prev.unitCostMinor
-                    : 0;
-                const d = dayOf(m);
-                return (
-                  <li
-                    key={m.id}
-                    className="flex gap-3 rounded-2xl border border-line bg-card p-3"
-                  >
-                    <div className="grid w-14 shrink-0 place-items-center rounded-xl bg-brand-soft py-1.5 text-center leading-tight text-brand-ink">
-                      <span className="text-lg font-bold">
-                        {Number(d.slice(8))}
-                      </span>
-                      <span className="text-[11px]">
-                        {new Intl.DateTimeFormat(locale, {
-                          month: "short",
-                          year: "2-digit",
-                          timeZone: "UTC",
-                        }).format(new Date(`${d}T00:00:00Z`))}
-                      </span>
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="flex items-center gap-1.5 truncate font-semibold">
-                        <Store className="size-4 shrink-0 text-muted" />
-                        <span className="truncate">
-                          {m.supplier ?? s.unknownSupplier}
-                        </span>
-                      </p>
-                      <p className="text-xs text-muted">
-                        {[
-                          m.lotNo && `${s.lotNo} ${m.lotNo}`,
-                          `+${m.qty} ${product.unit}`,
-                          m.note && m.note !== "initial" ? m.note : null,
-                        ]
-                          .filter(Boolean)
-                          .join(" · ")}
-                      </p>
-                    </div>
-                    <div className="shrink-0 text-right">
-                      {m.unitCostMinor != null ? (
-                        <>
-                          <p className="font-bold tabular-nums">
-                            {money(m.unitCostMinor)}
-                            <span className="text-xs font-normal text-muted">
-                              /{product.unit}
-                            </span>
-                          </p>
-                          <p className="text-xs tabular-nums text-muted">
-                            {s.totalPaid} {money(m.unitCostMinor * m.qty)}
-                          </p>
-                          {diff !== 0 && (
-                            <p
-                              className={`inline-flex items-center text-xs font-semibold ${diff > 0 ? "text-rose-600" : "text-emerald-600"}`}
-                            >
-                              {diff > 0 ? (
-                                <ArrowUp className="size-3" />
-                              ) : (
-                                <ArrowDown className="size-3" />
-                              )}
-                              {money(Math.abs(diff))}
-                            </p>
-                          )}
-                        </>
-                      ) : (
-                        <p className="text-sm text-muted">—</p>
-                      )}
-                    </div>
-                  </li>
-                );
-              })}
-            </ol>
           )}
+          <ol className="scroll-box space-y-2">
+            {purchases.map((m, i) => {
+              const prev = purchases
+                .slice(i + 1)
+                .find((x) => x.unitCostMinor != null);
+              const diff =
+                m.unitCostMinor != null && prev?.unitCostMinor != null
+                  ? m.unitCostMinor - prev.unitCostMinor
+                  : 0;
+              const d = dayOf(m);
+              return (
+                <li
+                  key={m.id}
+                  className="flex gap-3 rounded-2xl border border-line bg-card p-3"
+                >
+                  <div className="grid w-14 shrink-0 place-items-center rounded-xl bg-brand-soft py-1.5 text-center leading-tight text-brand-ink">
+                    <span className="text-lg font-bold">
+                      {Number(d.slice(8))}
+                    </span>
+                    <span className="text-[11px]">
+                      {new Intl.DateTimeFormat(locale, {
+                        month: "short",
+                        year: "2-digit",
+                        timeZone: "UTC",
+                      }).format(new Date(`${d}T00:00:00Z`))}
+                    </span>
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="flex items-center gap-1.5 truncate font-semibold">
+                      <Store className="size-4 shrink-0 text-muted" />
+                      <span className="truncate">
+                        {m.supplier ?? s.unknownSupplier}
+                      </span>
+                    </p>
+                    <p className="text-xs text-muted">
+                      {[
+                        m.lotNo && `${s.lotNo} ${m.lotNo}`,
+                        `+${m.qty} ${product.unit}`,
+                        m.note && m.note !== "initial" ? m.note : null,
+                      ]
+                        .filter(Boolean)
+                        .join(" · ")}
+                    </p>
+                  </div>
+                  <div className="shrink-0 text-right">
+                    {m.unitCostMinor != null ? (
+                      <>
+                        <p className="font-bold tabular-nums">
+                          {money(m.unitCostMinor)}
+                          <span className="text-xs font-normal text-muted">
+                            /{product.unit}
+                          </span>
+                        </p>
+                        <p className="text-xs tabular-nums text-muted">
+                          {s.totalPaid} {money(m.unitCostMinor * m.qty)}
+                        </p>
+                        {diff !== 0 && (
+                          <p
+                            className={`inline-flex items-center text-xs font-semibold ${diff > 0 ? "text-rose-600" : "text-emerald-600"}`}
+                          >
+                            {diff > 0 ? (
+                              <ArrowUp className="size-3" />
+                            ) : (
+                              <ArrowDown className="size-3" />
+                            )}
+                            {money(Math.abs(diff))}
+                          </p>
+                        )}
+                      </>
+                    ) : (
+                      <p className="text-sm text-muted">—</p>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
+            {/* จุดเริ่มต้น: วันที่เพิ่มสินค้าเข้าระบบ (อยู่ล่างสุด = เก่าสุด) */}
+            {(() => {
+              const d = localDay(product.createdAt);
+              return (
+                <li className="flex items-center gap-3 rounded-2xl border border-dashed border-line bg-card p-3">
+                  <div className="grid w-14 shrink-0 place-items-center rounded-xl bg-surface py-1.5 text-center leading-tight text-muted">
+                    <span className="text-lg font-bold">
+                      {Number(d.slice(8))}
+                    </span>
+                    <span className="text-[11px]">
+                      {new Intl.DateTimeFormat(locale, {
+                        month: "short",
+                        year: "2-digit",
+                        timeZone: "UTC",
+                      }).format(new Date(`${d}T00:00:00Z`))}
+                    </span>
+                  </div>
+                  <p className="flex min-w-0 items-center gap-1.5 font-semibold">
+                    <Sparkles className="size-4 shrink-0 text-brand" />
+                    <span className="truncate">{s.productAdded}</span>
+                  </p>
+                </li>
+              );
+            })()}
+          </ol>
         </section>
 
         {/* ----- ความเคลื่อนไหวอื่น ----- */}
@@ -528,14 +550,15 @@ export default async function HistoryPage({
                 </span>
               </span>
             ) : (
-              s.noPurchaseYet
+              // ยังไม่เคยซื้อ → บอกวันที่เพิ่มสินค้าเข้าระบบแทน
+              fill(s.addedOn, { date: day(localDay(p.createdAt)) })
             ),
             aside: (
               <>
                 {/* ขวาสุด = วันที่ซื้อล่าสุด; มือถือ: วันที่ / คงเหลือ ซ้อนกัน */}
                 <span className="flex shrink-0 flex-col items-end gap-0.5 text-[13px] md:hidden">
                   <span className="tabular-nums text-muted">
-                    {lb ? day(dayOf(lb)) : "—"}
+                    {day(lb ? dayOf(lb) : localDay(p.createdAt))}
                   </span>
                   <StockText p={p} t={t.inventory} />
                 </span>
@@ -547,7 +570,7 @@ export default async function HistoryPage({
                   <StockText p={p} t={t.inventory} />
                 </span>
                 <span className="hidden w-28 shrink-0 text-right text-[13px] tabular-nums text-muted md:block">
-                  {lb ? day(dayOf(lb)) : "—"}
+                  {day(lb ? dayOf(lb) : localDay(p.createdAt))}
                 </span>
               </>
             ),
@@ -561,7 +584,9 @@ export default async function HistoryPage({
         canPrice={false}
         showImages={!!storage}
         countText={fill(t.inventory.count, { n: items.length })}
-        scopeLabel={(subParam && subParam !== NO_SUB ? subParam : cat) || undefined}
+        scopeLabel={
+          (subParam && subParam !== NO_SUB ? subParam : cat) || undefined
+        }
         sortMenu={
           <SortMenu
             value={sort}

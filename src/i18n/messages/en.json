@@ -375,7 +375,9 @@
     "pinnedHint": "Pinned products — or type to search",
     "inDate": "Received on",
     "outDate": "Issued on",
-    "adjustDate": "Adjusted on"
+    "adjustDate": "Adjusted on",
+    "addedOn": "Added {date}",
+    "productAdded": "Product added"
   },
   "pos": {
     "search": "Scan / search products",
