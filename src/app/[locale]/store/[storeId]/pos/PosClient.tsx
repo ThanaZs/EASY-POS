@@ -447,23 +447,14 @@ export function PosClient(props: Props) {
           {t.pos.cart}{" "}
           {itemCount > 0 && <span className="text-muted">({itemCount})</span>}
         </h2>
-        <div className="flex items-center gap-2">
-          {lines.length > 0 && (
-            <button
-              onClick={() => setAskClear(true)}
-              className="text-sm text-rose-600 hover:underline"
-            >
-              {t.pos.clear}
-            </button>
-          )}
-          <button
-            onClick={() => setCartOpen(false)}
-            className="lg:hidden"
-            aria-label={t.pos.cancel}
-          >
-            <X className="size-5" />
-          </button>
-        </div>
+        {/* ปุ่มล้างย้ายไปท้ายรายการ (ห่างปุ่มปิด กันกดผิด) */}
+        <button
+          onClick={() => setCartOpen(false)}
+          className="-m-1.5 grid size-9 place-items-center rounded-full hover:bg-surface lg:hidden"
+          aria-label={t.pos.cancel}
+        >
+          <X className="size-5" />
+        </button>
       </div>
       <div className="flex-1 overflow-y-auto">
         {lines.length === 0 ? (
@@ -471,59 +462,71 @@ export function PosClient(props: Props) {
             {t.pos.emptyCart}
           </p>
         ) : (
-          <ul className="divide-y divide-line">
-            {lines.map(({ key, p, unit, qty, unitPriceMinor, label }) => (
-              <li key={key} className="flex items-center gap-2 p-3">
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium">{label}</p>
-                  <p className="text-xs text-muted tabular-nums">
-                    {money(unitPriceMinor)}
-                    {unit === "pack" && (
-                      <span className="ml-1 rounded bg-brand-soft px-1 text-brand-ink">
-                        {p.packUnit}
-                      </span>
-                    )}
+          <>
+            <ul className="divide-y divide-line">
+              {lines.map(({ key, p, unit, qty, unitPriceMinor, label }) => (
+                <li key={key} className="flex items-center gap-2 p-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium">{label}</p>
+                    <p className="text-xs text-muted tabular-nums">
+                      {money(unitPriceMinor)}
+                      {unit === "pack" && (
+                        <span className="ml-1 rounded bg-brand-soft px-1 text-brand-ink">
+                          {p.packUnit}
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                  <div className="flex items-center rounded-lg border border-line">
+                    <button
+                      className="p-1.5"
+                      onClick={() => setQty(key, qty - 1)}
+                      aria-label="-"
+                    >
+                      {qty === 1 ? (
+                        <Trash2 className="size-4 text-rose-600" />
+                      ) : (
+                        <Minus className="size-4" />
+                      )}
+                    </button>
+                    <input
+                      value={qty}
+                      onChange={(e) =>
+                        setQty(
+                          key,
+                          Number.parseInt(e.target.value || "0", 10) || 0,
+                        )
+                      }
+                      inputMode="numeric"
+                      className="w-10 bg-transparent text-center text-sm tabular-nums outline-none"
+                      aria-label={p.name}
+                    />
+                    <button
+                      className="p-1.5 disabled:opacity-30"
+                      onClick={() => setQty(key, qty + 1)}
+                      disabled={remaining(p) < mult(p, unit)}
+                      aria-label="+"
+                    >
+                      <Plus className="size-4" />
+                    </button>
+                  </div>
+                  <p className="w-20 text-right text-sm font-semibold tabular-nums">
+                    {money(unitPriceMinor * qty)}
                   </p>
-                </div>
-                <div className="flex items-center rounded-lg border border-line">
-                  <button
-                    className="p-1.5"
-                    onClick={() => setQty(key, qty - 1)}
-                    aria-label="-"
-                  >
-                    {qty === 1 ? (
-                      <Trash2 className="size-4 text-rose-600" />
-                    ) : (
-                      <Minus className="size-4" />
-                    )}
-                  </button>
-                  <input
-                    value={qty}
-                    onChange={(e) =>
-                      setQty(
-                        key,
-                        Number.parseInt(e.target.value || "0", 10) || 0,
-                      )
-                    }
-                    inputMode="numeric"
-                    className="w-10 bg-transparent text-center text-sm tabular-nums outline-none"
-                    aria-label={p.name}
-                  />
-                  <button
-                    className="p-1.5 disabled:opacity-30"
-                    onClick={() => setQty(key, qty + 1)}
-                    disabled={remaining(p) < mult(p, unit)}
-                    aria-label="+"
-                  >
-                    <Plus className="size-4" />
-                  </button>
-                </div>
-                <p className="w-20 text-right text-sm font-semibold tabular-nums">
-                  {money(unitPriceMinor * qty)}
-                </p>
-              </li>
-            ))}
-          </ul>
+                </li>
+              ))}
+            </ul>
+            {lines.length > 0 && (
+              <div className="flex justify-center border-t border-line p-4">
+                <button
+                  onClick={() => setAskClear(true)}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-rose-200 px-4 py-2 text-sm font-medium text-rose-600 transition hover:bg-rose-50 active:scale-95 dark:border-rose-900 dark:hover:bg-rose-950"
+                >
+                  <Trash2 className="size-4" /> {t.pos.clearCart}
+                </button>
+              </div>
+            )}
+          </>
         )}
       </div>
       <div className="space-y-2 border-t border-line p-3 text-sm">
