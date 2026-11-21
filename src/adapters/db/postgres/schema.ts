@@ -82,6 +82,8 @@ export const stores = pgTable("stores", {
   lowStockThreshold: integer("low_stock_threshold").notNull().default(5),
   receiptFooter: text("receipt_footer").notNull().default(""),
   allowNegativeStock: boolean("allow_negative_stock").notNull().default(false),
+  // รูป QR รับเงิน (พร้อมเพย์จากธนาคาร) — แสดงตอนเลือกจ่ายแบบ QR
+  payQrPath: text("pay_qr_path"),
   createdAt: createdAt(),
 });
 

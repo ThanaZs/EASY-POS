@@ -51,9 +51,13 @@ export default async function PosPage({
       canDiscount={can(member, "pos.discount")}
       allowNegativeStock={store.allowNegativeStock}
       receiptFooter={store.receiptFooter}
+      payQrUrl={
+        store.payQrPath && storage ? storage.publicUrl(store.payQrPath) : null
+      }
       products={items}
       t={{
         pos: t.pos,
+        payQr: { scan: t.settings.payQr.scan, none: t.settings.payQr.none },
         store: { back: t.store.back },
         scan: t.scan,
         devices: t.devices,

@@ -490,7 +490,23 @@
     "footerPlaceholder": "Thank you!",
     "storeCode": "Store code",
     "save": "Save",
-    "saved": "Saved"
+    "saved": "Saved",
+    "payQr": {
+      "title": "Payment QR (PromptPay)",
+      "hint": "Get your receive-money QR from your bank app and upload it here — choosing “QR / PromptPay” at checkout shows it for the customer to scan (the site resizes the file for you)",
+      "upload": "Upload QR image",
+      "change": "Change image",
+      "remove": "Remove",
+      "removeConfirm": "Remove the payment QR?",
+      "saving": "Saving…",
+      "saved": "Payment QR saved",
+      "removed": "Payment QR removed",
+      "invalid": "This file is not an image",
+      "big": "File is too large",
+      "failed": "Upload failed, please try again",
+      "scan": "Customer scans to pay",
+      "none": "No payment QR yet — add it in Store settings › Payment QR"
+    }
   },
   "scan": {
     "title": "Scan barcode",

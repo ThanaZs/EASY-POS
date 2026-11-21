@@ -86,9 +86,12 @@ type Props = {
   canDiscount: boolean;
   allowNegativeStock: boolean;
   receiptFooter: string;
+  /** รูป QR รับเงินของร้าน (ตั้งค่าร้าน) */
+  payQrUrl: string | null;
   products: PosProduct[];
   t: {
     pos: Dictionary["pos"];
+    payQr: { scan: string; none: string };
     store: { back: string };
     scan: Dictionary["scan"];
     devices: Dictionary["devices"];
@@ -902,6 +905,28 @@ export function PosClient(props: Props) {
                 </button>
               ))}
             </div>
+            {/* จ่ายแบบ QR: ขึ้นรูป QR ของร้านให้ลูกค้าสแกน */}
+            {method === "qr" &&
+              (props.payQrUrl ? (
+                <div className="flex flex-col items-center gap-1.5">
+                  {/* eslint-disable-next-line @next/next/no-img-element -- รูปจาก storage */}
+                  <img
+                    src={props.payQrUrl}
+                    alt="QR"
+                    className="max-h-[45dvh] w-full max-w-64 rounded-xl border border-line bg-white object-contain p-2"
+                  />
+                  <p className="text-sm text-muted">
+                    {t.payQr.scan}{" "}
+                    <b className="tabular-nums text-ink">
+                      {money(totals.totalMinor)}
+                    </b>
+                  </p>
+                </div>
+              ) : (
+                <p className="rounded-xl bg-surface px-3 py-2 text-center text-sm text-muted">
+                  {t.payQr.none}
+                </p>
+              ))}
             {method === "cash" && (
               <div className="space-y-2">
                 <label className="block space-y-1">

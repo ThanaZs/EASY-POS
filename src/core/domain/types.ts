@@ -50,6 +50,7 @@ export interface Store {
   lowStockThreshold: number;
   receiptFooter: string; // ข้อความท้ายใบเสร็จ
   allowNegativeStock: boolean; // ขายได้แม้สต็อกไม่พอ
+  payQrPath: string | null; // รูป QR รับเงิน (ไฟล์ใน storage)
   createdAt: Date;
 }
 

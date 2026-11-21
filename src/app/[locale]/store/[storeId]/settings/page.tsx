@@ -3,10 +3,12 @@ import { PageTitle } from "@/components/PageTitle";
 import { Card, Field, PrimaryButton } from "@/components/Field";
 import { Select, timeZoneOptions } from "@/components/Select";
 import { loadLocale } from "@/i18n/page";
+import { getStorage } from "@/server/container";
 import { requireStoreAccess } from "@/server/session";
 import { SettingsTabs } from "../SettingsTabs";
 import { StoreDangerDialog } from "../StoreDangerDialog";
 import { saveSettingsAction } from "./actions";
+import { PayQrField } from "./PayQrField";
 
 export default async function SettingsPage({
   params,
@@ -20,6 +22,7 @@ export default async function SettingsPage({
     "store.settings",
   );
   const sp = await searchParams;
+  const storage = await getStorage();
   const s = t.settings;
   const section =
     "space-y-4 border-t border-line pt-4 first:border-0 first:pt-0";
@@ -121,6 +124,15 @@ export default async function SettingsPage({
           <PrimaryButton type="submit">{s.save}</PrimaryButton>
         </form>
       </Card>
+      {storage && (
+        <PayQrField
+          locale={locale}
+          storeId={storeId}
+          url={store.payQrPath ? storage.publicUrl(store.payQrPath) : null}
+          status={typeof sp.qr === "string" ? sp.qr : undefined}
+          t={t.settings.payQr}
+        />
+      )}
       {member.role === "owner" && (
         <section className="space-y-3 rounded-2xl border border-rose-200 bg-card p-4 dark:border-rose-900">
           <div>

@@ -1,0 +1,1 @@
+ALTER TABLE "stores" ADD COLUMN "pay_qr_path" text;

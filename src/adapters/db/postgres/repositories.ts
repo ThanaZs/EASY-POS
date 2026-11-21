@@ -67,6 +67,7 @@ const toStore = (r: StoreRow): Store => ({
   lowStockThreshold: r.lowStockThreshold,
   receiptFooter: r.receiptFooter,
   allowNegativeStock: r.allowNegativeStock,
+  payQrPath: r.payQrPath,
   createdAt: r.createdAt,
 });
 
@@ -258,6 +259,14 @@ function storeRepo(): StoreRepo {
         .where(and(eq(stores.id, storeId), eq(stores.ownerId, ownerId)))
         .returning({ id: stores.id });
       return rows.length > 0;
+    },
+    async setPayQr(storeId, path) {
+      const [old] = await db
+        .select({ p: stores.payQrPath })
+        .from(stores)
+        .where(eq(stores.id, storeId));
+      await db.update(stores).set({ payQrPath: path }).where(eq(stores.id, storeId));
+      return old?.p ?? null;
     },
     async updateSettings(storeId, patch) {
       const [r] = await db

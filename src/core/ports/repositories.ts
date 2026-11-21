@@ -69,6 +69,8 @@ export interface StoreRepo {
   /** ลบรหัสเชิญที่ยังไม่มีใครใช้ — คืน false ถ้าใช้ไปแล้ว/ไม่พบ */
   deleteUnusedInvite(storeId: ID, inviteId: ID): Promise<boolean>;
   updateSettings(storeId: ID, patch: StoreSettings): Promise<Store>;
+  /** ตั้ง/ลบรูป QR รับเงิน — คืน path เดิม (ไว้ลบไฟล์) */
+  setPayQr(storeId: ID, path: string | null): Promise<string | null>;
   /** ต้องทำใน transaction: ตรวจรหัสเชิญ (หมดอายุ/ใช้ครบ) + เพิ่มสมาชิก + นับการใช้ */
   redeemInvite(code: string, userId: ID): Promise<RedeemInviteResult>;
 }
