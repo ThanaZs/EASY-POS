@@ -541,3 +541,54 @@ export async function renameCategoryAction(input: {
   refresh();
   return { ok: true, n, to };
 }
+
+/** ปักหมุด / เลิกปักหมุดหลายสินค้า (ปัดแถว หรือเลือกหลายรายการ) */
+export async function bulkPinAction(input: {
+  locale: string;
+  storeId: string;
+  ids: string[];
+  pinned: boolean;
+}): Promise<{ ok: boolean; n: number }> {
+  const locale = isLocale(input.locale) ? input.locale : defaultLocale;
+  const { user } = await requireStoreAccess(locale, input.storeId, "products.edit");
+  const repos = await getRepositories();
+  let n = 0;
+  for (const id of input.ids.slice(0, 1000)) {
+    const p = await repos.products.setPinned(input.storeId, id, input.pinned);
+    if (!p) continue;
+    n++;
+    await audit(input.storeId, user, input.pinned ? "product.pin" : "product.unpin", {
+      entityType: "product",
+      entityId: p.id,
+      entityName: p.name,
+      changes: { pinned: [!input.pinned, input.pinned] },
+    });
+  }
+  refresh();
+  return { ok: true, n };
+}
+
+/** ย้ายหลายสินค้าไปถังขยะ (กู้คืนได้ 30 วัน) — ปัดแถว หรือเลือกหลายรายการ */
+export async function bulkTrashAction(input: {
+  locale: string;
+  storeId: string;
+  ids: string[];
+}): Promise<{ ok: boolean; n: number }> {
+  const locale = isLocale(input.locale) ? input.locale : defaultLocale;
+  const { user } = await requireStoreAccess(locale, input.storeId, "products.delete");
+  const repos = await getRepositories();
+  let n = 0;
+  for (const id of input.ids.slice(0, 1000)) {
+    const p = await repos.products.trash(input.storeId, id, user.displayName, null);
+    if (!p) continue;
+    n++;
+    await audit(input.storeId, user, "product.delete", {
+      entityType: "product",
+      entityId: id,
+      entityName: p.name,
+      note: `ย้ายไปถังขยะ${p.barcode ? ` · ${p.barcode}` : ""}`,
+    });
+  }
+  refresh();
+  return { ok: true, n };
+}

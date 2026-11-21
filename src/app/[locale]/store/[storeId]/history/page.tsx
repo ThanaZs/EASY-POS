@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { PageTitle } from "@/components/PageTitle";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import {
   ArrowDown,
   ArrowUp,
@@ -18,9 +18,9 @@ import { getRepositories, getStorage } from "@/server/container";
 import { restoreFilters } from "@/server/filters";
 import { requireStoreAccess } from "@/server/session";
 import { BackLink } from "../BackLink";
-import { togglePinAction } from "../inventory/actions";
 import { InventoryFilters, NO_SUB } from "../inventory/InventoryFilters";
 import { SortMenu } from "../inventory/SortMenu";
+import { ProductList } from "../inventory/ProductList";
 import { StockText } from "../inventory/StockBadge";
 import { parseSort, sortProducts } from "../inventory/sort";
 import { MovementList } from "./MovementList";
@@ -405,6 +405,9 @@ export default async function HistoryPage({
       ? repos.stock.productIdsBySupplier(storeId, supplier)
       : Promise.resolve(null),
   ]);
+  // หมวดที่เลือกไว้ไม่มีแล้ว (เช่น ลบสินค้าในหมวดหมด / เปลี่ยนชื่อ) → กลับไปทุกหมวด
+  if (cat && !tree.some((n) => n.category === cat))
+    redirect(`/${locale}/store/${storeId}/history?reset=1`);
   const sort = parseSort(sp.sort, true);
   const items = sortProducts(
     bySupplierIds
@@ -503,109 +506,84 @@ export default async function HistoryPage({
         </section>
       )}
 
-      <div className="flex items-center justify-between gap-2">
-        <p className="text-xs text-muted">
-          {fill(t.inventory.count, { n: items.length })}
-        </p>
-        <SortMenu
-          value={sort}
-          label={so.label}
-          options={[
-            ["", so.name],
-            ["bought", so.bought],
-            ["new", so.new],
-            ["stockAsc", so.stockAsc],
-            ["stockDesc", so.stockDesc],
-          ]}
-        />
-      </div>
-      {items.length === 0 ? (
-        <p className="rounded-2xl border border-dashed border-line bg-card p-8 text-center text-muted">
-          {s.noMatch}
-        </p>
-      ) : (
-        <ul className="overflow-hidden rounded-2xl border border-line bg-card">
-          {items.map((p) => {
-            const lb = last.get(p.id);
-            return (
-              <li key={p.id} className="flex items-center border-b border-line last:border-b-0">
-                {canPin ? (
-                  <form action={togglePinAction} className="shrink-0">
-                    <input type="hidden" name="locale" value={locale} />
-                    <input type="hidden" name="storeId" value={storeId} />
-                    <input type="hidden" name="productId" value={p.id} />
-                    <input
-                      type="hidden"
-                      name="pinned"
-                      value={p.pinned ? "0" : "1"}
-                    />
-                    <button
-                      type="submit"
-                      aria-label={
-                        p.pinned ? t.inventory.unpin : t.inventory.pin
-                      }
-                      title={p.pinned ? t.inventory.unpin : t.inventory.pin}
-                      className={`grid h-16 w-10 place-items-center transition active:scale-90 ${p.pinned ? "text-brand" : "text-line hover:text-muted"}`}
-                    >
-                      <Pin
-                        className={`size-4 ${p.pinned ? "fill-current" : ""}`}
-                      />
-                    </button>
-                  </form>
-                ) : (
-                  <span className="w-3" />
+      <ProductList
+        rows={items.map((p) => {
+          const lb = last.get(p.id);
+          return {
+            id: p.id,
+            name: p.name,
+            img: p.imagePath && storage ? storage.publicUrl(p.imagePath) : null,
+            href: `${base}?product=${p.id}`,
+            pinned: p.pinned,
+            priceMinor: p.priceMinor,
+            costMinor: p.costMinor,
+            sub: lb ? (
+              <span className="text-ink">
+                {lb.unitCostMinor != null && (
+                  <b className="tabular-nums">{money(lb.unitCostMinor)}</b>
                 )}
-                <Link
-                  prefetch={false}
-                  href={`${base}?product=${p.id}`}
-                  className="flex min-w-0 flex-1 items-center gap-3 py-2.5 pr-4 row-hover"
-                >
-                  {storage && img(p.imagePath, "size-12 rounded-xl")}
-                  <div className="min-w-0 flex-1">
-                    <p className="line-clamp-2 text-[15px] font-medium leading-snug">
-                      {p.name}
-                    </p>
-                    {lb ? (
-                      <p className="mt-0.5 truncate text-[13px]">
-                        {lb.unitCostMinor != null && (
-                          <b className="tabular-nums">
-                            {money(lb.unitCostMinor)}
-                          </b>
-                        )}
-                        <span className="text-muted">
-                          {lb.unitCostMinor != null && lb.supplier ? " · " : ""}
-                          {lb.supplier}
-                        </span>
-                      </p>
-                    ) : (
-                      <p className="mt-0.5 truncate text-[13px] text-muted">
-                        {s.noPurchaseYet}
-                      </p>
-                    )}
-                  </div>
-                  {/* ขวาสุด = วันที่ซื้อล่าสุด; มือถือ: วันที่ / คงเหลือ ซ้อนกัน */}
-                  <span className="flex shrink-0 flex-col items-end gap-0.5 text-[13px] md:hidden">
-                    <span className="tabular-nums text-muted">
-                      {lb ? day(dayOf(lb)) : "—"}
-                    </span>
-                    <StockText p={p} t={t.inventory} />
-                  </span>
-                  <span className="hidden w-40 shrink-0 truncate text-[13px] text-muted md:block">
-                    {[p.category, p.subcategory].filter(Boolean).join(" › ") ||
-                      "—"}
-                  </span>
-                  <span className="hidden w-32 shrink-0 text-right text-[13px] md:block">
-                    <StockText p={p} t={t.inventory} />
-                  </span>
-                  <span className="hidden w-28 shrink-0 text-right text-[13px] tabular-nums text-muted md:block">
+                <span className="text-muted">
+                  {lb.unitCostMinor != null && lb.supplier ? " · " : ""}
+                  {lb.supplier}
+                </span>
+              </span>
+            ) : (
+              s.noPurchaseYet
+            ),
+            aside: (
+              <>
+                {/* ขวาสุด = วันที่ซื้อล่าสุด; มือถือ: วันที่ / คงเหลือ ซ้อนกัน */}
+                <span className="flex shrink-0 flex-col items-end gap-0.5 text-[13px] md:hidden">
+                  <span className="tabular-nums text-muted">
                     {lb ? day(dayOf(lb)) : "—"}
                   </span>
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
-      )}
+                  <StockText p={p} t={t.inventory} />
+                </span>
+                <span className="hidden w-40 shrink-0 truncate text-[13px] text-muted md:block">
+                  {[p.category, p.subcategory].filter(Boolean).join(" › ") ||
+                    "—"}
+                </span>
+                <span className="hidden w-32 shrink-0 text-right text-[13px] md:block">
+                  <StockText p={p} t={t.inventory} />
+                </span>
+                <span className="hidden w-28 shrink-0 text-right text-[13px] tabular-nums text-muted md:block">
+                  {lb ? day(dayOf(lb)) : "—"}
+                </span>
+              </>
+            ),
+          };
+        })}
+        locale={locale}
+        storeId={storeId}
+        currency={store.currency}
+        canPin={canPin}
+        canDelete={can(member, "products.delete")}
+        canPrice={false}
+        showImages={!!storage}
+        countText={fill(t.inventory.count, { n: items.length })}
+        scopeLabel={(subParam && subParam !== NO_SUB ? subParam : cat) || undefined}
+        sortMenu={
+          <SortMenu
+            value={sort}
+            label={so.label}
+            options={[
+              ["", so.name],
+              ["bought", so.bought],
+              ["new", so.new],
+              ["stockAsc", so.stockAsc],
+              ["stockDesc", so.stockDesc],
+            ]}
+          />
+        }
+        t={{
+          ...t.inventory.bulk,
+          empty: s.noMatch,
+          pin: t.inventory.pin,
+          unpin: t.inventory.unpin,
+          price: t.inventory.price,
+          cost: t.inventory.cost,
+        }}
+      />
     </div>
   );
 }

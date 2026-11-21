@@ -1,9 +1,10 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { Alert } from "@/components/Alert";
 import { PageTitle } from "@/components/PageTitle";
 import { FileSpreadsheet, Plus } from "lucide-react";
 import { can } from "@/core/domain/permissions";
-import { fill } from "@/core/lib/format";
+import { fill, formatMoney } from "@/core/lib/format";
 import { toEnglishLayout } from "@/core/lib/keyboard";
 import { loadLocale } from "@/i18n/page";
 import { getRepositories, getStorage } from "@/server/container";
@@ -12,6 +13,7 @@ import { requireStoreAccess } from "@/server/session";
 import { InventoryFilters, NO_SUB } from "./InventoryFilters";
 import { SortMenu } from "./SortMenu";
 import { ProductList } from "./ProductList";
+import { StockText } from "./StockBadge";
 import { parseSort, sortProducts } from "./sort";
 
 export default async function InventoryPage({
@@ -51,6 +53,9 @@ export default async function InventoryPage({
     repos.products.categoryTree(storeId),
     getStorage(),
   ]);
+  // หมวดที่เลือกไว้ไม่มีแล้ว (เช่น ลบสินค้าในหมวดหมด / เปลี่ยนชื่อ) → กลับไปทุกหมวด
+  if (cat && !tree.some((n) => n.category === cat))
+    redirect(`/${locale}/store/${storeId}/inventory?reset=1`);
   // พิมพ์/ยิงตอนคีย์บอร์ดค้างภาษาไทย ("ๅ/-ภ") แล้วไม่เจอ → ลองแปลงเป็นแป้นอังกฤษ ("1234")
   const en = toEnglishLayout(q);
   const sort = parseSort(sp.sort);
@@ -63,6 +68,11 @@ export default async function InventoryPage({
   const so = t.inventory.sort;
   const base = `/${locale}/store/${storeId}/inventory`;
   const canEdit = can(member, "products.edit");
+  const stockT = {
+    noTrack: t.inventory.noTrack,
+    out: t.inventory.out,
+    low: t.inventory.low,
+  };
 
   return (
     <div className="space-y-4 pb-20 sm:pb-0">
@@ -72,7 +82,7 @@ export default async function InventoryPage({
           prefetch={false}
           href={`${base}/new`}
           aria-label={t.inventory.add}
-          className="fixed bottom-[calc(1.25rem+env(safe-area-inset-bottom))] right-5 z-40 grid size-14 place-items-center rounded-full bg-brand text-white shadow-lg shadow-black/25 transition active:scale-95 sm:hidden"
+          className="fab-add fixed bottom-[calc(1.25rem+env(safe-area-inset-bottom))] right-5 z-40 grid size-14 place-items-center rounded-full bg-brand text-white shadow-lg shadow-black/25 transition active:scale-95 sm:hidden"
         >
           <Plus className="size-7" />
         </Link>
@@ -149,29 +159,47 @@ export default async function InventoryPage({
       />
 
       <ProductList
-        rows={items.map((p) => ({
-          id: p.id,
-          name: p.name,
-          img: p.imagePath && storage ? storage.publicUrl(p.imagePath) : null,
-          catPath:
-            [p.category, p.subcategory].filter(Boolean).join(" › ") || "—",
-          priceMinor: p.priceMinor,
-          costMinor: p.costMinor,
-          pinned: p.pinned,
-          stock: {
-            trackStock: p.trackStock,
-            stockQty: p.stockQty,
-            lowStockThreshold: p.lowStockThreshold,
-            unit: p.unit,
-          },
-        }))}
+        rows={items.map((p) => {
+          const catPath =
+            [p.category, p.subcategory].filter(Boolean).join(" › ") || "—";
+          return {
+            id: p.id,
+            name: p.name,
+            img: p.imagePath && storage ? storage.publicUrl(p.imagePath) : null,
+            href: canEdit ? `${base}/${p.id}` : null,
+            pinned: p.pinned,
+            priceMinor: p.priceMinor,
+            costMinor: p.costMinor,
+            sub: (
+              <>
+                <span className="md:hidden">
+                  <StockText p={p} t={stockT} />
+                  {" · "}
+                </span>
+                {catPath}
+              </>
+            ),
+            aside: (
+              <>
+                <span className="hidden w-44 shrink-0 text-right text-sm md:block">
+                  <StockText p={p} t={stockT} />
+                </span>
+                <span className="shrink-0 text-right text-base font-semibold tabular-nums md:w-28">
+                  {formatMoney(p.priceMinor, store.currency, locale)}
+                </span>
+              </>
+            ),
+          };
+        })}
         locale={locale}
         storeId={storeId}
         currency={store.currency}
-        base={base}
-        canEdit={canEdit}
+        canPin={canEdit}
+        canDelete={can(member, "products.delete")}
+        canPrice={canEdit}
         showImages={!!storage}
         countText={fill(t.inventory.count, { n: items.length })}
+        scopeLabel={(subParam && subParam !== NO_SUB ? subParam : cat) || undefined}
         sortMenu={
           <SortMenu
             value={sort}
@@ -193,11 +221,6 @@ export default async function InventoryPage({
           unpin: t.inventory.unpin,
           price: t.inventory.price,
           cost: t.inventory.cost,
-        }}
-        stockT={{
-          noTrack: t.inventory.noTrack,
-          out: t.inventory.out,
-          low: t.inventory.low,
         }}
       />
     </div>

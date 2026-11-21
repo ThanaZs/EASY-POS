@@ -247,7 +247,15 @@
       "amount": "Amount",
       "more": "and {n} more",
       "save": "Save {n} items",
-      "invalid": "Enter a valid number"
+      "invalid": "Enter a valid number",
+      "delete": "Delete",
+      "deleteTitle": "Move to trash?",
+      "deleteMsg": "{n} items will move to the trash, restorable for 30 days",
+      "deleted": "Moved {n} items to the trash",
+      "openTrash": "Open trash",
+      "allIn": "All in “{cat}” ({n})",
+      "pinIt": "Pin",
+      "unpinIt": "Unpin"
     },
     "merge": {
       "title": "Is this the case/pack of another product?",

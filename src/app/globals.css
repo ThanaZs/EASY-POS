@@ -180,3 +180,8 @@ input[type="month"] {
 input[type="date"]::-webkit-date-and-time-value {
   text-align: left;
 }
+
+/* โหมดเลือกสินค้า: ซ่อนปุ่ม + ลอย (แถบคำสั่งอยู่ตรงนั้น) */
+body:has(.select-bar) .fab-add {
+  display: none;
+}
