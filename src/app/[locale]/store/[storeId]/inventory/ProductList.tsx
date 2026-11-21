@@ -1,13 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import {
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  useTransition,
-} from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import {
   Check,
   ImageOff,
@@ -126,6 +120,21 @@ export function ProductList({
     setSelecting(false);
     setSel(new Set());
   };
+  // คอม: กด Esc = ออกจากโหมดเลือก (ถ้ามีหน้าต่างยืนยันเปิดอยู่ ให้หน้าต่างนั้นปิดก่อน)
+  useEffect(() => {
+    if (!selecting) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (
+        e.key !== "Escape" ||
+        document.querySelector("dialog[open],[role=alertdialog]")
+      )
+        return;
+      setSelecting(false);
+      setSel(new Set());
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [selecting]);
   const picked = rows.filter((r) => sel.has(r.id));
   // เลือกแล้วมีตัวที่ยังไม่ปักหมุด → ปุ่ม "ปักหมุด"; ปักหมุดหมดแล้ว → "เลิกปักหมุด"
   const pinAll = picked.some((r) => !r.pinned);
@@ -180,8 +189,14 @@ export function ProductList({
         </p>
       )}
 
-      {/* แถวบน: [เลือก] ซ้ายสุด · จำนวน · เรียง (ขวา) — ตอนเลือก: [☐ ทั้งหมด] [ยกเลิก] */}
-      <div className="flex min-h-9 items-center gap-2">
+      {/* แถวบน: [เลือก] ซ้ายสุด · จำนวน · เรียง (ขวา) — ตอนเลือก: แถบสี [☐ ทั้งหมด] … [✕ ยกเลิก] (คอม: กด Esc ก็ได้) */}
+      <div
+        className={`flex min-h-9 items-center gap-2 ${
+          selecting
+            ? "sticky top-14 z-10 -mx-1 lg:top-3 rounded-xl border border-brand/30 bg-brand-soft px-2 py-1.5 shadow-sm"
+            : ""
+        }`}
+      >
         {selecting ? (
           <>
             <button
@@ -195,12 +210,22 @@ export function ProductList({
               <Box on={allOn} part={sel.size > 0 && !allOn} />
               <span className="truncate">{allLabel}</span>
             </button>
+            {sel.size > 0 && (
+              <span className="hidden shrink-0 text-sm font-semibold text-brand-ink sm:inline">
+                {fill(t.selected, { n: sel.size })}
+              </span>
+            )}
             <button
               type="button"
               onClick={stop}
-              className="ml-auto shrink-0 rounded-lg px-2 py-1 text-sm font-medium text-brand-ink hover:bg-card"
+              title="Esc"
+              className="ml-auto inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border border-line bg-card px-3.5 text-sm font-semibold text-ink shadow-sm transition hover:border-brand active:scale-95"
             >
+              <X className="size-4" />
               {t.cancel}
+              <kbd className="ml-0.5 hidden rounded border border-line px-1 font-sans text-[10px] font-medium text-muted [@media(hover:hover)]:inline">
+                Esc
+              </kbd>
             </button>
           </>
         ) : (
@@ -686,7 +711,9 @@ function BulkDialog({
           onClick={() => set(v)}
           aria-pressed={cur === v}
           className={`flex-1 rounded-lg px-2 py-2 text-sm transition ${
-            cur === v ? "bg-card font-semibold text-brand-ink shadow-sm" : "text-muted"
+            cur === v
+              ? "bg-card font-semibold text-brand-ink shadow-sm"
+              : "text-muted"
           }`}
         >
           {l}
