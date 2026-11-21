@@ -128,7 +128,10 @@ export default async function SettingsPage({
         <PayQrField
           locale={locale}
           storeId={storeId}
-          url={store.payQrPath ? storage.publicUrl(store.payQrPath) : null}
+          qrs={store.payQrs.map((q) => ({
+            ...q,
+            url: storage.publicUrl(q.path),
+          }))}
           status={typeof sp.qr === "string" ? sp.qr : undefined}
           t={t.settings.payQr}
         />

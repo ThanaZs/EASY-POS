@@ -37,6 +37,9 @@ export interface User {
   createdAt: Date;
 }
 
+/** รูป QR รับเงิน 1 อัน: ไฟล์ใน storage + ชื่อเรียก (เช่น "กสิกร") */
+export type PayQr = { path: string; label: string };
+
 export interface Store {
   id: ID;
   name: string;
@@ -50,7 +53,7 @@ export interface Store {
   lowStockThreshold: number;
   receiptFooter: string; // ข้อความท้ายใบเสร็จ
   allowNegativeStock: boolean; // ขายได้แม้สต็อกไม่พอ
-  payQrPath: string | null; // รูป QR รับเงิน (ไฟล์ใน storage)
+  payQrs: PayQr[]; // รูป QR รับเงิน (ร้านมีได้หลายอัน เช่น หลายธนาคาร)
   createdAt: Date;
 }
 

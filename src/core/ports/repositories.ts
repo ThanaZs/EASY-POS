@@ -7,6 +7,7 @@ import type {
   ID,
   ImportResult,
   ImportRow,
+  PayQr,
   PaymentMethod,
   Product,
   PurchaseInfo,
@@ -69,8 +70,8 @@ export interface StoreRepo {
   /** ลบรหัสเชิญที่ยังไม่มีใครใช้ — คืน false ถ้าใช้ไปแล้ว/ไม่พบ */
   deleteUnusedInvite(storeId: ID, inviteId: ID): Promise<boolean>;
   updateSettings(storeId: ID, patch: StoreSettings): Promise<Store>;
-  /** ตั้ง/ลบรูป QR รับเงิน — คืน path เดิม (ไว้ลบไฟล์) */
-  setPayQr(storeId: ID, path: string | null): Promise<string | null>;
+  /** บันทึกรายการรูป QR รับเงินทั้งหมด (ว่าง = ไม่มี) */
+  setPayQrs(storeId: ID, list: PayQr[]): Promise<void>;
   /** ต้องทำใน transaction: ตรวจรหัสเชิญ (หมดอายุ/ใช้ครบ) + เพิ่มสมาชิก + นับการใช้ */
   redeemInvite(code: string, userId: ID): Promise<RedeemInviteResult>;
 }

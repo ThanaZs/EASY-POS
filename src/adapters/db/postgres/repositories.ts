@@ -11,6 +11,7 @@ import {
   sql,
 } from "drizzle-orm";
 import type {
+  PayQr,
   Store,
   StoreInvite,
   StoreMember,
@@ -54,6 +55,20 @@ const toUser = (r: UserRow): User => ({
   createdAt: r.createdAt,
 });
 
+/** คอลัมน์ pay_qr_path: JSON [{path,label}] — ค่าเก่า = path เดียว */
+function parsePayQrs(v: string | null): PayQr[] {
+  if (!v) return [];
+  if (!v.startsWith("[")) return [{ path: v, label: "QR" }];
+  try {
+    const a = JSON.parse(v) as PayQr[];
+    return Array.isArray(a)
+      ? a.filter((q) => typeof q?.path === "string").map((q) => ({ path: q.path, label: String(q.label ?? "QR") }))
+      : [];
+  } catch {
+    return [];
+  }
+}
+
 const toStore = (r: StoreRow): Store => ({
   id: r.id,
   name: r.name,
@@ -67,7 +82,7 @@ const toStore = (r: StoreRow): Store => ({
   lowStockThreshold: r.lowStockThreshold,
   receiptFooter: r.receiptFooter,
   allowNegativeStock: r.allowNegativeStock,
-  payQrPath: r.payQrPath,
+  payQrs: parsePayQrs(r.payQrPath),
   createdAt: r.createdAt,
 });
 
@@ -260,13 +275,11 @@ function storeRepo(): StoreRepo {
         .returning({ id: stores.id });
       return rows.length > 0;
     },
-    async setPayQr(storeId, path) {
-      const [old] = await db
-        .select({ p: stores.payQrPath })
-        .from(stores)
+    async setPayQrs(storeId, list) {
+      await db
+        .update(stores)
+        .set({ payQrPath: list.length ? JSON.stringify(list) : null })
         .where(eq(stores.id, storeId));
-      await db.update(stores).set({ payQrPath: path }).where(eq(stores.id, storeId));
-      return old?.p ?? null;
     },
     async updateSettings(storeId, patch) {
       const [r] = await db

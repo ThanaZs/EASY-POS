@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { ClearCartConfirm } from "./ClearCartConfirm";
+import { PayQrView } from "./PayQrView";
 import { compareText } from "@/core/lib/compare";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import {
@@ -86,8 +87,8 @@ type Props = {
   canDiscount: boolean;
   allowNegativeStock: boolean;
   receiptFooter: string;
-  /** รูป QR รับเงินของร้าน (ตั้งค่าร้าน) */
-  payQrUrl: string | null;
+  /** รูป QR รับเงินของร้าน (ตั้งค่าร้าน) — หลายอัน = เลือกสลับได้ */
+  payQrs: Array<{ label: string; url: string }>;
   products: PosProduct[];
   t: {
     pos: Dictionary["pos"];
@@ -905,23 +906,21 @@ export function PosClient(props: Props) {
                 </button>
               ))}
             </div>
-            {/* จ่ายแบบ QR: ขึ้นรูป QR ของร้านให้ลูกค้าสแกน */}
+            {/* จ่ายแบบ QR: ขึ้นรูป QR ของร้านให้ลูกค้าสแกน — หลายอัน = แตะชื่อเพื่อสลับ */}
             {method === "qr" &&
-              (props.payQrUrl ? (
-                <div className="flex flex-col items-center gap-1.5">
-                  {/* eslint-disable-next-line @next/next/no-img-element -- รูปจาก storage */}
-                  <img
-                    src={props.payQrUrl}
-                    alt="QR"
-                    className="max-h-[45dvh] w-full max-w-64 rounded-xl border border-line bg-white object-contain p-2"
-                  />
-                  <p className="text-sm text-muted">
-                    {t.payQr.scan}{" "}
-                    <b className="tabular-nums text-ink">
-                      {money(totals.totalMinor)}
-                    </b>
-                  </p>
-                </div>
+              (props.payQrs.length ? (
+                <PayQrView
+                  storeId={props.storeId}
+                  qrs={props.payQrs}
+                  caption={
+                    <>
+                      {t.payQr.scan}{" "}
+                      <b className="tabular-nums text-ink">
+                        {money(totals.totalMinor)}
+                      </b>
+                    </>
+                  }
+                />
               ) : (
                 <p className="rounded-xl bg-surface px-3 py-2 text-center text-sm text-muted">
                   {t.payQr.none}

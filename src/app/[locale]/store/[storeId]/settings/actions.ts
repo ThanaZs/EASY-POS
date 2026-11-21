@@ -63,40 +63,62 @@ export async function saveSettingsAction(form: FormData) {
   redirect(`/${locale}/store/${storeId}/settings?saved=1`);
 }
 
+/** จำนวนรูป QR สูงสุดต่อร้าน */
+const MAX_QRS = 6;
+
 /**
- * รูป QR รับเงิน (พร้อมเพย์จากแอปธนาคาร) — เบราว์เซอร์ย่อขนาดให้ก่อนส่ง (ดู PayQrField)
- * remove=1 = ลบรูป; ชื่อไฟล์สุ่มใหม่ทุกครั้ง กันเบราว์เซอร์ค้างรูปเก่า
+ * รูป QR รับเงิน (พร้อมเพย์จากแอปธนาคาร) — มีได้หลายอัน (หลายธนาคาร/หลายบัญชี)
+ * op=add: ไฟล์ "qr" (เบราว์เซอร์ย่อให้แล้ว ดู PayQrField) + label; op=rename: path + label; op=remove: path
  */
 export async function savePayQrAction(form: FormData) {
   const { locale, storeId } = storeCtx(form);
   const { user, store } = await requireStoreAccess(locale, storeId, "store.settings");
   const back = `/${locale}/store/${storeId}/settings`;
   const storage = await getStorage();
-  if (!storage) redirect(`${back}?qr=failed`);
+  if (!storage) redirect(`${back}?qr=failed#pay-qr`);
   const repos = await getRepositories();
-  let path: string | null = null;
-  if (form.get("remove") !== "1") {
+  const op = str(form, "op");
+  const label = str(form, "label").trim().slice(0, 40);
+  const list = [...store.payQrs];
+  let note = "";
+  if (op === "add") {
+    if (list.length >= MAX_QRS) redirect(`${back}?qr=full#pay-qr`);
     const file = form.get("qr");
     if (!(file instanceof File) || file.size === 0) redirect(back);
-    if (file.size > MAX_IMAGE_BYTES) redirect(`${back}?qr=big`);
+    if (file.size > MAX_IMAGE_BYTES) redirect(`${back}?qr=big#pay-qr`);
     const bytes = new Uint8Array(await file.arrayBuffer());
     const kind = sniffImage(bytes);
-    if (!kind) redirect(`${back}?qr=invalid`);
-    path = `stores/${storeId}/pay-qr-${randomCode(8).toLowerCase()}.${kind.ext}`;
+    if (!kind) redirect(`${back}?qr=invalid#pay-qr`);
+    const path = `stores/${storeId}/pay-qr-${randomCode(8).toLowerCase()}.${kind.ext}`;
     try {
       await storage.put(path, bytes, kind.type);
     } catch (e) {
       console.error("pay qr upload failed", e);
-      redirect(`${back}?qr=failed`);
+      redirect(`${back}?qr=failed#pay-qr`);
+    }
+    const name = label || `QR ${list.length + 1}`;
+    list.push({ path, label: name });
+    note = `เพิ่มรูป QR รับเงิน “${name}”`;
+  } else {
+    const path = str(form, "path");
+    const at = list.findIndex((q) => q.path === path);
+    if (at < 0) redirect(back);
+    if (op === "rename") {
+      if (!label) redirect(back);
+      note = `เปลี่ยนชื่อ QR “${list[at].label}” → “${label}”`;
+      list[at] = { ...list[at], label };
+    } else {
+      note = `ลบรูป QR รับเงิน “${list[at].label}”`;
+      list.splice(at, 1);
+      await storage.remove([path]).catch(() => {});
     }
   }
-  const old = await repos.stores.setPayQr(storeId, path);
-  if (old) await storage.remove([old]).catch(() => {});
+  await repos.stores.setPayQrs(storeId, list);
   await audit(storeId, user, "settings.update", {
     entityType: "store",
     entityId: storeId,
     entityName: store.name,
-    note: path ? "ตั้งรูป QR รับเงิน" : "ลบรูป QR รับเงิน",
+    note,
   });
-  redirect(`${back}?qr=${path ? "saved" : "removed"}#pay-qr`);
+  redirect(`${back}?qr=${op === "add" ? "saved" : op === "rename" ? "renamed" : "removed"}#pay-qr`);
 }

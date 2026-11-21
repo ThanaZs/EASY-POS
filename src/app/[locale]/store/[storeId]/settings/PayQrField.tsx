@@ -1,7 +1,8 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { ImageUp, LoaderCircle, QrCode, Trash2 } from "lucide-react";
+import { ImageUp, LoaderCircle, Pencil, QrCode, Trash2 } from "lucide-react";
+import { fill } from "@/core/lib/format";
 import type { Dictionary } from "@/i18n/dictionary";
 import { savePayQrAction } from "./actions";
 
@@ -49,35 +50,43 @@ async function shrink(file: File): Promise<Blob> {
   return last;
 }
 
+type Qr = { path: string; label: string; url: string };
+
+/** การ์ด "QR รับเงิน" ในตั้งค่าร้าน: หลายรูป (หลายธนาคาร/บัญชี) — เพิ่ม / แก้ชื่อ / ลบ */
 export function PayQrField({
   locale,
   storeId,
-  url,
+  qrs,
   status,
   t,
 }: {
   locale: string;
   storeId: string;
-  url: string | null;
+  qrs: Qr[];
   status?: string;
   t: Dictionary["settings"]["payQr"];
 }) {
   const form = useRef<HTMLFormElement>(null);
   const file = useRef<HTMLInputElement>(null);
+  const label = useRef<HTMLInputElement>(null);
   const pick = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const full = qrs.length >= 6;
 
   async function onPick(f: File | undefined) {
     if (!f) return;
     setError("");
+    const name = window.prompt(t.namePrompt, `QR ${qrs.length + 1}`);
+    if (name === null) return;
     setBusy(true);
     try {
       const blob = await shrink(f);
-      const ext = blob.type.split("/")[1] ?? "png";
+      const ext = blob.type.split("/")[1] ?? "jpg";
       const dt = new DataTransfer();
       dt.items.add(new File([blob], `qr.${ext}`, { type: blob.type }));
       file.current!.files = dt.files;
+      label.current!.value = name.trim();
       form.current!.requestSubmit();
     } catch {
       setBusy(false);
@@ -85,19 +94,24 @@ export function PayQrField({
     }
   }
 
-  const msg =
-    status === "saved"
-      ? t.saved
-      : status === "removed"
-        ? t.removed
-        : status === "invalid"
-          ? t.invalid
-          : status === "big"
-            ? t.big
-            : status === "failed"
-              ? t.failed
-              : "";
-  const bad = ["invalid", "big", "failed"].includes(status ?? "");
+  const msgs: Record<string, string> = {
+    saved: t.saved,
+    removed: t.removed,
+    renamed: t.renamed,
+    invalid: t.invalid,
+    big: t.big,
+    failed: t.failed,
+    full: t.full,
+  };
+  const msg = error || (status ? (msgs[status] ?? "") : "");
+  const bad =
+    !!error || ["invalid", "big", "failed", "full"].includes(status ?? "");
+  const hidden = (
+    <>
+      <input type="hidden" name="locale" value={locale} />
+      <input type="hidden" name="storeId" value={storeId} />
+    </>
+  );
 
   return (
     <section
@@ -110,61 +124,98 @@ export function PayQrField({
         </h2>
         <p className="text-sm text-muted">{t.hint}</p>
       </div>
-      {(msg || error) && (
+      {msg && (
         <p
           role="status"
-          className={`text-sm font-medium ${bad || error ? "text-rose-600" : "text-emerald-600"}`}
+          className={`text-sm font-medium ${bad ? "text-rose-600" : "text-emerald-600"}`}
         >
-          {error || msg}
+          {msg}
         </p>
       )}
 
-      <div className="flex flex-wrap items-center gap-4">
-        {url ? (
-          // eslint-disable-next-line @next/next/no-img-element -- รูปจาก storage
-          <img
-            src={url}
-            alt={t.title}
-            className="w-40 rounded-xl border border-line bg-white object-contain p-1"
-          />
-        ) : (
-          <span className="grid size-40 place-items-center rounded-xl border border-dashed border-line text-muted">
-            <QrCode className="size-12 opacity-40" />
-          </span>
-        )}
-        <div className="flex flex-col gap-2">
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => pick.current?.click()}
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-brand px-4 py-2.5 text-sm font-semibold text-white transition active:scale-95 disabled:opacity-60"
+      <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        {qrs.map((q) => (
+          <li
+            key={q.path}
+            className="flex flex-col gap-2 rounded-xl border border-line p-2"
           >
-            {busy ? (
-              <LoaderCircle className="size-4 animate-spin" />
-            ) : (
-              <ImageUp className="size-4" />
-            )}
-            {busy ? t.saving : url ? t.change : t.upload}
-          </button>
-          {url && (
-            <form action={savePayQrAction}>
-              <input type="hidden" name="locale" value={locale} />
-              <input type="hidden" name="storeId" value={storeId} />
-              <input type="hidden" name="remove" value="1" />
-              <button
-                type="submit"
-                disabled={busy}
-                onClick={(e) => {
-                  if (!window.confirm(t.removeConfirm)) e.preventDefault();
+            {/* eslint-disable-next-line @next/next/no-img-element -- รูปจาก storage */}
+            <img
+              src={q.url}
+              alt={q.label}
+              className="aspect-square w-full rounded-lg bg-white object-contain"
+            />
+            <p className="truncate text-center text-sm font-medium">
+              {q.label}
+            </p>
+            <div className="flex gap-1.5">
+              <form
+                action={savePayQrAction}
+                className="flex-1"
+                onSubmit={(e) => {
+                  const name = window.prompt(t.namePrompt, q.label)?.trim();
+                  if (!name || name === q.label) return e.preventDefault();
+                  (
+                    e.currentTarget.elements.namedItem(
+                      "label",
+                    ) as HTMLInputElement
+                  ).value = name;
                 }}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-line px-4 py-2.5 text-sm font-medium text-rose-600 hover:border-rose-300"
               >
-                <Trash2 className="size-4" /> {t.remove}
-              </button>
-            </form>
-          )}
-        </div>
-      </div>
+                {hidden}
+                <input type="hidden" name="op" value="rename" />
+                <input type="hidden" name="path" value={q.path} />
+                <input type="hidden" name="label" value="" />
+                <button
+                  type="submit"
+                  disabled={busy}
+                  className="flex w-full items-center justify-center gap-1 rounded-lg border border-line py-1.5 text-xs font-medium hover:border-brand"
+                >
+                  <Pencil className="size-3.5" /> {t.rename}
+                </button>
+              </form>
+              <form
+                action={savePayQrAction}
+                onSubmit={(e) => {
+                  if (!window.confirm(fill(t.removeConfirm, { name: q.label })))
+                    e.preventDefault();
+                }}
+              >
+                {hidden}
+                <input type="hidden" name="op" value="remove" />
+                <input type="hidden" name="path" value={q.path} />
+                <button
+                  type="submit"
+                  disabled={busy}
+                  aria-label={t.remove}
+                  title={t.remove}
+                  className="grid h-full place-items-center rounded-lg border border-line px-2.5 text-rose-600 hover:border-rose-300"
+                >
+                  <Trash2 className="size-3.5" />
+                </button>
+              </form>
+            </div>
+          </li>
+        ))}
+        {!full && (
+          <li>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => pick.current?.click()}
+              className="flex aspect-square h-auto w-full flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-line text-sm font-semibold text-brand-ink transition hover:border-brand active:scale-95 disabled:opacity-60"
+            >
+              {busy ? (
+                <LoaderCircle className="size-7 animate-spin" />
+              ) : (
+                <ImageUp className="size-7" />
+              )}
+              {busy ? t.saving : t.upload}
+            </button>
+          </li>
+        )}
+      </ul>
+      {full && <p className="text-xs text-muted">{t.full}</p>}
 
       {/* เลือกไฟล์ (ไม่ส่งตรง) → ย่อแล้วใส่ช่องที่ส่งจริง */}
       <input
@@ -178,8 +229,9 @@ export function PayQrField({
         }}
       />
       <form ref={form} action={savePayQrAction} hidden>
-        <input type="hidden" name="locale" value={locale} />
-        <input type="hidden" name="storeId" value={storeId} />
+        {hidden}
+        <input type="hidden" name="op" value="add" />
+        <input ref={label} type="hidden" name="label" />
         <input ref={file} type="file" name="qr" />
       </form>
     </section>
