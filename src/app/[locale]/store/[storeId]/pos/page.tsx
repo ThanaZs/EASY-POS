@@ -49,6 +49,7 @@ export default async function PosPage({
       taxRateBp={store.taxRateBp}
       taxIncluded={store.taxIncluded}
       canDiscount={can(member, "pos.discount")}
+      canEditBill={can(member, "pos.refund")}
       allowNegativeStock={store.allowNegativeStock}
       receiptFooter={store.receiptFooter}
       payQrs={

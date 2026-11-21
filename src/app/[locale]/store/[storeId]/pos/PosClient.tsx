@@ -7,6 +7,7 @@ import { compareText } from "@/core/lib/compare";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import {
   Camera,
+  FilePenLine,
   LoaderCircle,
   PauseCircle,
   Minus,
@@ -32,7 +33,7 @@ import {
 } from "@/core/lib/format";
 import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionary";
-import { checkoutAction } from "./actions";
+import { checkoutAction, editSaleAction } from "./actions";
 import { PosScanView } from "./PosScanView";
 import { Receipt, type ReceiptData } from "./Receipt";
 
@@ -85,6 +86,8 @@ type Props = {
   taxRateBp: number;
   taxIncluded: boolean;
   canDiscount: boolean;
+  /** แก้บิลหลังขาย (= ยกเลิกบิลเดิม แล้วนำของกลับเข้าตะกร้า) — สิทธิ์ pos.refund */
+  canEditBill: boolean;
   allowNegativeStock: boolean;
   receiptFooter: string;
   /** รูป QR รับเงินของร้าน (ตั้งค่าร้าน) — หลายอัน = เลือกสลับได้ */
@@ -117,6 +120,11 @@ export function PosClient(props: Props) {
   const [receivedText, setReceivedText] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [receipt, setReceipt] = useState<ReceiptData | null>(null);
+  // ตะกร้าของบิลที่เพิ่งขาย — ไว้ "แก้บิล" (นำกลับเข้าตะกร้า)
+  const [lastBill, setLastBill] = useState<{
+    cart: Map<string, number>;
+    discountText: string;
+  } | null>(null);
   const [pending, startTransition] = useTransition();
   const searchRef = useRef<HTMLInputElement>(null);
   const [scanOpen, setScanOpen] = useState(false);
@@ -427,6 +435,7 @@ export function PosClient(props: Props) {
         return;
       }
       setReceipt(res.receipt);
+      setLastBill({ cart: new Map(cart), discountText });
       if (getAutoPrint()) void printReceipt(res.receipt);
       setCart(new Map());
       setDiscountText("");
@@ -437,8 +446,39 @@ export function PosClient(props: Props) {
     });
   }
 
+  /** แก้บิล: ยกเลิกบิลที่เพิ่งขาย → ของกลับเข้าตะกร้า เพิ่มสินค้าแล้วชำระใหม่ */
+  function editBill() {
+    if (!receipt || !lastBill) return;
+    if (!window.confirm(fill(t.pos.editBillConfirm, { no: receipt.receiptNo })))
+      return;
+    const bill = lastBill;
+    startTransition(async () => {
+      const res = await editSaleAction({
+        locale,
+        storeId: props.storeId,
+        saleId: receipt.id,
+        reason: t.pos.editBillReason,
+      });
+      if (!res.ok) {
+        window.alert(t.pos.editBillFailed);
+        return;
+      }
+      setCart(
+        new Map([...bill.cart].filter(([k]) => byId.has(parseKey(k).id))),
+      );
+      setDiscountText(bill.discountText);
+      setLastBill(null);
+      setReceipt(null);
+      setMethod("cash");
+      setCartOpen(true);
+      setScanStatus(fill(t.pos.editBillDone, { no: receipt.receiptNo }));
+      router.refresh(); // สต็อกคืนแล้ว
+    });
+  }
+
   function newSale() {
     setReceipt(null);
+    setLastBill(null);
     setMethod("cash");
     searchRef.current?.focus();
   }
@@ -1026,6 +1066,20 @@ export function PosClient(props: Props) {
               >
                 {t.pos.newSale}
               </button>
+              {props.canEditBill && lastBill && (
+                <button
+                  onClick={editBill}
+                  disabled={pending}
+                  className="col-span-2 flex items-center justify-center gap-1.5 rounded-xl border border-dashed border-neutral-300 px-3 py-2 text-sm font-medium text-neutral-700 hover:border-brand disabled:opacity-60"
+                >
+                  {pending ? (
+                    <LoaderCircle className="size-4 animate-spin" />
+                  ) : (
+                    <FilePenLine className="size-4" />
+                  )}
+                  {t.pos.editBill}
+                </button>
+              )}
             </div>
           </div>
         </div>

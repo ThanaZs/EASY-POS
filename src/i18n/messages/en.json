@@ -433,7 +433,12 @@
     "seconds": "{n} s",
     "itemsCount": "{n} items",
     "clearConfirmTitle": "Clear the cart?",
-    "clearConfirmText": "{n} items totalling {total} will be removed"
+    "clearConfirmText": "{n} items totalling {total} will be removed",
+    "editBill": "Edit bill / add items",
+    "editBillConfirm": "Edit bill {no}?\nThis bill will be voided (stock returned) and its items put back in the cart — add items and pay again for a new bill number",
+    "editBillReason": "Edited bill (customer added items)",
+    "editBillDone": "Bill {no} voided — add items and pay again",
+    "editBillFailed": "Could not edit the bill (it may already be voided)"
   },
   "overview": {
     "today": "Sales today",
