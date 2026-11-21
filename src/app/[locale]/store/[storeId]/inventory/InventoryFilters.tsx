@@ -16,6 +16,7 @@ import type { Dictionary } from "@/i18n/dictionary";
 import { useBarcodeScanner } from "@/client/devices/scanner";
 import type { CategoryNode } from "@/core/ports/repositories";
 import { fill } from "@/core/lib/format";
+import { toEnglishLayout } from "@/core/lib/keyboard";
 import { renameCategoryAction } from "./actions";
 
 /** เขียน cookie ตัวกรองล่าสุดของหน้า (อ่านที่ server/filters.ts) — ว่าง = ลบ */
@@ -24,6 +25,10 @@ export function rememberFilters(pathname: string, search: string) {
   if (!storeId || (page !== "inventory" && page !== "history")) return;
   const p = new URLSearchParams(search);
   for (const k of ["product", "reset"]) p.delete(k);
+  // บาร์โค้ด (ตัวเลขล้วน ≥6 หลัก) = ค้นครั้งเดียว ไม่จำ → กลับมาหน้านี้ช่องค้นหาว่าง; ค้นด้วยชื่อยังจำไว้
+  // (ยิงตอนคีย์บอร์ดค้างภาษาไทย ได้ "ๅ/-ภ…" → แปลงเป็นตัวเลขก่อนเช็ค)
+  if (/^\d{6,}$/.test(toEnglishLayout((p.get("q") ?? "").trim())))
+    p.delete("q");
   const qs = p.toString();
   document.cookie = `epf_${page}_${storeId}=${encodeURIComponent(qs)}; path=/; max-age=${qs ? 43200 : 0}; samesite=lax`;
 }
