@@ -13,9 +13,12 @@ import { setInputValue } from "@/client/devices/scanner";
 // - กดปุ่มมีป้ายตัวอักษรเด้งเหนือนิ้ว, กดค้างลบ = ลบรัว, 🌐 สลับไทย/อังกฤษ
 // - ปิด: ปุ่ม "เสร็จ" หรือแตะนอกคีย์บอร์ด (ปัดจอไม่ปิด); Android/คอม ไม่ใช้เลย
 
+// ต้องเป็นจอสัมผัสด้วย — คอม (เมาส์/คีย์บอร์ดจริง) ไม่แสดงคีย์บอร์ดบนจอเด็ดขาด
 const isIOS = () =>
-  /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-  (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
+  navigator.maxTouchPoints > 0 &&
+  !/Windows|Linux x86|CrOS/.test(navigator.userAgent) &&
+  (/iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1));
 
 type Mode = "num" | "th" | "en" | "sym" | "sym2";
 type Target = HTMLInputElement | HTMLTextAreaElement;
