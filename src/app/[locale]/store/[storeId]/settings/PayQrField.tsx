@@ -1,5 +1,6 @@
 "use client";
 
+import { askConfirm, askText, confirmSubmit } from "@/components/AppDialog";
 import { useRef, useState } from "react";
 import { ImageUp, LoaderCircle, Pencil, QrCode, Trash2 } from "lucide-react";
 import { fill } from "@/core/lib/format";
@@ -77,7 +78,7 @@ export function PayQrField({
   async function onPick(f: File | undefined) {
     if (!f) return;
     setError("");
-    const name = window.prompt(t.namePrompt, `QR ${qrs.length + 1}`);
+    const name = await askText(t.namePrompt, `QR ${qrs.length + 1}`);
     if (name === null) return;
     setBusy(true);
     try {
@@ -153,13 +154,14 @@ export function PayQrField({
                 action={savePayQrAction}
                 className="flex-1"
                 onSubmit={(e) => {
-                  const name = window.prompt(t.namePrompt, q.label)?.trim();
-                  if (!name || name === q.label) return e.preventDefault();
-                  (
-                    e.currentTarget.elements.namedItem(
-                      "label",
-                    ) as HTMLInputElement
-                  ).value = name;
+                  const f = e.currentTarget;
+                  confirmSubmit(e, async () => {
+                    const name = await askText(t.namePrompt, q.label);
+                    if (!name || name === q.label) return false;
+                    (f.elements.namedItem("label") as HTMLInputElement).value =
+                      name;
+                    return true;
+                  });
                 }}
               >
                 {hidden}
@@ -176,10 +178,14 @@ export function PayQrField({
               </form>
               <form
                 action={savePayQrAction}
-                onSubmit={(e) => {
-                  if (!window.confirm(fill(t.removeConfirm, { name: q.label })))
-                    e.preventDefault();
-                }}
+                onSubmit={(e) =>
+                  confirmSubmit(e, () =>
+                    askConfirm(fill(t.removeConfirm, { name: q.label }), {
+                      ok: t.remove,
+                      danger: true,
+                    }),
+                  )
+                }
               >
                 {hidden}
                 <input type="hidden" name="op" value="remove" />

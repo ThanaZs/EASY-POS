@@ -1,5 +1,6 @@
 "use client";
 
+import { askConfirm, confirmSubmit } from "@/components/AppDialog";
 import { useMemo, useState } from "react";
 import { Camera, ImageOff, Merge, Search, X } from "lucide-react";
 import { CameraScanner } from "@/components/CameraScanner";
@@ -63,8 +64,7 @@ export function MergeAsPack({
       .slice(0, 6);
   }, [q, options]);
   const n = Number.parseInt(size, 10);
-  const ok =
-    !!target && Number.isFinite(n) && n >= 2 && !!packUnit.trim();
+  const ok = !!target && Number.isFinite(n) && n >= 2 && !!packUnit.trim();
   /** สแกนบาร์โค้ดสินค้าปลีก → เลือกให้เลย */
   const byCode = (raw: string) => {
     const c = toEnglishLayout(raw.trim());
@@ -92,11 +92,13 @@ export function MergeAsPack({
       <form
         action={mergeAsPackAction}
         onSubmit={(e) => {
-          if (
-            !target ||
-            !window.confirm(fill(t.confirm, { a: source.name, b: target.name }))
-          )
-            e.preventDefault();
+          if (!target) return e.preventDefault();
+          confirmSubmit(e, () =>
+            askConfirm(fill(t.confirm, { a: source.name, b: target.name }), {
+              ok: t.title,
+              danger: true,
+            }),
+          );
         }}
         className="space-y-3 border-t border-line p-4"
       >
@@ -209,12 +211,14 @@ export function MergeAsPack({
         {/* ผลลัพธ์ที่จะเกิด */}
         {ok && target && (
           <ul className="list-disc space-y-1 rounded-xl bg-surface p-3 pl-7 text-sm">
-            <li>{fill(t.result1, {
+            <li>
+              {fill(t.result1, {
                 b: target.name,
                 pack: packUnit,
                 n,
                 unit: target.unit,
-              })}</li>
+              })}
+            </li>
             {source.stockQty !== 0 && (
               <li>
                 {fill(t.result2, {

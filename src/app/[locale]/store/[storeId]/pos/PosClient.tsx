@@ -1,5 +1,6 @@
 "use client";
 
+import { askConfirm, showAlert } from "@/components/AppDialog";
 import { useRouter } from "next/navigation";
 import { ClearCartConfirm } from "./ClearCartConfirm";
 import { PayQrView } from "./PayQrView";
@@ -447,10 +448,13 @@ export function PosClient(props: Props) {
   }
 
   /** แก้บิล: ยกเลิกบิลที่เพิ่งขาย → ของกลับเข้าตะกร้า เพิ่มสินค้าแล้วชำระใหม่ */
-  function editBill() {
+  async function editBill() {
     if (!receipt || !lastBill) return;
-    if (!window.confirm(fill(t.pos.editBillConfirm, { no: receipt.receiptNo })))
-      return;
+    const ok = await askConfirm(
+      fill(t.pos.editBillConfirm, { no: receipt.receiptNo }),
+      { ok: t.pos.editBillOk },
+    );
+    if (!ok) return;
     const bill = lastBill;
     startTransition(async () => {
       const res = await editSaleAction({
@@ -460,7 +464,7 @@ export function PosClient(props: Props) {
         reason: t.pos.editBillReason,
       });
       if (!res.ok) {
-        window.alert(t.pos.editBillFailed);
+        void showAlert(t.pos.editBillFailed);
         return;
       }
       setCart(

@@ -1,4 +1,5 @@
 import "server-only";
+import { DialogHost } from "@/components/AppDialog";
 import { Suspense } from "react";
 import { InstallPrompt } from "@/components/InstallPrompt";
 import { AppShell, type ShellNav } from "@/components/AppShell";
@@ -49,6 +50,7 @@ export async function Shell({
       <Suspense>
         <InstallPrompt t={t.install} />
       </Suspense>
+      <DialogHost t={t.common.dialog} />
       {children}
     </AppShell>
   );

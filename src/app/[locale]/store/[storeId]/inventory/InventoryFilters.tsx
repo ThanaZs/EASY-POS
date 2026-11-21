@@ -1,5 +1,6 @@
 "use client";
 
+import { askText, showAlert } from "@/components/AppDialog";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import {
@@ -112,17 +113,21 @@ export function InventoryFilters({
     const on = row?.querySelector<HTMLElement>('[aria-pressed="true"]');
     if (!row || !on) return;
     const end = on.offsetLeft + on.offsetWidth + 44; // + ปุ่มดินสอ
-    if (on.offsetLeft < row.scrollLeft || end > row.scrollLeft + row.clientWidth)
-      row.scrollTo({ left: Math.max(0, on.offsetLeft - 16), behavior: "smooth" });
+    if (
+      on.offsetLeft < row.scrollLeft ||
+      end > row.scrollLeft + row.clientWidth
+    )
+      row.scrollTo({
+        left: Math.max(0, on.offsetLeft - 16),
+        behavior: "smooth",
+      });
   }, [selSub, selCat]);
   /** แก้ชื่อหมวด (kind=cat) หรือหมวดย่อยที่เลือกอยู่ (kind=sub) — ใช้ช่องถามของเครื่อง (ง่าย ไม่ต้องมีหน้าใหม่) */
   async function renameIt(kind: "cat" | "sub") {
     if (!rename || renaming) return;
     const from = kind === "cat" ? selCat : selSub;
     if (!from || from === NO_SUB) return;
-    const to = window
-      .prompt(fill(rename.t.renamePrompt, { name: from }), from)
-      ?.trim();
+    const to = await askText(fill(rename.t.renamePrompt, { name: from }), from);
     if (!to || to === from) return;
     setRenaming(true);
     const res = await renameCategoryAction({
@@ -134,7 +139,7 @@ export function InventoryFilters({
       to,
     }).catch(() => ({ ok: false as const }));
     setRenaming(false);
-    if (!res.ok) return window.alert(rename.t.renameFailed);
+    if (!res.ok) return void showAlert(rename.t.renameFailed);
     if (kind === "cat") {
       setSelCat(res.to);
       apply({ cat: res.to, sub: selSub });

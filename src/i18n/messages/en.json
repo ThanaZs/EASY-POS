@@ -141,6 +141,10 @@
       "save": "Save",
       "leave": "Leave without saving",
       "stay": "Stay on this page"
+    },
+    "dialog": {
+      "ok": "OK",
+      "cancel": "Cancel"
     }
   },
   "roles": {
@@ -274,7 +278,7 @@
       "result2": "Stock {q} {pack} → adds {total} {unit}",
       "result3": "“{a}” will be deactivated (old bills still visible)",
       "submit": "Merge into one product",
-      "confirm": "Merge “{a}” as a case of “{b}”? This cannot be undone",
+      "confirm": "Merge “{a}” as a pack of “{b}”?\nThis cannot be undone",
       "done": "Merged — this product now sells by piece and by case",
       "notFound": "No product with barcode {code}"
     },
@@ -296,7 +300,7 @@
     },
     "renameCat": "Rename category",
     "renameSub": "Rename subcategory",
-    "renamePrompt": "New name for “{name}” (all products in it follow — matching an existing name merges them)",
+    "renamePrompt": "Rename “{name}”\nEvery product in this category will change too — if the new name matches an existing category, they will be merged",
     "renamed": "Renamed to “{name}” ({n} items)",
     "renameFailed": "Rename failed"
   },
@@ -445,7 +449,8 @@
     "editBillConfirm": "Edit bill {no}?\nThis bill will be voided (stock returned) and its items put back in the cart — add items and pay again for a new bill number",
     "editBillReason": "Edited bill (customer added items)",
     "editBillDone": "Bill {no} voided — add items and pay again",
-    "editBillFailed": "Could not edit the bill (it may already be voided)"
+    "editBillFailed": "Could not edit the bill (it may already be voided)",
+    "editBillOk": "Edit bill"
   },
   "overview": {
     "today": "Sales today",
@@ -520,7 +525,7 @@
       "scan": "Customer scans to pay",
       "none": "No payment QR yet — add it in Store settings › Payment QR",
       "rename": "Rename",
-      "namePrompt": "Name this QR (e.g. KBank, shop PromptPay)",
+      "namePrompt": "Name this QR\ne.g. KBank, shop PromptPay",
       "renamed": "Renamed",
       "full": "Up to 6 images"
     }
