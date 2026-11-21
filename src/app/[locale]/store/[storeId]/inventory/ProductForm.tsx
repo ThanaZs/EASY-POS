@@ -1,3 +1,4 @@
+import { UnsavedGuard } from "@/components/UnsavedGuard";
 import { ChevronDown } from "lucide-react";
 import { Alert, pickMessage } from "@/components/Alert";
 import { Field, PrimaryButton } from "@/components/Field";
@@ -76,6 +77,7 @@ export function ProductForm({
     >
       <input type="hidden" name="locale" value={locale} />
       <input type="hidden" name="storeId" value={store.id} />
+      <UnsavedGuard t={t.common.unsaved} />
       {product && <input type="hidden" name="productId" value={product.id} />}
       <input type="hidden" name="sku" value={product?.sku ?? ""} />
       {msg && (

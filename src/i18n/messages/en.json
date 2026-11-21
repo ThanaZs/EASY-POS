@@ -134,7 +134,14 @@
   },
   "common": {
     "language": "Language",
-    "comingSoon": "Coming soon"
+    "comingSoon": "Coming soon",
+    "unsaved": {
+      "title": "Unsaved changes",
+      "message": "You changed something but haven't saved it. If you leave now, your changes will be lost.",
+      "save": "Save",
+      "leave": "Leave without saving",
+      "stay": "Stay on this page"
+    }
   },
   "roles": {
     "owner": "Owner",

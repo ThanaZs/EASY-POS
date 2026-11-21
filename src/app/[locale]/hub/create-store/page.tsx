@@ -1,3 +1,4 @@
+import { UnsavedGuard } from "@/components/UnsavedGuard";
 import { Card, Field, PrimaryButton } from "@/components/Field";
 import { PageTitle } from "@/components/PageTitle";
 import { currencyOptions, Select, timeZoneOptions } from "@/components/Select";
@@ -16,6 +17,7 @@ export default async function CreateStorePage({
       <PageTitle title={t.hub.createStore} className="mb-4" />
       <Card>
         <form action={createStoreAction} className="space-y-4">
+          <UnsavedGuard t={t.common.unsaved} />
           <input type="hidden" name="locale" value={locale} />
           <Field
             label={t.createStore.storeName}

@@ -1,3 +1,4 @@
+import { UnsavedGuard } from "@/components/UnsavedGuard";
 import { Alert } from "@/components/Alert";
 import { PageTitle } from "@/components/PageTitle";
 import { Card, Field, PrimaryButton } from "@/components/Field";
@@ -39,6 +40,7 @@ export default async function SettingsPage({
       />
       <Card>
         <form action={saveSettingsAction} className="space-y-4">
+          <UnsavedGuard t={t.common.unsaved} />
           <input type="hidden" name="locale" value={locale} />
           <input type="hidden" name="storeId" value={storeId} />
           {sp.saved === "1" && <Alert kind="success">{s.saved}</Alert>}

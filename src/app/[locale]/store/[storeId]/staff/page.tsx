@@ -1,3 +1,4 @@
+import { UnsavedGuard } from "@/components/UnsavedGuard";
 import { Trash2 } from "lucide-react";
 import { PageTitle } from "@/components/PageTitle";
 import { ConfirmSubmit } from "@/components/ConfirmSubmit";
@@ -98,6 +99,7 @@ export default async function StaffPage({
               action={createInviteAction}
               className="grid gap-3 sm:grid-cols-3 sm:items-end"
             >
+              <UnsavedGuard t={t.common.unsaved} />
               {hidden}
               <Select
                 label={t.staff.role}

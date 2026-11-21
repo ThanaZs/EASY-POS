@@ -1,3 +1,4 @@
+import { UnsavedGuard } from "@/components/UnsavedGuard";
 import { Alert, pickMessage } from "@/components/Alert";
 import { PageTitle } from "@/components/PageTitle";
 import { Card, Field, PrimaryButton } from "@/components/Field";
@@ -47,6 +48,7 @@ export default async function AccountPage({
       <PageTitle title={t.hub.account} />
       <Card>
         <form action={saveAccountAction} className="space-y-4">
+          <UnsavedGuard t={t.common.unsaved} />
           <input type="hidden" name="locale" value={locale} />
           {sp.saved === "1" && <Alert kind="success">{a.saved}</Alert>}
           <p className="text-sm text-muted">{user.email}</p>
@@ -79,6 +81,7 @@ export default async function AccountPage({
           {hasPassword ? (
             <>
               <form action={changePasswordAction} className="space-y-4">
+                <UnsavedGuard t={t.common.unsaved} />
                 <input type="hidden" name="locale" value={locale} />
                 {sp.pw === "ok" && (
                   <Alert kind="success">{a.passwordChanged}</Alert>

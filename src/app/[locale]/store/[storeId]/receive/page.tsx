@@ -1,3 +1,4 @@
+import { UnsavedGuard } from "@/components/UnsavedGuard";
 import { Alert } from "@/components/Alert";
 import { PageTitle } from "@/components/PageTitle";
 import { Card, Field, PrimaryButton } from "@/components/Field";
@@ -58,6 +59,7 @@ export default async function ReceivePage({
             action={stockMoveAction}
             className="group grid grid-cols-1 gap-4 sm:grid-cols-2"
           >
+            <UnsavedGuard t={t.common.unsaved} />
             <input type="hidden" name="locale" value={locale} />
             <input type="hidden" name="storeId" value={storeId} />
             {sp.error === "noPack" && (
